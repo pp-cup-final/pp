@@ -1,0 +1,26 @@
+{
+  "name": "osu-participation-app",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "axios": "^1.11.0",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "express-session": "^1.18.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pp-cup/pp-cup.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pp-cup/pp-cup/issues"
+  },
+  "homepage": "https://github.com/pp-cup/pp-cup#readme",
+  "description": ""
+}

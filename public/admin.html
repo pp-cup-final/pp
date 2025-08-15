@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Редактирование участников</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f9fafb; color: #333; }
+    table { border-collapse: collapse; width: 100%; background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    th, td { border: 1px solid #e0e3e7; padding: 10px; text-align: center; }
+    th { background: #f0f2f5; font-weight: 600; }
+    tr:hover { background-color: #f5f7fa; }
+    button { padding: 6px 12px; border: none; background: #e53e3e; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    button:hover { background: #c53030; }
+  </style>
+</head>
+<body>
+  <h1>Участники (Редактор)</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Ник</th>
+        <th>PP при вступлении</th>
+        <th>PP сейчас</th>
+        <th>Удалить</th>
+      </tr>
+    </thead>
+    <tbody id="participantTable">
+      <tr><td colspan="5">Загрузка...</td></tr>
+    </tbody>
+  </table>
+
+  <script>
+    const adminKey = "danya1979Dima"; // Замени на свой реальный ключ из .env
+    async function loadParticipants() {
+      try {
+        const res = await fetch("/participants");
+        const data = await res.json();
+        console.log("Участники получены:", data);
+
+        const tbody = document.getElementById("participantTable");
+        tbody.innerHTML = "";
+
+        if (!Array.isArray(data) || data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5">Нет участников.</td></tr>';
+          return;
+        }
+
+        data.forEach(p => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${p.id}</td>
+            <td>${p.username}</td>
+            <td>${p.pp_at_join}</td>
+            <td>${p.pp_now}</td>
+            <td><button onclick="deleteParticipant(${p.id})">🗑️</button></td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (err) {
+        console.error("Ошибка при загрузке участников:", err);
+        alert("Не удалось загрузить участников.");
+      }
+    }
+
+    async function deleteParticipant(id) {
+      if (!confirm("Удалить этого участника?")) return;
+      try {
+        const res = await fetch("/admin/delete?id=" + id + "&key=" + adminKey);
+        if (res.ok) {
+          loadParticipants();
+        } else {
+          alert("Ошибка удаления.");
+        }
+      } catch (err) {
+        console.error("Ошибка при удалении:", err);
+        alert("Ошибка при удалении.");
+      }
+    }
+
+    loadParticipants();
+  </script>
+</body>
+</html>
