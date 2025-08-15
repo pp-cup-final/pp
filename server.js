@@ -33,7 +33,7 @@ function saveData(data) {
 let osuAccessToken = null;
 const osuClientId = process.env.OSU_CLIENT_ID;
 const osuClientSecret = process.env.OSU_CLIENT_SECRET;
-const redirectUri = process.env.REDIRECT_URI || 'https://pp-cup-ppcup-727c.twc1.net/auth/callback';
+const redirectUri = process.env.REDIRECT_URI || 'https://pp-cup-final-pp-b5fb.twc1.net/auth/callback';
 
 async function fetchOsuAccessToken() {
   try {
@@ -276,5 +276,5 @@ app.post('/api/unparticipate', (req, res) => {
 
 // === Запуск сервера ===
 app.listen(PORT, () => {
-  console.log(`Server running on https://pp-cup-ppcup-727c.twc1.net:${PORT}`);
+  console.log(`Server running on https://pp-cup-final-pp-b5fb.twc1.net:${PORT}`);
 });
