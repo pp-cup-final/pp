@@ -239,7 +239,7 @@ app.post('/api/participate', (req, res) => {
   }
 
   const ppStart = user.statistics?.pp || 0;
-  const ppEnd = ppStart + 1000; // Для тестов: добавляем 1000 PP
+  const ppEnd = ppStart; // Для тестов: добавляем 1000 PP
 
   const newEntry = {
     UserID: user.id,
