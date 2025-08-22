@@ -260,8 +260,6 @@ app.post("/api/unparticipate", (req, res) => {
 });
 
 // === Запуск сервера ===
-app.listen(PORT, () => {
-  console.log(
-    `Server running on https://pp-cup-final-pp-b5fb.twc1.net:${PORT}`
-  );
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`✅ Server running on port ${PORT}`);
 });
