@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static('public'));
 app.use(express.json());
 app.use(session({
-  secret: 'some secret here', // Лучше вынести в .env
+  secret: process.env.SESSION_SECRET || 'some secret here',
   resave: false,
   saveUninitialized: true,
 }));
@@ -31,6 +31,8 @@ function saveData(data) {
 
 // === osu! API токен ===
 let osuAccessToken = null;
+let osuTokenExpiry = 0;
+
 const osuClientId = process.env.OSU_CLIENT_ID;
 const osuClientSecret = process.env.OSU_CLIENT_SECRET;
 const redirectUri = process.env.REDIRECT_URI || 'https://pp-cup-final-pp-b5fb.twc1.net/auth/callback';
@@ -45,12 +47,21 @@ async function fetchOsuAccessToken() {
     });
 
     osuAccessToken = response.data.access_token;
-    console.log('osu! access token получен');
+    osuTokenExpiry = Date.now() + (response.data.expires_in * 1000); // обычно 3600 сек
+    console.log('osu! access token обновлен');
   } catch (error) {
     console.error('Ошибка получения токена:', error.response?.data || error.message);
   }
 }
 
+async function getOsuAccessToken() {
+  if (!osuAccessToken || Date.now() > osuTokenExpiry - 60000) { // обновляем за минуту до истечения
+    await fetchOsuAccessToken();
+  }
+  return osuAccessToken;
+}
+
+// === Подсчет очков ===
 function calculatePoints(ppStart, ppEnd) {
   const start = Math.floor(ppStart);
   const end = Math.floor(ppEnd);
@@ -67,7 +78,7 @@ function calculatePoints(ppStart, ppEnd) {
     const delta = upper - lower;
 
     if (delta > 0) {
-      const multiplier = (thousand) / 1000;
+      const multiplier = thousand / 1000;
       points += delta * multiplier;
     }
   }
@@ -92,20 +103,13 @@ function updatePositions(data) {
 
 // === Обновление PP участников ===
 async function updateParticipantsPP() {
-  if (!osuAccessToken) {
-    console.warn('Нет osuAccessToken, попытка получить заново...');
-    await fetchOsuAccessToken();
-    if (!osuAccessToken) return;
-  }
-
   const data = loadData();
 
   for (let participant of data) {
     try {
+      const token = await getOsuAccessToken();
       const res = await axios.get(`https://osu.ppy.sh/api/v2/users/${participant.Nickname}/osu`, {
-        headers: {
-          Authorization: `Bearer ${osuAccessToken}`,
-        }
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       const currentPP = res.data.statistics.pp;
@@ -131,24 +135,8 @@ fetchOsuAccessToken().then(() => {
 
 app.get('/api/data', (req, res) => {
   const data = loadData();
-
-  // Сортируем по очкам и обновляем позиции
-  data.sort((a, b) => b.Points - a.Points);
-
-  let lastPoints = null;
-  let lastPosition = 0;
-
-  data.forEach((participant, index) => {
-    if (participant.Points !== lastPoints) {
-      lastPosition = index + 1;
-      lastPoints = participant.Points;
-    }
-    participant.Position = lastPosition;
-  });
-
-  // Сохраняем обновленные позиции в файл
+  updatePositions(data);
   saveData(data);
-
   res.json(data);
 });
 
@@ -179,9 +167,7 @@ app.get('/auth/callback', async (req, res) => {
     const accessToken = tokenResponse.data.access_token;
 
     const userResponse = await axios.get('https://osu.ppy.sh/api/v2/me', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
 
     req.session.user = userResponse.data;
@@ -202,6 +188,8 @@ app.get('/auth/logout', (req, res) => {
     res.redirect('/');
   });
 });
+
+// Удаление участника
 app.delete('/api/participant/:nickname', (req, res) => {
   if (!req.session.user || req.session.user.username !== 'LLIaBKa') {
     return res.status(403).json({ error: 'Not authorized' });
@@ -214,7 +202,7 @@ app.delete('/api/participant/:nickname', (req, res) => {
   res.json({ success: true });
 });
 
-// Очистить всю таблицу
+// Очистка таблицы
 app.delete('/api/participants', (req, res) => {
   if (!req.session.user || req.session.user.username !== 'LLIaBKa') {
     return res.status(403).json({ error: 'Not authorized' });
@@ -223,10 +211,7 @@ app.delete('/api/participants', (req, res) => {
   saveData([]);
   res.json({ success: true });
 });
-app.get('/api/me', (req, res) => {
-  if (!req.session.user) return res.status(401).json({});
-  res.json(req.session.user);
-});
+
 // === Участие ===
 app.post('/api/participate', (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
@@ -239,7 +224,7 @@ app.post('/api/participate', (req, res) => {
   }
 
   const ppStart = user.statistics?.pp || 0;
-  const ppEnd = ppStart; // Для тестов: добавляем 1000 PP
+  const ppEnd = ppStart;
 
   const newEntry = {
     UserID: user.id,
@@ -276,5 +261,5 @@ app.post('/api/unparticipate', (req, res) => {
 
 // === Запуск сервера ===
 app.listen(PORT, () => {
-  console.log(`Server running on https://pp-cup-final-pp-b5fb.twc1.net:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
