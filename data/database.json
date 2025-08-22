@@ -1,1 +1,81 @@
-[]
+{
+    "UserID": 15919161,
+    "Avatar": "https://a.ppy.sh/15919161?1750314490.jpeg",
+    "Nickname": "abku stupid",
+    "PPstart": 13005.5,
+    "PPend": 13039,
+    "Points": 442,
+    "Position": 1
+  },
+  {
+    "UserID": 35341591,
+    "Avatar": "https://a.ppy.sh/35341591?1733942634.jpeg",
+    "Nickname": "Furusato",
+    "PPstart": 6957.36,
+    "PPend": 7026.59,
+    "Points": 440,
+    "Position": 2
+  },
+  {
+    "UserID": 10644834,
+    "Avatar": "https://a.ppy.sh/10644834?1753693079.jpeg",
+    "Nickname": "Demideum",
+    "PPstart": 7750.04,
+    "PPend": 7750.04,
+    "Points": 0,
+    "Position": 3
+  },
+  {
+    "UserID": 14392652,
+    "Avatar": "https://a.ppy.sh/14392652?1755195562.jpeg",
+    "Nickname": "V A L E R A",
+    "PPstart": 7462.64,
+    "PPend": 7462.64,
+    "Points": 0,
+    "Position": 3
+  },
+  {
+    "UserID": 8636448,
+    "Avatar": "https://a.ppy.sh/8636448?1754829473.png",
+    "Nickname": "Permsky",
+    "PPstart": 10060.3,
+    "PPend": 10060.3,
+    "Points": 0,
+    "Position": 3
+  },
+  {
+    "UserID": 35326698,
+    "Avatar": "https://a.ppy.sh/35326698?1747934092.gif",
+    "Nickname": "KritPls",
+    "PPstart": 5601.71,
+    "PPend": 5601.71,
+    "Points": 0,
+    "Position": 3
+  },
+  {
+    "UserID": 24569891,
+    "Avatar": "https://a.ppy.sh/24569891?1754644003.jpeg",
+    "Nickname": "alarise",
+    "PPstart": 9704.58,
+    "PPend": 9704.58,
+    "Points": 0,
+    "Position": 3
+  },
+  {
+    "UserID": 11072084,
+    "Avatar": "https://a.ppy.sh/11072084?1755637582.png",
+    "Nickname": "Atsacity",
+    "PPstart": 12909.9,
+    "PPend": 12909.9,
+    "Points": 0,
+    "Position": 3
+  },
+  {
+    "UserID": 6523879,
+    "Avatar": "https://a.ppy.sh/6523879?1743794317.png",
+    "Nickname": "LLIaBKa",
+    "PPstart": 12713.9,
+    "PPend": 12713.9,
+    "Points": 0,
+    "Position": 3
+  }
