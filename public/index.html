@@ -151,7 +151,22 @@
         document.getElementById('unparticipate').style.display = 'none';
       }
     }
+    function toggleButtonsVisibility() {
+      const now = new Date();
+      // переводим текущее время в Москву (UTC+3)
+      const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+      const moscow = new Date(utc + 3 * 60 * 60 * 1000);
 
+      const isSunday = moscow.getDay() === 0; // 0 = воскресенье
+
+      const participateBtn = document.getElementById("participate");
+      const leaveBtn = document.getElementById("unparticipate");
+
+      if (participateBtn && leaveBtn) {
+        participateBtn.style.display = isSunday ? "inline-block" : "none";
+        leaveBtn.style.display = isSunday ? "inline-block" : "none";
+      }
+    }
     async function loadData() {
       try {
         const res = await fetch('/api/data');
@@ -217,7 +232,8 @@
         alert(result.error || 'Ошибка при удалении');
       }
     };
-
+    toggleButtonsVisibility();
+    setInterval(toggleButtonsVisibility, 60 * 1000);
     fetchUser().then(loadData);
   </script>
 </body>
