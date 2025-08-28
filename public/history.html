@@ -12,15 +12,6 @@
       color: #eee;
       text-align: center;
     }
-    table a {
-      color: #fff;
-      text-decoration: none;
-      font-weight: bold;
-    }
-    table a:hover {
-      color: #ff6347;
-      text-decoration: underline;
-    }
     h1 {
       text-align: center;
       color: #fff;
@@ -39,7 +30,6 @@
       border-radius: 8px;
       cursor: pointer;
       transition: all 0.3s ease;
-      
     }
     button:hover {
       background-color: #ddd;
@@ -57,6 +47,7 @@
       border-radius: 12px;
       overflow: hidden;
       box-shadow: 0 0 10px rgba(255,255,255,0.05);
+      margin-top: 1rem;
     }
     th, td {
       padding: 14px;
@@ -75,6 +66,15 @@
       border-radius: 50%;
       box-shadow: 0 0 5px rgba(255,255,255,0.1);
     }
+    table a {
+      color: #fff;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    table a:hover {
+      color: #ff6347;
+      text-decoration: underline;
+    }
     @media (max-width: 600px) {
       table, th, td {
         font-size: 12px;
@@ -84,12 +84,13 @@
         font-size: 14px;
       }
     }
-    
   </style>
 </head>
 <body>
-  <div><a href="/" class="button-link"><button>Вернуться на главную</button></a> 
-  <h1>История турнира</h1></div>
+  <div>
+    <a href="/" class="button-link"><button>Вернуться на главную</button></a> 
+    <h1>История турнира</h1>
+  </div>
   <div id="history"></div>
 
   <script>
@@ -102,23 +103,29 @@
 
       history.forEach(week => {
         const details = document.createElement("details");
-        
         details.className = "week";
-        details.innerHTML = `<summary>Неделя: ${week.date}</summary>
-        
+        details.innerHTML = `
+          <summary>Неделя: ${week.date}</summary>
           <table>
-            <tr><th>Позиция</th><th>Аватар</th><th>Игрок</th><th>PPstart</th><th>PPend</th><th>Points</th></tr>
-            ${week.data.map(p => `
             <tr>
-            <td>${p.Position}</td>
-            <td>${p.Avatar}</td>
-            <td>${p.Nickname}</td>
-            <td>${p.PPstart}</td>
-            <td>${p.PPend}</td>
-            <td>${p.Points}</td>
-            </tr>`
-            ).join("")}
-           </table>`;
+              <th>Позиция</th>
+              <th>Аватар</th>
+              <th>Игрок</th>
+              <th>PPstart</th>
+              <th>PPend</th>
+              <th>Points</th>
+            </tr>
+            ${week.data.map(p => `
+              <tr>
+                <td>${p.Position}</td>
+                <td><img src="${p.Avatar}" alt="avatar" width="40" height="40"></td>
+                <td><a href="https://osu.ppy.sh/users/${p.UserID}" target="_blank">${p.Nickname}</a></td>
+                <td>${p.PPstart}</td>
+                <td>${p.PPend}</td>
+                <td>${p.Points}</td>
+              </tr>
+            `).join("")}
+          </table>`;
         container.appendChild(details);
       });
     }
