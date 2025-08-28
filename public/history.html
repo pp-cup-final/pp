@@ -25,10 +25,10 @@
 
       history.forEach(week => {
         const details = document.createElement("details");
-        const div = document.createElement("div");
-        div.className = "week";
-        details.innerHTML = `<h2>Неделя: ${week.date}</h2>`
-        div.innerHTML = `<h2>Неделя: ${week.date}</h2>
+        
+        details.className = "week";
+        details.innerHTML = `<h2>Неделя: ${week.date}</h2>
+        
           <table>
             <tr><th>Игрок</th><th>PPstart</th><th>PPend</th><th>Points</th></tr>
             ${week.data.map(p => `
