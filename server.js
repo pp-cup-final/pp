@@ -39,10 +39,9 @@ cron.schedule(
 );
 
 // Роут для истории
-app.get("/history", (req, res) => {
+app.get("/api/history", (req, res) => {
   fs.readdir(historyDir, (err, files) => {
     if (err) return res.status(500).send("Ошибка чтения истории");
-
     const historyData = files
       .sort()
       .reverse()
@@ -52,9 +51,11 @@ app.get("/history", (req, res) => {
         );
         return { date: file.replace(".json", ""), data: content };
       });
-
     res.json(historyData);
   });
+});
+app.get("/history", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "history.html"));
 });
 app.use(express.static('public'));
 app.use(express.json());

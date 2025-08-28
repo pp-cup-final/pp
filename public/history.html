@@ -17,7 +17,7 @@
 
   <script>
     async function loadHistory() {
-      const res = await fetch("/history");
+      const res = await fetch("/api/history");
       const history = await res.json();
 
       const container = document.getElementById("history");
