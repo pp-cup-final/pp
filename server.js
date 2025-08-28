@@ -17,7 +17,7 @@ if (!fs.existsSync(historyDir)) {
 
 // CRON: каждое воскресенье в 00:00 по Москве
 cron.schedule(
-  "32 16 * * 4",
+  "0 0 * * 0",
   () => {
     const now = new Date();
     const filename = `${now.getFullYear()}-${String(
