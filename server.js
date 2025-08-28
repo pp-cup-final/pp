@@ -17,7 +17,7 @@ if (!fs.existsSync(historyDir)) {
 
 // CRON: каждое воскресенье в 00:00 по Москве
 cron.schedule(
-  "25 16 * * 4",
+  "32 16 * * 4",
   () => {
     const now = new Date();
     const filename = `${now.getFullYear()}-${String(
@@ -25,7 +25,11 @@ cron.schedule(
     ).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}.json`;
 
     const filePath = path.join(historyDir, filename);
-    fs.writeFileSync(filePath, JSON.stringify(participants, null, 2), "utf-8");
+
+    // Загружаем участников из базы
+    const data = loadData();
+
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
 
     console.log(`✅ История сохранена: ${filename}`);
   },
