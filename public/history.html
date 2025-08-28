@@ -75,6 +75,20 @@
       color: #ff6347;
       text-decoration: underline;
     }
+    details {
+        transition: 0.2s background linear;
+        }
+
+        details:hover {
+        background: #dad3b1;
+        }
+    details > summary {
+        transition: color 1s;
+        }
+
+        details[open] > summary {
+        color: #d9103e;
+        }
     @media (max-width: 600px) {
       table, th, td {
         font-size: 12px;
@@ -105,7 +119,7 @@
         const details = document.createElement("details");
         details.className = "week";
         details.innerHTML = `
-          <button><summary>${week.date}</summary></button>
+          <summary>${week.date}</summary>
           <table>
             <tr>
               <th>Позиция</th>
