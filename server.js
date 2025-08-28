@@ -8,8 +8,7 @@ const session = require('express-session');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const cron = require("node-cron");
-const fs = require("fs");
-const path = require("path");
+
 
 // Папка для истории
 const historyDir = path.join(__dirname, "history");
