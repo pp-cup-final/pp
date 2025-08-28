@@ -32,14 +32,14 @@
           <table>
             <tr><th>Игрок</th><th>PPstart</th><th>PPend</th><th>Points</th></tr>
             ${week.data.map(p => `
-              <tr>
-                <td>${p.username}</td>
-                <td>${p.PPstart}</td>
-                <td>${p.PPend}</td>
-                <td>${p.points}</td>
-              </tr>
-            `).join("")}
-          </table>`;
+            <tr>
+            <td>${p.Nickname}</td>
+            <td>${p.PPstart}</td>
+            <td>${p.PPend}</td>
+            <td>${p.Points}</td>
+            </tr>`
+            ).join("")}
+           </table>`;
         container.appendChild(details);
       });
     }
