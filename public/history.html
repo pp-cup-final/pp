@@ -75,6 +75,15 @@
       border-radius: 50%;
       box-shadow: 0 0 5px rgba(255,255,255,0.1);
     }
+    @media (max-width: 600px) {
+      table, th, td {
+        font-size: 12px;
+      }
+      button {
+        padding: 8px 16px;
+        font-size: 14px;
+      }
+    }
     
   </style>
 </head>
@@ -98,7 +107,7 @@
         details.innerHTML = `<summary>Неделя: ${week.date}</summary>
         
           <table>
-            <tr><th>Игрок</th><th>PPstart</th><th>PPend</th><th>Points</th></tr>
+            <tr><th>Позиция</th><th>Аватар</th><th>Игрок</th><th>PPstart</th><th>PPend</th><th>Points</th></tr>
             ${week.data.map(p => `
             <tr>
             <td>${p.Position}</td>
