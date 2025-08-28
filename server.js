@@ -7,7 +7,53 @@ const session = require('express-session');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const cron = require("node-cron");
+const fs = require("fs");
+const path = require("path");
 
+// Папка для истории
+const historyDir = path.join(__dirname, "history");
+if (!fs.existsSync(historyDir)) {
+  fs.mkdirSync(historyDir);
+}
+
+// CRON: каждое воскресенье в 00:00 по Москве
+cron.schedule(
+  "0 0 * * 0",
+  () => {
+    const now = new Date();
+    const filename = `${now.getFullYear()}-${String(
+      now.getMonth() + 1
+    ).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}.json`;
+
+    const filePath = path.join(historyDir, filename);
+    fs.writeFileSync(filePath, JSON.stringify(participants, null, 2), "utf-8");
+
+    console.log(`✅ История сохранена: ${filename}`);
+  },
+  {
+    timezone: "Europe/Moscow",
+  }
+);
+
+// Роут для истории
+app.get("/history", (req, res) => {
+  fs.readdir(historyDir, (err, files) => {
+    if (err) return res.status(500).send("Ошибка чтения истории");
+
+    const historyData = files
+      .sort()
+      .reverse()
+      .map((file) => {
+        const content = JSON.parse(
+          fs.readFileSync(path.join(historyDir, file), "utf-8")
+        );
+        return { date: file.replace(".json", ""), data: content };
+      });
+
+    res.json(historyData);
+  });
+});
 app.use(express.static('public'));
 app.use(express.json());
 app.use(session({
@@ -258,53 +304,7 @@ app.post('/api/unparticipate', (req, res) => {
   saveData(newData);
   res.json({ success: true });
 });
-const cron = require("node-cron");
-const fs = require("fs");
-const path = require("path");
 
-// Папка для истории
-const historyDir = path.join(__dirname, "history");
-if (!fs.existsSync(historyDir)) {
-  fs.mkdirSync(historyDir);
-}
-
-// CRON: каждое воскресенье в 00:00 по Москве
-cron.schedule(
-  "0 0 * * 0",
-  () => {
-    const now = new Date();
-    const filename = `${now.getFullYear()}-${String(
-      now.getMonth() + 1
-    ).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}.json`;
-
-    const filePath = path.join(historyDir, filename);
-    fs.writeFileSync(filePath, JSON.stringify(participants, null, 2), "utf-8");
-
-    console.log(`✅ История сохранена: ${filename}`);
-  },
-  {
-    timezone: "Europe/Moscow",
-  }
-);
-
-// Роут для истории
-app.get("/history", (req, res) => {
-  fs.readdir(historyDir, (err, files) => {
-    if (err) return res.status(500).send("Ошибка чтения истории");
-
-    const historyData = files
-      .sort()
-      .reverse()
-      .map((file) => {
-        const content = JSON.parse(
-          fs.readFileSync(path.join(historyDir, file), "utf-8")
-        );
-        return { date: file.replace(".json", ""), data: content };
-      });
-
-    res.json(historyData);
-  });
-});
 // === Запуск сервера ===
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
