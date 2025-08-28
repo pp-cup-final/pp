@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>История турнира</title>
+  <style>
+    body { font-family: sans-serif; background: #111; color: #eee; }
+    .week { margin-bottom: 30px; padding: 15px; border: 1px solid #444; }
+    h2 { margin: 0 0 10px 0; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { border: 1px solid #444; padding: 5px; text-align: left; }
+  </style>
+</head>
+<body>
+  <h1>История турнира</h1>
+  <div id="history"></div>
+
+  <script>
+    async function loadHistory() {
+      const res = await fetch("/history");
+      const history = await res.json();
+
+      const container = document.getElementById("history");
+      container.innerHTML = "";
+
+      history.forEach(week => {
+        const div = document.createElement("div");
+        div.className = "week";
+        div.innerHTML = `<h2>Неделя: ${week.date}</h2>
+          <table>
+            <tr><th>Игрок</th><th>PPstart</th><th>PPend</th><th>Points</th></tr>
+            ${week.data.map(p => `
+              <tr>
+                <td>${p.username}</td>
+                <td>${p.PPstart}</td>
+                <td>${p.PPend}</td>
+                <td>${p.points}</td>
+              </tr>
+            `).join("")}
+          </table>`;
+        container.appendChild(div);
+      });
+    }
+
+    loadHistory();
+  </script>
+</body>
+</html>
