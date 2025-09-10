@@ -262,7 +262,7 @@ app.delete('/api/participants', (req, res) => {
 });
 
 // === Участие ===
-app.post('/api/participate', (req, res) => {
+app.post('/api/participate', async (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
 
   const user = req.session.user;
@@ -272,23 +272,34 @@ app.post('/api/participate', (req, res) => {
     return res.status(400).json({ error: 'User already participating' });
   }
 
-  const ppStart = user.statistics?.pp || 0;
-  const ppEnd = ppStart;
+  try {
+    // ✅ Получаем актуальный pp через osu! API
+    const token = await getOsuAccessToken();
+    const resOsu = await axios.get(`https://osu.ppy.sh/api/v2/users/${user.id}/osu`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
 
-  const newEntry = {
-    UserID: user.id,
-    Avatar: user.avatar_url || '',
-    Nickname: user.username,
-    PPstart: ppStart,
-    PPend: ppEnd,
-    Points: calculatePoints(ppStart, ppEnd)
-  };
+    const ppStart = resOsu.data.statistics.pp || 0;
+    const ppEnd = ppStart;
 
-  data.push(newEntry);
-  updatePositions(data);
-  saveData(data);
+    const newEntry = {
+      UserID: user.id,
+      Avatar: user.avatar_url || '',
+      Nickname: user.username,
+      PPstart: ppStart,
+      PPend: ppEnd,
+      Points: calculatePoints(ppStart, ppEnd)
+    };
 
-  res.json({ success: true, participant: newEntry });
+    data.push(newEntry);
+    updatePositions(data);
+    saveData(data);
+
+    res.json({ success: true, participant: newEntry });
+  } catch (err) {
+    console.error("Ошибка получения данных пользователя при регистрации:", err.response?.data || err.message);
+    res.status(500).json({ error: "Ошибка получения данных osu!" });
+  }
 });
 
 app.post('/api/unparticipate', (req, res) => {
