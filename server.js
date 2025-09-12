@@ -7,52 +7,41 @@ const session = require('express-session');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const cron = require("node-cron");
-
+const { createClient } = require('@supabase/supabase-js');
 
 // Папка для истории
 const historyDir = path.join(__dirname, "history");
 if (!fs.existsSync(historyDir)) {
   fs.mkdirSync(historyDir);
 }
-
-// CRON: каждое воскресенье в 00:00 по Москве
-cron.schedule(
-  "0 0 * * 0",
-  () => {
-    const now = new Date();
-    const filename = `${now.getFullYear()}-${String(
-      now.getMonth() + 1
-    ).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}.json`;
-
-    const filePath = path.join(historyDir, filename);
-
-    // Загружаем участников из базы
-    const data = loadData();
-
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
-
-    console.log(`✅ История сохранена: ${filename}`);
-  },
-  {
-    timezone: "Europe/Moscow",
-  }
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY // не public, а service_role
 );
 
+// CRON: каждое воскресенье в 00:00 по Москве
+cron.schedule("0 0 * * 0", async () => {
+  const { data: participants } = await supabase.from("participants").select("*");
+  if (participants && participants.length > 0) {
+    // Обновляем позиции перед сохранением
+    updatePositionsInDB(participants);
+
+    await supabase.from("history").insert([
+      { date: new Date().toISOString(), data: participants }
+    ]);
+    const { error } = await supabase.from("participants").delete().neq('userid', 0);
+    if (error) return res.status(500).json({ error: error.message });
+
+    console.log("✅ История сохранена");
+  }
+}, { timezone: "Europe/Moscow" });
+
+
 // Роут для истории
-app.get("/api/history", (req, res) => {
-  fs.readdir(historyDir, (err, files) => {
-    if (err) return res.status(500).send("Ошибка чтения истории");
-    const historyData = files
-      .sort()
-      .reverse()
-      .map((file) => {
-        const content = JSON.parse(
-          fs.readFileSync(path.join(historyDir, file), "utf-8")
-        );
-        return { date: file.replace(".json", ""), data: content };
-      });
-    res.json(historyData);
-  });
+app.get('/api/history', async (req, res) => {
+  const { data, error } = await supabase.from("history").select("*").order("date", { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
 });
 app.get("/history", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "history.html"));
@@ -65,18 +54,6 @@ app.use(session({
   saveUninitialized: true,
 }));
 
-const DB_PATH = path.join(__dirname, 'data', 'database.json');
-
-// === Работа с данными ===
-function loadData() {
-  if (!fs.existsSync(DB_PATH)) return [];
-  const raw = fs.readFileSync(DB_PATH);
-  return JSON.parse(raw);
-}
-
-function saveData(data) {
-  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
-}
 
 // === osu! API токен ===
 let osuAccessToken = null;
@@ -135,58 +112,108 @@ function calculatePoints(ppStart, ppEnd) {
   return Math.round(points);
 }
 
-function updatePositions(data) {
-  data.sort((a, b) => b.Points - a.Points);
+async function updatePositionsInDB() {
+  // Берём всех участников
+  const { data: participants, error: selectErr } = await supabase
+    .from('participants')
+    .select('*');
+  if (selectErr) {
+    console.error('Ошибка чтения участников для позиций:', selectErr);
+    return [];
+  }
 
+  // сортируем по points desc
+  participants.sort((a, b) => {
+    const pa = parseFloat(a.points) || 0;
+    const pb = parseFloat(b.points) || 0;
+    return pb - pa;
+  });
+
+  // считаем позиции (ровные очки — одинаковая позиция)
   let lastPoints = null;
   let lastPosition = 0;
+  const updates = []; // массив промисов обновлений
+  for (let i = 0; i < participants.length; i++) {
+    const p = participants[i];
+    const pPoints = parseFloat(p.points) || 0;
 
-  data.forEach((participant, index) => {
-    if (participant.Points !== lastPoints) {
-      lastPosition = index + 1;
-      lastPoints = participant.Points;
+    if (pPoints !== lastPoints) {
+      lastPosition = i + 1;
+      lastPoints = pPoints;
     }
-    participant.Position = lastPosition;
-  });
+
+    // если в БД уже есть такое значение position — можно не обновлять,
+    // но для простоты обновим только если отличается
+    const currentPos = p.position === null || p.position === undefined ? null : Number(p.position);
+    if (currentPos !== lastPosition) {
+      updates.push(
+        supabase
+          .from('participants')
+          .update({ position: lastPosition })
+          .eq('userid', p.userid)
+      );
+    }
+
+    // добавим поле для отдачи фронту (совместимость)
+    p.Position = lastPosition;
+  }
+
+  // выполняем все обновления параллельно
+  if (updates.length > 0) {
+    const results = await Promise.all(updates);
+    for (const r of results) {
+      if (r.error) console.error('Ошибка обновления позиции:', r.error);
+    }
+  }
+
+  return participants;
 }
 
 // === Обновление PP участников ===
 async function updateParticipantsPP() {
-  const data = loadData();
+  const { data: participants, error } = await supabase.from("participants").select("*");
+  if (error) {
+    console.error("Ошибка загрузки участников:", error);
+    return;
+  }
 
-  for (let participant of data) {
+  for (let participant of participants) {
     try {
       const token = await getOsuAccessToken();
-      const res = await axios.get(`https://osu.ppy.sh/api/v2/users/${participant.Nickname}/osu`, {
+      const res = await axios.get(`https://osu.ppy.sh/api/v2/users/${participant.userid}/osu`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       const currentPP = res.data.statistics.pp;
+      const points = calculatePoints(parseFloat(participant.ppstart), parseFloat(currentPP));
 
-      participant.PPend = currentPP;
-      participant.Points = calculatePoints(parseFloat(participant.PPstart), parseFloat(currentPP));
+      await supabase.from("participants")
+        .update({
+          ppend: currentPP,
+          points: points
+        })
+        .eq("userid", participant.userid);
+
     } catch (err) {
-      console.error(`Ошибка обновления ${participant.Nickname}:`, err.response?.data || err.message);
+      console.error(`Ошибка обновления ${participant.nickname}:`, err.response?.data || err.message);
     }
   }
-
-  updatePositions(data);
-  saveData(data);
+  console.log("✅ Участники обновлены");
 }
 
 // === Автоматический запуск ===
 fetchOsuAccessToken().then(() => {
   updateParticipantsPP();
-  setInterval(updateParticipantsPP, 10 * 60 * 1000); // каждые 10 минут
+  setInterval(updateParticipantsPP, 5 * 60 * 1000); // каждые 10 минут
 });
 
 // === API ===
 
-app.get('/api/data', (req, res) => {
-  const data = loadData();
-  updatePositions(data);
-  saveData(data);
-  res.json(data);
+app.get('/api/data', async (req, res) => {
+  const { data, error } = await supabase.from("participants").select("*").order("position", { ascending: true });
+  if (error) return res.status(500).json({ error: error.message });
+  updatePositionsInDB(data); // модифицируем массив
+  res.json(data);  
 });
 
 app.get('/api/me', (req, res) => {
@@ -239,25 +266,30 @@ app.get('/auth/logout', (req, res) => {
 });
 
 // Удаление участника
-app.delete('/api/participant/:nickname', (req, res) => {
+app.delete('/api/participant/:nickname', async (req, res) => {
   if (!req.session.user || req.session.user.username !== 'LLIaBKa') {
     return res.status(403).json({ error: 'Not authorized' });
   }
 
-  let data = loadData();
-  data = data.filter(p => p.Nickname !== req.params.nickname);
-  saveData(data);
+  const nickname = req.params.nickname;
+
+  const { error } = await supabase.from("participants").delete().eq("nickname", nickname);
+  if (error) return res.status(500).json({ error: error.message });
 
   res.json({ success: true });
 });
 
 // Очистка таблицы
-app.delete('/api/participants', (req, res) => {
+app.delete('/api/participants', async (req, res) => {
   if (!req.session.user || req.session.user.username !== 'LLIaBKa') {
     return res.status(403).json({ error: 'Not authorized' });
   }
 
-  saveData([]);
+  // Удаляем все записи из таблицы participants
+  const { error } = await supabase.from("participants").delete().neq('userid', 0);
+
+  if (error) return res.status(500).json({ error: error.message });
+
   res.json({ success: true });
 });
 
@@ -266,56 +298,55 @@ app.post('/api/participate', async (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
 
   const user = req.session.user;
-  let data = loadData();
 
-  if (data.some(p => p.Nickname === user.username)) {
+  // проверка на участие
+  const { data: exists } = await supabase.from("participants")
+    .select("userid")
+    .eq("userid", user.id)
+    .single();
+
+  if (exists) {
     return res.status(400).json({ error: 'User already participating' });
   }
-
+  const moscowTime = new Date(Date.now() + 3*60*60*1000); // UTC+3
+  if (moscowTime.getDay() !== 0) { // 0 = воскресенье
+    return res.status(400).json({ error: 'Участвовать можно только в воскресенье' });
+  }
+  else{
   try {
-    // ✅ Получаем актуальный pp через osu! API
     const token = await getOsuAccessToken();
     const resOsu = await axios.get(`https://osu.ppy.sh/api/v2/users/${user.id}/osu`, {
       headers: { Authorization: `Bearer ${token}` }
     });
 
     const ppStart = resOsu.data.statistics.pp || 0;
-    const ppEnd = ppStart;
 
     const newEntry = {
-      UserID: user.id,
-      Avatar: user.avatar_url || '',
-      Nickname: user.username,
-      PPstart: ppStart,
-      PPend: ppEnd,
-      Points: calculatePoints(ppStart, ppEnd)
+      position: position,
+      userid: user.id,
+      avatar: user.avatar_url || '',
+      nickname: user.username,
+      ppstart: Number(ppStart),
+      ppend: ppStart,
+      points: 0
     };
 
-    data.push(newEntry);
-    updatePositions(data);
-    saveData(data);
+    await supabase.from("participants").insert([newEntry]);
 
     res.json({ success: true, participant: newEntry });
   } catch (err) {
-    console.error("Ошибка получения данных пользователя при регистрации:", err.response?.data || err.message);
-    res.status(500).json({ error: "Ошибка получения данных osu!" });
-  }
+    console.error("Ошибка при регистрации:", err.response?.data || err.message);
+    res.status(500).json({ error: "Ошибка osu! API" });
+  }}
 });
 
-app.post('/api/unparticipate', (req, res) => {
+app.post('/api/unparticipate', async (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
-
   const user = req.session.user;
-  let data = loadData();
 
-  const newData = data.filter(p => p.Nickname !== user.username);
+  const { error } = await supabase.from("participants").delete().eq("userid", user.id);
+  if (error) return res.status(500).json({ error: error.message });
 
-  if (newData.length === data.length) {
-    return res.status(404).json({ error: 'User not found in participants' });
-  }
-
-  updatePositions(newData);
-  saveData(newData);
   res.json({ success: true });
 });
 

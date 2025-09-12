@@ -110,6 +110,7 @@
         <th>Ник</th>
         <th>PP Start</th>
         <th>PP End</th>
+        <th>PP Clear</th>
         <th>Очки</th>
         <th id="admin-column" style="display:none;">Действия</th>
       </tr>
@@ -196,13 +197,14 @@
       data.forEach(item => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${item.Position}</td>
-          <td><img src="${item.Avatar}" alt="avatar" width="40" height="40" /></td>
-          <td><a href="https://osu.ppy.sh/users/${item.UserID}" target="_blank">${item.Nickname}</a></td>
-          <td>${item.PPstart}</td>
-          <td>${item.PPend}</td>
-          <td>${item.Points}</td>
-          ${currentUser?.username === 'LLIaBKa' ? `<td><button onclick="deleteParticipant('${item.Nickname}')">Удалить</button></td>` : ''}
+          <td>${item.position}</td>
+          <td><img src="${item.avatar}" alt="avatar" width="40" height="40" /></td>
+          <td><a href="https://osu.ppy.sh/users/${item.userid}" target="_blank">${item.nickname}</a></td>
+          <td>${item.ppstart}</td>
+          <td>${item.ppend}</td>
+          <td>${Math.floor(item.ppend-item.ppstart)}</td>
+          <td>${item.points}</td>
+          ${currentUser?.username === 'LLIaBKa' ? `<td><button onclick="deleteParticipant('${item.nickname}')">Удалить</button></td>` : ''}
         `;
         tbody.appendChild(tr);
       });
@@ -219,11 +221,17 @@
   }
 
   document.getElementById('clear-table')?.addEventListener('click', async () => {
-    if (confirm('Очистить всю таблицу?')) {
-      await fetch('/api/participants', { method: 'DELETE' });
-      loadData();
+  if (confirm('Очистить всю таблицу?')) {
+    const res = await fetch('/api/participants', { method: 'DELETE' });
+    const result = await res.json();
+    if (res.ok) {
+      await loadData(); // перерисовка таблицы
+      alert('Таблица очищена');
+    } else {
+      alert(result.error || 'Ошибка очистки');
     }
-  });
+  }
+});
 
   document.getElementById('login').onclick = () => window.location.href = '/auth/login';
   document.getElementById('logout').onclick = () => window.location.href = '/auth/logout';

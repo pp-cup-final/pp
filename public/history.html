@@ -132,16 +132,18 @@
               <th>Игрок</th>
               <th>PPstart</th>
               <th>PPend</th>
+              <th>PPclear</th>
               <th>Points</th>
             </tr>
             ${week.data.map(p => `
               <tr>
-                <td>${p.Position}</td>
-                <td><img src="${p.Avatar}" alt="avatar" width="40" height="40"></td>
-                <td><a href="https://osu.ppy.sh/users/${p.UserID}" target="_blank">${p.Nickname}</a></td>
-                <td>${p.PPstart}</td>
-                <td>${p.PPend}</td>
-                <td>${p.Points}</td>
+                <td>${p.position}</td>
+                <td><img src="${p.avatar}" alt="avatar" width="40" height="40"></td>
+                <td><a href="https://osu.ppy.sh/users/${p.useriD}" target="_blank">${p.nickname}</a></td>
+                <td>${p.ppstart}</td>
+                <td>${p.ppend}</td>
+                <td>${Math.floor(p.ppend-p.ppstart)}</td>
+                <td>${p.points}</td>
               </tr>
             `).join("")}
           </table>`;
