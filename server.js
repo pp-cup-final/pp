@@ -322,13 +322,13 @@ app.post('/api/participate', async (req, res) => {
     const ppStart = resOsu.data.statistics.pp || 0;
 
     const newEntry = {
-      position: position,
       userid: user.id,
       avatar: user.avatar_url || '',
       nickname: user.username,
       ppstart: Number(ppStart),
       ppend: ppStart,
-      points: 0
+      points: 0,
+      position: 1 // потом обновится updatePositionsInDB()
     };
 
     await supabase.from("participants").insert([newEntry]);
