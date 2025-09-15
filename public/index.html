@@ -75,6 +75,28 @@
       border-radius: 50%;
       box-shadow: 0 0 5px rgba(255,255,255,0.1);
     }
+    /* Выделение топ-3 */
+    .first {
+      background: linear-gradient(90deg, #ffd70033, #ffd70011);
+      font-weight: bold;
+    }
+    .first td {
+      color: #ffd700;
+    }
+    .second {
+      background: linear-gradient(90deg, #c0c0c033, #c0c0c011);
+      font-weight: bold;
+    }
+    .second td {
+      color: #c0c0c0;
+    }
+    .third {
+      background: linear-gradient(90deg, #cd7f3233, #cd7f3211);
+      font-weight: bold;
+    }
+    .third td {
+      color: #cd7f32;
+    }
     @media (max-width: 600px) {
       table, th, td {
         font-size: 12px;
@@ -91,8 +113,6 @@
     <button id="clear-table">Очистить таблицу</button>
   </div>
 
-  
-
   <div id="controls">
     <div id="user"></div>
     <button id="login">Войти через osu!</button>
@@ -101,7 +121,7 @@
     <button id="unparticipate" style="display:none;">Перестать участвовать</button>
     <a href="/history" class="button-link"><button>История</button></a>
   </div>
-<h1>Таблица участников</h1>
+  <h1>Таблица участников</h1>
   <table>
     <thead>
       <tr>
@@ -135,36 +155,28 @@
 
     if (!participateBtn || !leaveBtn) return;
 
-    // Если не воскресенье — прячем обе кнопки, вне зависимости от статуса
     if (!isSunday) {
       participateBtn.style.display = "none";
       leaveBtn.style.display = "none";
       return;
     }
-
-    // Если воскресенье — оставляем то состояние, которое выставил fetchUser()
-    // (ничего не меняем здесь) — просто выходим.
   }
 
   async function fetchUser() {
     const res = await fetch('/api/me');
-
     if (res.ok) {
       currentUser = await res.json();
       document.getElementById('user').innerText = `Привет, ${currentUser.username}!`;
       document.getElementById('login').style.display = 'none';
       document.getElementById('logout').style.display = 'inline-block';
 
-      // состояние участия
       const participantsRes = await fetch('/api/data');
       const participants = await participantsRes.json();
       const isParticipating = participants.some(p => p.Nickname === currentUser.username);
 
-      // Базовая видимость по участию (только предварительно, потом поверх — правило "только в воскресенье")
       document.getElementById('participate').style.display = isParticipating ? 'none' : 'inline-block';
       document.getElementById('unparticipate').style.display = isParticipating ? 'inline-block' : 'none';
 
-      // Админ-панель
       if (currentUser.username === 'LLIaBKa') {
         document.getElementById('admin-panel').style.display = 'block';
         document.getElementById('admin-column').style.display = 'table-cell';
@@ -182,8 +194,6 @@
       document.getElementById('admin-panel').style.display = 'none';
       document.getElementById('admin-column').style.display = 'none';
     }
-
-    // ВАЖНО: после любого выставления базового состояния — применяем "правило воскресенья".
     toggleButtonsVisibility();
   }
 
@@ -195,9 +205,21 @@
       const tbody = document.querySelector('tbody');
       tbody.innerHTML = '';
       data.forEach(item => {
+        let rowClass = "";
+        let crown = "";
+        if (item.position === 1) {
+          rowClass = "first";
+          crown = " 👑";
+        } else if (item.position === 2) {
+          rowClass = "second";
+        } else if (item.position === 3) {
+          rowClass = "third";
+        }
+
         const tr = document.createElement('tr');
+        tr.className = rowClass;
         tr.innerHTML = `
-          <td>${item.position}</td>
+          <td>${item.position}${crown}</td>
           <td><img src="${item.avatar}" alt="avatar" width="40" height="40" /></td>
           <td><a href="https://osu.ppy.sh/users/${item.userid}" target="_blank">${item.nickname}</a></td>
           <td>${item.ppstart}</td>
@@ -221,17 +243,17 @@
   }
 
   document.getElementById('clear-table')?.addEventListener('click', async () => {
-  if (confirm('Очистить всю таблицу?')) {
-    const res = await fetch('/api/participants', { method: 'DELETE' });
-    const result = await res.json();
-    if (res.ok) {
-      await loadData(); // перерисовка таблицы
-      alert('Таблица очищена');
-    } else {
-      alert(result.error || 'Ошибка очистки');
+    if (confirm('Очистить всю таблицу?')) {
+      const res = await fetch('/api/participants', { method: 'DELETE' });
+      const result = await res.json();
+      if (res.ok) {
+        await loadData();
+        alert('Таблица очищена');
+      } else {
+        alert(result.error || 'Ошибка очистки');
+      }
     }
-  }
-});
+  });
 
   document.getElementById('login').onclick = () => window.location.href = '/auth/login';
   document.getElementById('logout').onclick = () => window.location.href = '/auth/logout';
@@ -260,14 +282,12 @@
     }
   };
 
-  // Инициализация: сначала получаем пользователя и рисуем таблицу,
-  // затем сразу применяем правило воскресенья и обновляем раз в минуту.
   (async () => {
     await fetchUser();
     await loadData();
     toggleButtonsVisibility();
     setInterval(toggleButtonsVisibility, 60 * 1000);
   })();
-</script>
+  </script>
 </body>
 </html>

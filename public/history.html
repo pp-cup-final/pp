@@ -17,10 +17,6 @@
       color: #fff;
       margin-bottom: 2rem;
     }
-    #controls {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
     button {
       background-color: #ffffff;
       color: #000;
@@ -34,11 +30,6 @@
     button:hover {
       background-color: #ddd;
       color: #000;
-    }
-    #user {
-      font-weight: bold;
-      color: #ccc;
-      margin-top: 10px;
     }
     table {
       width: 100%;
@@ -91,14 +82,28 @@
     details[open] > summary {
       color: #ff6347;
     }
-    @media (max-width: 600px) {
-      table, th, td {
-        font-size: 12px;
-      }
-      button {
-        padding: 8px 16px;
-        font-size: 14px;
-      }
+
+    /* Стили для топ-3 */
+    .first {
+      background: linear-gradient(90deg, #ffd70033, #ffd70011);
+      font-weight: bold;
+    }
+    .first td {
+      color: #ffd700;
+    }
+    .second {
+      background: linear-gradient(90deg, #c0c0c033, #c0c0c011);
+      font-weight: bold;
+    }
+    .second td {
+      color: #c0c0c0;
+    }
+    .third {
+      background: linear-gradient(90deg, #cd7f3233, #cd7f3211);
+      font-weight: bold;
+    }
+    .third td {
+      color: #cd7f32;
     }
   </style>
 </head>
@@ -118,13 +123,9 @@
       container.innerHTML = "";
 
       history.forEach(week => {
-        // сортировка участников по points от большего к меньшему
+        // сортировка по points
         week.data.sort((a, b) => b.points - a.points);
-
-        // проставляем позицию заново после сортировки
-        week.data.forEach((p, i) => {
-          p.position = i + 1;
-        });
+        week.data.forEach((p, i) => { p.position = i + 1; });
 
         const details = document.createElement("details");
         details.className = "week";
@@ -140,17 +141,29 @@
               <th>PPclear</th>
               <th>Points</th>
             </tr>
-            ${week.data.map(p => `
-              <tr>
-                <td>${p.position}</td>
-                <td><img src="${p.avatar}" alt="avatar" width="40" height="40"></td>
-                <td><a href="https://osu.ppy.sh/users/${p.useriD}" target="_blank">${p.nickname}</a></td>
-                <td>${p.ppstart}</td>
-                <td>${p.ppend}</td>
-                <td>${Math.floor(p.ppend - p.ppstart)}</td>
-                <td>${p.points}</td>
-              </tr>
-            `).join("")}
+            ${week.data.map(p => {
+              let rowClass = "";
+              let crown = "";
+              if (p.position === 1) {
+                rowClass = "first";
+                crown = " 👑";
+              } else if (p.position === 2) {
+                rowClass = "second";
+              } else if (p.position === 3) {
+                rowClass = "third";
+              }
+              return `
+                <tr class="${rowClass}">
+                  <td>${p.position}${crown}</td>
+                  <td><img src="${p.avatar}" alt="avatar" width="40" height="40"></td>
+                  <td><a href="https://osu.ppy.sh/users/${p.useriD}" target="_blank">${p.nickname}</a></td>
+                  <td>${p.ppstart}</td>
+                  <td>${p.ppend}</td>
+                  <td>${Math.floor(p.ppend - p.ppstart)}</td>
+                  <td>${p.points}</td>
+                </tr>
+              `;
+            }).join("")}
           </table>`;
         container.appendChild(details);
       });
