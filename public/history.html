@@ -76,24 +76,21 @@
       text-decoration: underline;
     }
     details {
-        
-        user-select: none;
-        border-radius: 12px;
-        cursor: pointer;
-        }
-
-        details:hover {
-        background: #2c2c2c;
-        }
+      user-select: none;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    details:hover {
+      background: #2c2c2c;
+    }
     details > summary {
-        font-size: 20px;
-        font-weight: bold;
-        transition: color 1s;
-        }
-
-        details[open] > summary {
-        color: #ff6347;
-        }
+      font-size: 20px;
+      font-weight: bold;
+      transition: color 1s;
+    }
+    details[open] > summary {
+      color: #ff6347;
+    }
     @media (max-width: 600px) {
       table, th, td {
         font-size: 12px;
@@ -121,6 +118,14 @@
       container.innerHTML = "";
 
       history.forEach(week => {
+        // сортировка участников по points от большего к меньшему
+        week.data.sort((a, b) => b.points - a.points);
+
+        // проставляем позицию заново после сортировки
+        week.data.forEach((p, i) => {
+          p.position = i + 1;
+        });
+
         const details = document.createElement("details");
         details.className = "week";
         details.innerHTML = `
@@ -142,7 +147,7 @@
                 <td><a href="https://osu.ppy.sh/users/${p.useriD}" target="_blank">${p.nickname}</a></td>
                 <td>${p.ppstart}</td>
                 <td>${p.ppend}</td>
-                <td>${Math.floor(p.ppend-p.ppstart)}</td>
+                <td>${Math.floor(p.ppend - p.ppstart)}</td>
                 <td>${p.points}</td>
               </tr>
             `).join("")}
