@@ -9,43 +9,18 @@ const PORT = process.env.PORT || 3000;
 const cron = require("node-cron");
 const { createClient } = require('@supabase/supabase-js');
 
-// Папка для истории
+// Папка для истории (локальная, можно оставить или удалить)
 const historyDir = path.join(__dirname, "history");
 if (!fs.existsSync(historyDir)) {
   fs.mkdirSync(historyDir);
 }
+
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY // не public, а service_role
+  process.env.SUPABASE_SERVICE_ROLE_KEY // на бэке используем service_role
 );
 
-// CRON: каждое воскресенье в 00:00 по Москве
-cron.schedule("0 0 * * 0", async () => {
-  const { data: participants } = await supabase.from("participants").select("*");
-  if (participants && participants.length > 0) {
-    // Обновляем позиции перед сохранением
-    updatePositionsInDB(participants);
-
-    await supabase.from("history").insert([
-      { date: new Date().toISOString(), data: participants }
-    ]);
-    const { error } = await supabase.from("participants").delete().neq('userid', 0);
-    if (error) return res.status(500).json({ error: error.message });
-
-    console.log("✅ История сохранена");
-  }
-}, { timezone: "Europe/Moscow" });
-
-
-// Роут для истории
-app.get('/api/history', async (req, res) => {
-  const { data, error } = await supabase.from("history").select("*").order("date", { ascending: false });
-  if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
-});
-app.get("/history", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "history.html"));
-});
+// middlewares
 app.use(express.static('public'));
 app.use(express.json());
 app.use(session({
@@ -54,14 +29,13 @@ app.use(session({
   saveUninitialized: true,
 }));
 
-
 // === osu! API токен ===
 let osuAccessToken = null;
 let osuTokenExpiry = 0;
 
 const osuClientId = process.env.OSU_CLIENT_ID;
 const osuClientSecret = process.env.OSU_CLIENT_SECRET;
-const redirectUri = process.env.REDIRECT_URI || 'https://pp-cup-final-pp-b5fb.twc1.net/auth/callback';
+const redirectUri = process.env.REDIRECT_URI || 'http://localhost:3000/auth/callback';
 
 async function fetchOsuAccessToken() {
   try {
@@ -112,108 +86,381 @@ function calculatePoints(ppStart, ppEnd) {
   return Math.round(points);
 }
 
+// === Обновление позиций в БД ===
 async function updatePositionsInDB() {
-  // Берём всех участников
-  const { data: participants, error: selectErr } = await supabase
-    .from('participants')
-    .select('*');
-  if (selectErr) {
-    console.error('Ошибка чтения участников для позиций:', selectErr);
+  try {
+    const { data: participants, error: selectErr } = await supabase
+      .from('participants')
+      .select('*');
+
+    if (selectErr) {
+      console.error('Ошибка чтения участников для позиций:', selectErr);
+      return [];
+    }
+
+    // сортируем по points desc
+    participants.sort((a, b) => {
+      const pa = parseFloat(a.points) || 0;
+      const pb = parseFloat(b.points) || 0;
+      return pb - pa;
+    });
+
+    // считаем позиции (ровные очки — одинаковая позиция)
+    let lastPoints = null;
+    let lastPosition = 0;
+    const updates = [];
+
+    for (let i = 0; i < participants.length; i++) {
+      const p = participants[i];
+      const pPoints = parseFloat(p.points) || 0;
+
+      if (pPoints !== lastPoints) {
+        lastPosition = i + 1;
+        lastPoints = pPoints;
+      }
+
+      const currentPos = p.position === null || p.position === undefined ? null : Number(p.position);
+      if (currentPos !== lastPosition) {
+        updates.push(
+          supabase
+            .from('participants')
+            .update({ position: lastPosition })
+            .eq('userid', p.userid)
+        );
+      }
+
+      // добавим совместимое поле для отдачи фронту
+      p.position = lastPosition;
+    }
+
+    if (updates.length > 0) {
+      const results = await Promise.all(updates);
+      for (const r of results) {
+        if (r.error) console.error('Ошибка обновления позиции:', r.error);
+      }
+    }
+
+    return participants;
+  } catch (err) {
+    console.error('Ошибка в updatePositionsInDB:', err);
     return [];
   }
-
-  // сортируем по points desc
-  participants.sort((a, b) => {
-    const pa = parseFloat(a.points) || 0;
-    const pb = parseFloat(b.points) || 0;
-    return pb - pa;
-  });
-
-  // считаем позиции (ровные очки — одинаковая позиция)
-  let lastPoints = null;
-  let lastPosition = 0;
-  const updates = []; // массив промисов обновлений
-  for (let i = 0; i < participants.length; i++) {
-    const p = participants[i];
-    const pPoints = parseFloat(p.points) || 0;
-
-    if (pPoints !== lastPoints) {
-      lastPosition = i + 1;
-      lastPoints = pPoints;
-    }
-
-    // если в БД уже есть такое значение position — можно не обновлять,
-    // но для простоты обновим только если отличается
-    const currentPos = p.position === null || p.position === undefined ? null : Number(p.position);
-    if (currentPos !== lastPosition) {
-      updates.push(
-        supabase
-          .from('participants')
-          .update({ position: lastPosition })
-          .eq('userid', p.userid)
-      );
-    }
-
-    // добавим поле для отдачи фронту (совместимость)
-    p.Position = lastPosition;
-  }
-
-  // выполняем все обновления параллельно
-  if (updates.length > 0) {
-    const results = await Promise.all(updates);
-    for (const r of results) {
-      if (r.error) console.error('Ошибка обновления позиции:', r.error);
-    }
-  }
-
-  return participants;
 }
 
 // === Обновление PP участников ===
 async function updateParticipantsPP() {
-  const { data: participants, error } = await supabase.from("participants").select("*");
-  if (error) {
-    console.error("Ошибка загрузки участников:", error);
-    return;
-  }
-
-  for (let participant of participants) {
-    try {
-      const token = await getOsuAccessToken();
-      const res = await axios.get(`https://osu.ppy.sh/api/v2/users/${participant.userid}/osu`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      const currentPP = res.data.statistics.pp;
-      const points = calculatePoints(parseFloat(participant.ppstart), parseFloat(currentPP));
-
-      await supabase.from("participants")
-        .update({
-          ppend: currentPP,
-          points: points
-        })
-        .eq("userid", participant.userid);
-
-    } catch (err) {
-      console.error(`Ошибка обновления ${participant.nickname}:`, err.response?.data || err.message);
+  try {
+    const { data: participants, error } = await supabase.from("participants").select("*");
+    if (error) {
+      console.error("Ошибка загрузки участников:", error);
+      return;
     }
+
+    for (let participant of participants) {
+      try {
+        const token = await getOsuAccessToken();
+        const res = await axios.get(`https://osu.ppy.sh/api/v2/users/${participant.userid}/osu`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const currentPP = res.data.statistics.pp;
+        const points = calculatePoints(parseFloat(participant.ppstart), parseFloat(currentPP));
+
+        await supabase.from("participants")
+          .update({
+            ppend: currentPP,
+            points: points
+          })
+          .eq("userid", participant.userid);
+
+      } catch (err) {
+        console.error(`Ошибка обновления ${participant.nickname}:`, err.response?.data || err.message);
+      }
+    }
+
+    // после обновления очков пересчитаем позиции
+    await updatePositionsInDB();
+
+    console.log("✅ Участники обновлены");
+  } catch (err) {
+    console.error("Ошибка в updateParticipantsPP:", err);
   }
-  console.log("✅ Участники обновлены");
 }
 
 // === Автоматический запуск ===
 fetchOsuAccessToken().then(() => {
   updateParticipantsPP();
-  setInterval(updateParticipantsPP, 5 * 60 * 1000); // каждые 10 минут
+  setInterval(updateParticipantsPP, 5 * 60 * 1000); // каждые 5 минут
+});
+fetchOsuAccessToken().then(() => {
+  updatePoolPP();
+  setInterval(updatePoolPP, 1 * 60 * 1000); // каждые 5 минут
 });
 
-// === API ===
+// CRON: каждое воскресенье в 00:00 по Москве — сохраняем историю и очищаем таблицу
+cron.schedule("0 0 * * 0", async () => {
+  try {
+    // Сначала пересчитаем и запишем актуальные позиции в participants
+    await updatePositionsInDB();
 
-app.get('/api/data', async (req, res) => {
-  const { data, error } = await supabase.from("participants").select("*").order("position", { ascending: true });
+    // Получаем участников уже с позициями, отсортированных по позиции ASC
+    const { data: participants, error: fetchErr } = await supabase
+      .from('participants')
+      .select('*')
+      .order('position', { ascending: true });
+
+    if (fetchErr) {
+      console.error('Ошибка получения участников для истории:', fetchErr);
+      return;
+    }
+
+    if (!participants || participants.length === 0) {
+      console.log('Нет участников — история не сохранена.');
+      return;
+    }
+
+    // Сформируем запись истории (с датой)
+    const historyRow = {
+      date: new Date().toISOString(),
+      data: participants
+    };
+
+    const { error: insertErr } = await supabase.from("history").insert([historyRow]);
+    if (insertErr) {
+      console.error('Ошибка вставки в history:', insertErr);
+      return;
+    }
+
+    // Очистим таблицу участников
+    const { error: deleteErr } = await supabase.from("participants").delete();
+    if (deleteErr) {
+      console.error('Ошибка очистки participants после сохранения истории:', deleteErr);
+      return;
+    }
+
+    console.log("✅ История сохранена и таблица участников очищена");
+  } catch (err) {
+    console.error('CRON error:', err);
+  }
+}, { timezone: "Europe/Moscow" });
+
+// Роут для истории
+app.get('/api/history', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("history").select("*").order("date", { ascending: false });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+  } catch (err) {
+    console.error('Ошибка /api/history:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get("/history", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "history.html"));
+});
+
+// ========== pool endpoints (как у тебя было) ==========
+// Участие в пуле карт
+
+app.get('/pool', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'pool.html'));
+});
+app.post('/api/pool/participate', async (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
+
+  const user = req.session.user; // данные из osu!
+
+  try {
+    const { data: participant, error: pError } = await supabase
+      .from("pool_participants")
+      .insert([{
+        userid: user.id,
+        nickname: user.username,
+        avatar: user.avatar_url || '',
+        total_pp: 0
+      }])
+      .select()
+      .single();
+
+    if (pError) throw pError;
+
+    const participantId = participant.id;
+
+    const { data: pool, error: poolError } = await supabase
+      .from("pool_maps")
+      .select("id");
+
+    if (poolError) throw poolError;
+
+    const scoreRows = pool.map((map) => ({
+      participant_id: participantId,
+      map_id: map.id,
+      pp: 0
+    }));
+
+    const { error: sError } = await supabase
+      .from("player_scores")
+      .insert(scoreRows);
+
+    if (sError) throw sError;
+
+    res.json({ success: true, participantId });
+  } catch (err) {
+    console.error('Ошибка /api/pool/participate:', err);
+    res.status(500).json({ error: "Ошибка при добавлении участника" });
+  }
+});
+async function updatePoolPP() {
+  try {
+    const token = await getOsuAccessToken();
+
+    // 1. Берём всех участников пула
+    const { data: participants, error: pErr } = await supabase
+      .from("pool_participants")
+      .select("id, userid, nickname, participation_date");
+
+    if (pErr) throw pErr;
+
+    // 2. Берём все карты пула
+    const { data: maps, error: mErr } = await supabase
+      .from("pool_maps")
+      .select("*");
+
+    if (mErr) throw mErr;
+
+    for (const participant of participants) {
+      const participationDate = new Date(participant.participation_date);
+
+      for (const map of maps) {
+        // Проверяем, есть ли уже запись в player_scores
+        const { data: existingScore } = await supabase
+          .from("player_scores")
+          .select("*")
+          .eq("participant_id", participant.id)
+          .eq("map_id", map.id)
+          .single();
+
+        if (!existingScore) {
+          // Если записи нет — создаём с pp = 0
+          await supabase.from("player_scores")
+            .insert([{ participant_id: participant.id, map_id: map.id, pp: 0 }]);
+        }
+
+        // После этого можно обновлять PP по текущим результатам
+        try {
+          const scoreRes = await axios.get(
+            `https://osu.ppy.sh/api/v2/beatmaps/${map.difficulty_id}/scores/users/${participant.userid}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          const scoresArray = Array.isArray(scoreRes.data.scores)
+            ? scoreRes.data.scores
+            : [scoreRes.data.score];
+
+          const filteredScores = scoresArray.filter(s => new Date(s.created_at) >= participationDate);
+          const bestPP = filteredScores.length > 0
+            ? Math.max(...filteredScores.map(s => s.pp || 0))
+            : 0;
+
+          await supabase.from("player_scores")
+            .update({ pp: bestPP })
+            .eq("participant_id", participant.id)
+            .eq("map_id", map.id);
+
+        } catch (err) {
+          console.error(`Ошибка обновления карты ${map.id} для ${participant.nickname}:`, err.response?.data || err.message);
+        }
+      }
+    }
+
+    // Пересчёт total_pp для каждого участника
+    for (const participant of participants) {
+      const { data: scores } = await supabase
+        .from("player_scores")
+        .select("pp")
+        .eq("participant_id", participant.id);
+
+      const total_pp = scores.reduce((sum, s) => sum + (s.pp || 0), 0);
+
+      await supabase.from("pool_participants")
+        .update({ total_pp })
+        .eq("id", participant.id);
+    }
+
+    console.log("✅ Total PP участников пула обновлены");
+
+  } catch (err) {
+    console.error("Ошибка updatePoolPP:", err);
+  }
+}
+
+
+
+// Получение таблицы участников пула
+app.get('/api/pool/participants', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('pool_participants')
+      .select(`
+        id,
+        userid,
+        nickname,
+        avatar,
+        total_pp,
+        player_scores (
+          pp,
+          pool_maps (
+            id,
+            beatmap_id,
+            title,
+            background_url,
+            map_url
+          )
+        )
+      `);
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (err) {
+    console.error("Ошибка при получении участников:", err);
+    res.status(500).json({ error: "Ошибка при получении участников" });
+  }
+});
+
+// Получение карт и результатов игрока (в пуле)
+app.get('/api/pool/player/:id', async (req, res) => {
+  const { id } = req.params;
+
+  const { data, error } = await supabase
+    .from("player_scores")
+    .select("pp, pool_maps(title, background_url, map_url)")
+    .eq("participant_id", id)
+    .order('pp', { ascending: false });
+
   if (error) return res.status(500).json({ error: error.message });
-  updatePositionsInDB(data); // модифицируем массив
-  res.json(data);  
+  res.json(data);
+});
+
+// === API основного турнира ===
+app.get('/api/data', async (req, res) => {
+  try {
+    // Обновим позиции и получим отсортированный список
+    await updatePositionsInDB();
+
+    const { data, error } = await supabase
+      .from('participants')
+      .select('*')
+      .order('position', { ascending: true });
+
+    if (error) return res.status(500).json({ error: error.message });
+
+    res.json(data);
+  } catch (err) {
+    console.error('/api/data error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 app.get('/api/me', (req, res) => {
@@ -223,12 +470,19 @@ app.get('/api/me', (req, res) => {
 
 // === OAuth: авторизация ===
 app.get('/auth/login', (req, res) => {
-  const authUrl = `https://osu.ppy.sh/oauth/authorize?client_id=${osuClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=public`;
+  const authUrl = `https://osu.ppy.sh/oauth/authorize?client_id=${osuClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=public&state=main`;
+  res.redirect(authUrl);
+});
+
+app.get('/pool/auth/login', (req, res) => {
+  const authUrl = `https://osu.ppy.sh/oauth/authorize?client_id=${osuClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=public&state=pool`;
   res.redirect(authUrl);
 });
 
 app.get('/auth/callback', async (req, res) => {
   const code = req.query.code;
+  const state = req.query.state || 'main'; // определяем откуда пришёл
+
   if (!code) return res.status(400).send('No code provided');
 
   try {
@@ -247,13 +501,80 @@ app.get('/auth/callback', async (req, res) => {
     });
 
     req.session.user = userResponse.data;
-    res.redirect('/');
 
+    // редирект в зависимости от state
+    if (state === 'pool') {
+      return res.redirect('/pool');
+    }
+    return res.redirect('/');
   } catch (error) {
     console.error(error.response?.data || error.message);
     res.status(500).send('Authorization error');
   }
 });
+
+app.post('/api/addMap', async (req, res) => {
+  try {
+    // Проверяем, что пользователь авторизован
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Вы не авторизованы" });
+    }
+
+    // Разрешаем только игроку LLIaBKa
+    if (req.session.user.username !== 'LLIaBKa') {
+      return res.status(403).json({ error: "Нет доступа к добавлению карт" });
+    }
+
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ error: "No URL provided" });
+
+    // Парсим ссылку вида https://osu.ppy.sh/beatmapsets/1786810#osu/3660479
+    const setMatch = url.match(/beatmapsets\/(\d+)/);
+    const beatmapMatch = url.match(/#osu\/(\d+)/);
+
+    if (!setMatch) return res.status(400).json({ error: "Invalid URL format" });
+
+    const setId = setMatch[1];
+    const beatmapId = beatmapMatch ? beatmapMatch[1] : null;
+
+    const token = await getOsuAccessToken();
+
+    // Если указан конкретный beatmap, получаем её, иначе берём весь сет
+    let mapData;
+    if (beatmapId) {
+      const mapRes = await axios.get(`https://osu.ppy.sh/api/v2/beatmaps/${beatmapId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      mapData = mapRes.data;
+    } else {
+      const setRes = await axios.get(`https://osu.ppy.sh/api/v2/beatmapsets/${setId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      mapData = setRes.data.beatmaps[0];
+    }
+
+    // Сохраняем в Supabase
+    const { data: inserted, error } = await supabase
+      .from("pool_maps")
+      .insert([{
+        beatmap_id: mapData.beatmapset.id,         // ID сета
+        difficulty_id: mapData.id,                 // ID конкретной difficulty
+        title: `${mapData.beatmapset.title} [${mapData.version}]`,
+        background_url: mapData.beatmapset.covers['cover'],
+        map_url: `https://osu.ppy.sh/beatmaps/${mapData.id}`
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json({ success: true, map: inserted });
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    res.status(500).json({ error: "Ошибка при добавлении карты" });
+  }
+});
+
 
 app.get('/auth/logout', (req, res) => {
   req.session.destroy(err => {
@@ -265,7 +586,7 @@ app.get('/auth/logout', (req, res) => {
   });
 });
 
-// Удаление участника
+// Удаление участника (админ)
 app.delete('/api/participant/:nickname', async (req, res) => {
   if (!req.session.user || req.session.user.username !== 'LLIaBKa') {
     return res.status(403).json({ error: 'Not authorized' });
@@ -279,65 +600,68 @@ app.delete('/api/participant/:nickname', async (req, res) => {
   res.json({ success: true });
 });
 
-// Очистка таблицы
+// Очистка таблицы participants (админ)
 app.delete('/api/participants', async (req, res) => {
   if (!req.session.user || req.session.user.username !== 'LLIaBKa') {
     return res.status(403).json({ error: 'Not authorized' });
   }
 
-  // Удаляем все записи из таблицы participants
-  const { error } = await supabase.from("participants").delete().neq('userid', 0);
-
+  const { error } = await supabase.from("participants").delete();
   if (error) return res.status(500).json({ error: error.message });
 
   res.json({ success: true });
 });
 
-// === Участие ===
-app.post('/api/participate', async (req, res) => {
+// === Участие основного турнира ===
+app.post('/api/pool/participate', async (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
 
-  const user = req.session.user;
+  const user = req.session.user; // здесь твои данные из сессии osu!
 
-  // проверка на участие
-  const { data: exists } = await supabase.from("participants")
-    .select("userid")
-    .eq("userid", user.id)
-    .single();
-
-  if (exists) {
-    return res.status(400).json({ error: 'User already participating' });
-  }
-  const moscowTime = new Date(Date.now() + 3*60*60*1000); // UTC+3
-  if (moscowTime.getDay() !== 0) { // 0 = воскресенье
-    return res.status(400).json({ error: 'Участвовать можно только в воскресенье' });
-  }
-  else{
   try {
-    const token = await getOsuAccessToken();
-    const resOsu = await axios.get(`https://osu.ppy.sh/api/v2/users/${user.id}/osu`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    // 1. Добавляем участника
+    const { data: participant, error: pError } = await supabase
+      .from("pool_participants")
+      .insert([{
+        userid: user.id,
+        nickname: user.username,       // <-- ЗДЕСЬ вместо "nickname"
+        avatar: user.avatar_url || '',
+        total_pp: 0,
+        participation_date: new Date() // <-- сохраняем текущую дату
+      }])
+      .select()
+      .single();
 
-    const ppStart = resOsu.data.statistics.pp || 0;
+    if (pError) throw pError;
 
-    const newEntry = {
-      userid: user.id,
-      avatar: user.avatar_url || '',
-      nickname: user.username,
-      ppstart: Number(ppStart),
-      ppend: ppStart,
-      points: 0,
-      position: 1 // потом обновится updatePositionsInDB()
-    };
+    const participantId = participant.id;
 
-    await supabase.from("participants").insert([newEntry]);
+    // 2. Получаем все карты из пула
+    const { data: pool, error: poolError } = await supabase
+      .from("pool_maps")
+      .select("id");
 
-    res.json({ success: true, participant: newEntry });
+    if (poolError) throw poolError;
+
+    // 3. Для каждой карты создаём запись с pp = 0
+    const scoreRows = pool.map((map) => ({
+      participant_id: participantId,
+      map_id: map.id,
+      pp: 0
+    }));
+
+    // 4. Вставляем в player_scores
+    const { error: sError } = await supabase
+      .from("player_scores")
+      .insert(scoreRows);
+
+    if (sError) throw sError;
+
+    res.json({ success: true, participantId });
   } catch (err) {
-    console.error("Ошибка при регистрации:", err.response?.data || err.message);
-    res.status(500).json({ error: "Ошибка osu! API" });
-  }}
+    console.error('Ошибка /api/pool/participate:', err);
+    res.status(500).json({ error: "Ошибка при добавлении участника" });
+  }
 });
 
 app.post('/api/unparticipate', async (req, res) => {
@@ -346,6 +670,9 @@ app.post('/api/unparticipate', async (req, res) => {
 
   const { error } = await supabase.from("participants").delete().eq("userid", user.id);
   if (error) return res.status(500).json({ error: error.message });
+
+  // пересчитаем позиции после удаления
+  await updatePositionsInDB();
 
   res.json({ success: true });
 });
