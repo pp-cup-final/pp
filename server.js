@@ -340,7 +340,7 @@ async function updatePoolPP() {
           .eq("participant_id", participant.id)
           .eq("map_id", map.id)
           .single();
-
+          console.log(`Карта ${map.id}  PP=${existingScore.pp}  ${map.map_url}`);
         if (!existingScore) {
           // Если записи нет — создаём с pp = 0
           await supabase.from("player_scores")
