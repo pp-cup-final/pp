@@ -292,7 +292,7 @@ async function loadData() {
         <img src="${item.avatar ? escapeHtml(item.avatar) : ''}" alt="avatar">
         <span class="nickname">${escapeHtml(item.nickname)}</span>
       </td>
-      <td class = "pp">${Math.floor(item.total_pp) ?? 0}</td>
+      <td class = "pp">${Math.round(item.total_pp) ?? 0}</td>
     `;
     tbody.appendChild(tr);
 
