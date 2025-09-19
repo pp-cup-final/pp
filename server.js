@@ -340,7 +340,7 @@ async function updatePoolPP() {
           .eq("participant_id", participant.id)
           .eq("map_id", map.id)
           .single();
-          console.log(`Карта ${map.id}  PP=${existingScore.pp}  ${map.map_url}`);
+          console.log(`Карта ${map.id},  PP=${existingScore.pp},  dfg=${map.map_url}`);
         if (!existingScore) {
           // Если записи нет — создаём с pp = 0
           await supabase.from("player_scores")
@@ -359,7 +359,7 @@ async function updatePoolPP() {
             : [scoreRes.data.score];
 
           const filteredScores = scoresArray.filter(s => new Date(s.created_at) >= participationDate);
-          console.log('${map.map_url}');
+          
           const bestPP = filteredScores.length > 0
             ? Math.max(...filteredScores.map(s => s.pp || 0))
             : 0;
