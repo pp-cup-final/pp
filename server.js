@@ -359,7 +359,7 @@ async function updatePoolPP() {
             : [scoreRes.data.score];
 
           const filteredScores = scoresArray.filter(s => new Date(s.created_at) >= participationDate);
-          console.log(filteredScores);
+          console.log('${map.map_url}');
           const bestPP = filteredScores.length > 0
             ? Math.max(...filteredScores.map(s => s.pp || 0))
             : 0;
