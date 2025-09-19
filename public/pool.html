@@ -260,7 +260,7 @@ async function fetchUser() {
       const participants = await participantsRes.json();
       const isParticipating = participants.some(p => p.nickname === currentUser.username);
       document.getElementById('participate').style.display = isParticipating ? 'none' : 'inline-block';
-      document.getElementById('unparticipate').style.display = isParticipating ? 'inline-block' : 'none';
+      
     }
 
   } else {
@@ -268,7 +268,7 @@ async function fetchUser() {
     document.getElementById('login').style.display = 'inline-block';
     document.getElementById('logout').style.display = 'none';
     document.getElementById('participate').style.display = 'none';
-    document.getElementById('unparticipate').style.display = 'none';
+    
     document.getElementById('addMapControls').style.display = 'none';
   }
 }
@@ -367,10 +367,7 @@ document.getElementById('participate').onclick = async () => {
   const res = await fetch('/api/pool/participate', { method: 'POST' });
   if (res.ok) { await fetchUser(); await loadData(); }
 };
-document.getElementById('unparticipate').onclick = async () => {
-  const res = await fetch('/api/pool/unparticipate', { method: 'POST' });
-  if (res.ok) { await fetchUser(); await loadData(); }
-};
+
 
 (async () => {
   await fetchUser();
