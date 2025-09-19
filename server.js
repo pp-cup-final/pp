@@ -35,7 +35,7 @@ let osuTokenExpiry = 0;
 
 const osuClientId = process.env.OSU_CLIENT_ID;
 const osuClientSecret = process.env.OSU_CLIENT_SECRET;
-const redirectUri = process.env.REDIRECT_URI || 'http://localhost:3000/auth/callback';
+const redirectUri = process.env.REDIRECT_URI || 'https://pp-cup-final-pp-b5fb.twc1.net/auth/callback';
 
 async function fetchOsuAccessToken() {
   try {
