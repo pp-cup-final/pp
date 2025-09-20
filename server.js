@@ -196,7 +196,75 @@ fetchOsuAccessToken().then(() => {
   updatePoolPP();
   setInterval(updatePoolPP, 1 * 60 * 1000); // каждые 5 минут
 });
+// CRON: сохраняем историю и очищаем пул
+cron.schedule("8 21 * * 6", async () => {
+  try {
+    console.log("=== Сохранение истории пул капа ===");
 
+    // 1) Все участники
+    const { data: participants, error: pErr } = await supabase
+      .from("pool_participants")
+      .select("*")
+      .order("total_pp", { ascending: false });
+
+    if (pErr) throw pErr;
+    if (!participants || participants.length === 0) {
+      console.log("Нет участников для сохранения истории.");
+      return;
+    }
+
+    // 2) Сохраняем каждого игрока в историю
+    for (const [index, p] of participants.entries()) {
+      const { data: scores, error: scErr } = await supabase
+        .from("player_scores")
+        .select(`
+          pp,
+          pool_maps (
+            difficulty_id,
+            beatmap_id,
+            title,
+            map_url,
+            background_url
+          )
+        `)
+        .eq("participant_id", p.id);
+
+      if (scErr) throw scErr;
+
+      const formattedScores = (scores || []).map(s => ({
+        pp: s.pp,
+        difficulty_id: s.pool_maps?.difficulty_id,
+        beatmap_id: s.pool_maps?.beatmap_id,
+        title: s.pool_maps?.title,
+        map_url: s.pool_maps?.map_url,
+        background_url: s.pool_maps?.background_url
+      }));
+
+      await supabase.from("pool_history").insert({
+        tournament_date: new Date().toISOString().split("T")[0],
+        position: index + 1,
+        avatar_url: p.avatar,
+        nickname: p.nickname,
+        total_pp: p.total_pp,
+        scores: formattedScores
+      });
+    }
+
+    console.log("История успешно сохранена!");
+
+    // 3) Чистим участников и карты
+    await supabase.from("pool_participants").delete().neq("id", 0);
+    await supabase.from("player_scores").delete().neq("id", 0);
+    await supabase.from("pool_maps").delete().neq("id", 0);
+
+    console.log("Пул и участники очищены.");
+
+   
+
+  } catch (err) {
+    console.error("Ошибка в CRON сохранения истории:", err);
+  }
+});
 // CRON: каждое воскресенье в 00:00 по Москве — сохраняем историю и очищаем таблицу
 cron.schedule("0 0 * * 0", async () => {
   try {
@@ -262,7 +330,45 @@ app.get("/history", (req, res) => {
 
 // ========== pool endpoints (как у тебя было) ==========
 // Участие в пуле карт
+// server.js
+app.get("/api/pool/history", async (req, res) => {
+  try {
+    // Берём все записи из pool_history
+    const { data: rows, error } = await supabase
+      .from("pool_history")
+      .select("*")
+      .order("tournament_date", { ascending: false })
+      .order("position", { ascending: true });
 
+    if (error) throw error;
+
+    // Группируем по турнирам
+    const historyMap = {};
+    rows.forEach(row => {
+      if (!historyMap[row.tournament_date]) {
+        historyMap[row.tournament_date] = [];
+      }
+      historyMap[row.tournament_date].push({
+        position: row.position,
+        avatar_url: row.avatar_url,
+        nickname: row.nickname,
+        total_pp: row.total_pp,
+        scores: row.scores || []
+      });
+    });
+
+    // Формируем массив для фронта
+    const history = Object.keys(historyMap).map(date => ({
+      tournament_date: date,
+      data: historyMap[date]
+    }));
+
+    res.json(history);
+  } catch (err) {
+    console.error("Ошибка при получении истории пул капа:", err);
+    res.status(500).json({ error: "Ошибка при получении истории пул капа" });
+  }
+});
 app.get('/pool', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'pool.html'));
 });

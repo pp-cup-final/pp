@@ -205,7 +205,7 @@
   <button id="login">Войти через osu!</button>
   <button id="logout" style="display:none;">Выйти</button>
   <button id="participate" style="display:none;">Участвовать</button>
- 
+  <button id="unparticipate" style="display:none;">Перестать участвовать</button>
   <a href="/" class="button-link"><button>Основной турнир</button></a>
 </div>
 
@@ -260,7 +260,7 @@ async function fetchUser() {
       const participants = await participantsRes.json();
       const isParticipating = participants.some(p => p.nickname === currentUser.username);
       document.getElementById('participate').style.display = isParticipating ? 'none' : 'inline-block';
-      
+      document.getElementById('unparticipate').style.display = isParticipating ? 'inline-block' : 'none';
     }
 
   } else {
@@ -268,7 +268,7 @@ async function fetchUser() {
     document.getElementById('login').style.display = 'inline-block';
     document.getElementById('logout').style.display = 'none';
     document.getElementById('participate').style.display = 'none';
-    
+    document.getElementById('unparticipate').style.display = 'none';
     document.getElementById('addMapControls').style.display = 'none';
   }
 }
@@ -292,7 +292,7 @@ async function loadData() {
         <img src="${item.avatar ? escapeHtml(item.avatar) : ''}" alt="avatar">
         <span class="nickname">${escapeHtml(item.nickname)}</span>
       </td>
-      <td class = "pp">${Math.round(item.total_pp) ?? 0}</td>
+      <td class = "pp">${Math.floor(item.total_pp) ?? 0}</td>
     `;
     tbody.appendChild(tr);
 
@@ -367,7 +367,10 @@ document.getElementById('participate').onclick = async () => {
   const res = await fetch('/api/pool/participate', { method: 'POST' });
   if (res.ok) { await fetchUser(); await loadData(); }
 };
-
+document.getElementById('unparticipate').onclick = async () => {
+  const res = await fetch('/api/pool/unparticipate', { method: 'POST' });
+  if (res.ok) { await fetchUser(); await loadData(); }
+};
 
 (async () => {
   await fetchUser();
