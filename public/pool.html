@@ -276,7 +276,10 @@ async function loadData() {
   const res = await fetch('/api/pool/participants');
   if (!res.ok) return;
 
-  const data = await res.json();
+   let data = await res.json();
+
+  // Сортировка участников по total_pp (по убыванию)
+  data.sort((a, b) => (b.total_pp ?? 0) - (a.total_pp ?? 0));
   const tbody = document.querySelector('tbody');
   tbody.innerHTML = '';
 
