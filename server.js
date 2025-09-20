@@ -197,7 +197,7 @@ fetchOsuAccessToken().then(() => {
   setInterval(updatePoolPP, 5 * 60 * 1000); // каждые 5 минут
 });
 // CRON: сохраняем историю и очищаем пул
-cron.schedule("8 21 * * 6", async () => {
+cron.schedule("0 0 * * 0", async () => {
   try {
     console.log("=== Сохранение истории пул капа ===");
 
@@ -300,7 +300,7 @@ cron.schedule("0 0 * * 0", async () => {
     }
 
     // Очистим таблицу участников
-    const { error: deleteErr } = await supabase.from("participants").delete();
+    const { error: deleteErr } = await supabase.from("participants").delete().neq('id', 0);
     if (deleteErr) {
       console.error('Ошибка очистки participants после сохранения истории:', deleteErr);
       return;
@@ -796,7 +796,76 @@ app.delete('/api/participants', async (req, res) => {
 
   res.json({ success: true });
 });
+app.post('/api/participate', async (req, res) => {
+  // Проверка авторизации
+  if (!req.session.user) {
+    return res.status(401).json({ error: 'Not logged in' });
+  }
 
+  const user = req.session.user;
+
+  // Проверка на участие
+  const { data: exists, error: checkErr } = await supabase
+    .from("participants")
+    .select("userid")
+    .eq("userid", user.id)
+    .maybeSingle();
+
+  if (checkErr) {
+    console.error('Ошибка проверки участия:', checkErr);
+    return res.status(500).json({ error: 'DB error' });
+  }
+
+  if (exists) {
+    return res.status(400).json({ error: 'User already participating' });
+  }
+
+  // Проверка дня недели (только воскресенье)
+  const moscowTime = new Date(Date.now() + 3 * 60 * 60 * 1000); // UTC+3
+  if (moscowTime.getDay() !== 0) { // 0 = воскресенье
+    return res.status(400).json({ error: 'Участвовать можно только в воскресенье' });
+  }
+
+  try {
+    // Получаем токен для osu! API
+    const token = await getOsuAccessToken();
+
+    // Получаем статистику игрока
+    const resOsu = await axios.get(`https://osu.ppy.sh/api/v2/users/${user.id}/osu`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    const ppStart = resOsu.data.statistics.pp || 0;
+
+    // Создаем запись нового участника
+    const newEntry = {
+      userid: user.id,
+      avatar: user.avatar_url || '',
+      nickname: user.username,
+      ppstart: Number(ppStart),
+      ppend: ppStart,
+      points: 0,
+      position: null // будет пересчитано
+    };
+
+    // Вставляем запись в базу
+    const { error } = await supabase.from("participants").insert([newEntry]);
+    if (error) {
+      console.error('Ошибка вставки участника:', error);
+      return res.status(500).json({ error: error.message });
+    }
+
+    // Обновляем позиции после добавления
+    await updatePositionsInDB();
+
+    // Отправляем успешный ответ
+    res.json({ success: true, participant: newEntry });
+
+  } catch (err) {
+    console.error("Ошибка при регистрации:", err.response?.data || err.message);
+    res.status(500).json({ error: "Ошибка osu! API" });
+  }
+});
 // === Участие основного турнира ===
 app.post('/api/pool/participate', async (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
