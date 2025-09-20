@@ -194,7 +194,7 @@ fetchOsuAccessToken().then(() => {
 });
 fetchOsuAccessToken().then(() => {
   updatePoolPP();
-  setInterval(updatePoolPP, 1 * 60 * 1000); // каждые 5 минут
+  setInterval(updatePoolPP, 5 * 60 * 1000); // каждые 5 минут
 });
 // CRON: сохраняем историю и очищаем пул
 cron.schedule("8 21 * * 6", async () => {
