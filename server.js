@@ -450,143 +450,162 @@ async function updatePoolPP() {
         ? new Date(participant.participation_date)
         : new Date(0);
 
-      console.log(`\n=== Обновление для ${participant.nickname} (${participant.userid}), участие: ${participationDate.toISOString()} ===`);
+      console.log(
+        `\n=== Обновление для ${participant.nickname} (${participant.userid}), участие: ${participationDate.toISOString()} ===`
+      );
 
       for (const map of maps) {
         try {
           // Проверяем запись в player_scores
-          const { data: existingRows } = await supabase
+          const { data: existingRows, error: eErr } = await supabase
             .from("player_scores")
             .select("id, pp")
             .eq("participant_id", participant.id)
             .eq("map_id", map.id);
 
+          if (eErr) throw eErr;
+
           if (!existingRows || existingRows.length === 0) {
-            await supabase.from("player_scores")
-              .insert([{ participant_id: participant.id, map_id: map.id, pp: 0 }]);
+            await supabase.from("player_scores").insert([
+              { participant_id: participant.id, map_id: map.id, pp: 0 },
+            ]);
           }
 
           // Резолвим difficulty_id
           let difficultyId = map.difficulty_id;
           if (!difficultyId) {
-            const candidate = map.beatmap_id || map.map_url?.match(/beatmaps\/(\d+)/)?.[1];
+            const candidate =
+              map.map_url?.match(/beatmaps\/(\d+)/)?.[1] || map.beatmap_id || null;
+
             if (candidate) {
               try {
-                const bmRes = await axios.get(`https://osu.ppy.sh/api/v2/beatmaps/${candidate}`, {
-                  headers: { Authorization: `Bearer ${token}` }
-                });
+                const bmRes = await axios.get(
+                  `https://osu.ppy.sh/api/v2/beatmaps/${candidate}`,
+                  { headers: { Authorization: `Bearer ${token}` } }
+                );
                 difficultyId = bmRes.data.id;
                 const setId = bmRes.data?.beatmapset?.id || map.beatmap_id || null;
 
                 if (difficultyId) {
-                  await supabase.from("pool_maps").update({
-                    difficulty_id: difficultyId,
-                    beatmap_id: setId ?? map.beatmap_id
-                  }).eq("id", map.id);
+                  await supabase
+                    .from("pool_maps")
+                    .update({
+                      difficulty_id: difficultyId,
+                      beatmap_id: setId,
+                    })
+                    .eq("id", map.id);
                 }
               } catch (e) {
-                console.warn(`Не удалось разрешить difficulty для map.id=${map.id}:`, e.response?.data || e.message);
+                console.warn(
+                  `Не удалось разрешить difficulty для map.id=${map.id}:`,
+                  e.response?.data || e.message
+                );
               }
             }
           }
 
           if (!difficultyId) {
             console.warn(`Пропускаем map.id=${map.id} — отсутствует difficulty_id`);
-            zeroPPMaps.push({ participant: participant.nickname, map: map.title, bestPP: 0, reason: 'no difficulty_id' });
+            zeroPPMaps.push({
+              participant: participant.nickname,
+              map: map.title,
+              bestPP: 0,
+              reason: "no difficulty_id",
+            });
             continue;
           }
 
-          // Получаем скор пользователя через /scores/users
+          // Получаем лучший pp игрока на карте
           let bestPP = 0;
           try {
             const scoreRes = await axios.get(
-              `https://osu.ppy.sh/api/v2/beatmaps/${difficultyId}/scores/users/${participant.userid}`,
+              `https://osu.ppy.sh/api/v2/beatmaps/${difficultyId}/scores/users/${participant.userid}/all`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
 
-            let candidates = [];
-            if (scoreRes.data) {
-              if (Array.isArray(scoreRes.data.scores)) candidates = scoreRes.data.scores;
-              if (scoreRes.data.score && typeof scoreRes.data.score === 'object') candidates.push(scoreRes.data.score);
-            }
+            let candidates = Array.isArray(scoreRes.data)
+              ? scoreRes.data
+              : scoreRes.data?.scores || [];
 
             // Фильтруем по дате участия
-            candidates = candidates.filter(s => {
+            candidates = candidates.filter((s) => {
               if (!s) return false;
               if (!s.created_at) return true;
               return new Date(s.created_at) >= participationDate;
             });
 
             if (candidates.length > 0) {
-              bestPP = Math.max(...candidates.map(s => Number(s.pp || 0)));
-            } else {
-              // Фоллбек: проверяем /scores/recent?limit=50
-              try {
-                const recentRes = await axios.get(
-                  `https://osu.ppy.sh/api/v2/users/${participant.userid}/scores/recent?limit=50`,
-                  { headers: { Authorization: `Bearer ${token}` } }
-                );
-
-                const recent = Array.isArray(recentRes.data) ? recentRes.data : (recentRes.data.scores || []);
-                const found = recent.find(s => s.beatmap?.id === Number(difficultyId));
-
-                if (found && (!found.created_at || new Date(found.created_at) >= participationDate)) {
-                  bestPP = Number(found.pp || 0);
-                }
-              } catch (e) {
-                console.warn(`Ошибка запроса /scores/recent для user ${participant.userid}:`, e.response?.data || e.message);
-              }
+              bestPP = Math.max(...candidates.map((s) => Number(s.pp || 0)));
             }
-
           } catch (e) {
-            console.warn(`Ошибка запроса /scores/users для map ${map.id}, user ${participant.userid}:`, e.response?.data || e.message);
+            console.warn(
+              `Ошибка запроса user beatmap scores для map ${map.id}, user ${participant.userid}:`,
+              e.response?.data || e.message
+            );
           }
 
           // Обновляем таблицу player_scores
-          
-
-          // Логируем лучший скор по PP на карту
-          console.log(`Map: "${map.title}", User: ${participant.nickname}, Best PP after participation: ${bestPP}`);
-          await supabase.from("player_scores")
+          console.log(
+            `Map: "${map.title}", User: ${participant.nickname}, Best PP after participation: ${bestPP}`
+          );
+          await supabase
+            .from("player_scores")
             .update({ pp: bestPP })
             .eq("participant_id", participant.id)
             .eq("map_id", map.id);
-          if (!bestPP) {
-            zeroPPMaps.push({ participant: participant.nickname, map: map.title, bestPP, reason: 'no score' });
-          }
 
+          if (!bestPP) {
+            zeroPPMaps.push({
+              participant: participant.nickname,
+              map: map.title,
+              bestPP,
+              reason: "no score",
+            });
+          }
         } catch (err) {
-          console.error(`Ошибка обработки map ${map.id} для ${participant.nickname}:`, err.response?.data || err.message);
+          console.error(
+            `Ошибка обработки map ${map.id} для ${participant.nickname}:`,
+            err.response?.data || err.message
+          );
         }
-      } // maps
-    } // participants
+      }
+    }
 
     // Пересчёт total_pp
     for (const participant of participants) {
-      const { data: scores } = await supabase
+      const { data: scores, error: sErr } = await supabase
         .from("player_scores")
         .select("pp")
         .eq("participant_id", participant.id);
 
-      const total_pp = (scores || []).reduce((sum, s) => sum + (Number(s.pp) || 0), 0);
+      if (sErr) {
+        console.error(`Ошибка получения scores для ${participant.nickname}:`, sErr);
+        continue;
+      }
 
-      await supabase.from("pool_participants")
+      const total_pp = (scores || []).reduce(
+        (sum, s) => sum + (Number(s.pp) || 0),
+        0
+      );
+
+      await supabase
+        .from("pool_participants")
         .update({ total_pp })
         .eq("id", participant.id);
     }
 
     console.log("✅ Total PP участников пула обновлены");
 
-    // Логируем карты с pp = 0
     if (zeroPPMaps.length > 0) {
       console.warn("Карты с pp=0 после обновления:", zeroPPMaps);
     }
-
   } catch (err) {
-    console.error("Ошибка updatePoolPP:", err.response?.data || err.message || err);
+    console.error(
+      "Ошибка updatePoolPP:",
+      err.response?.data || err.message || err
+    );
   }
 }
-
 
 
 
