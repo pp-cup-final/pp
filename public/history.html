@@ -18,7 +18,338 @@ body {
   width: 95%;
   max-width: 1200px;
   background: #1e1e1e;
+  border-radius: 12px;<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>История турнира</title>
+<style>
+body {
+  font-family: "Segoe UI", sans-serif;
+  background: #121212;
+  margin: 0;
+  padding: 2rem;
+  color: #eee;
+  text-align: center;
+}
+/* Контейнер */
+.table-container {
+  margin: 20px auto;
+  width: 95%;
+  max-width: 1200px;
+  background: #1e1e1e;
   border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
+
+/* Основная таблица */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Segoe UI", sans-serif;
+  color: #e0e0e0;
+  background-color: #1e1e1e;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(255,255,255,0.05);
+  margin-top: 1rem;
+}
+
+/* Заголовки */
+th {
+  background: #2a2a2a;
+  color: #fff;
+  font-weight: 600;
+  padding: 12px 16px;
+  text-align: center;
+  font-size: 15px;
+  border-bottom: 2px solid #3a3a3a;
+}
+
+/* Ячейки */
+td {
+  padding: 10px 16px;
+  text-align: center;
+  border-bottom: 1px solid #333;
+  font-size: 14px;
+}
+
+/* Первая колонка (позиция) */
+td:first-child {
+  font-weight: 600;
+  color: #ffcc00;
+}
+
+/* Аватар */
+td img {
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  border: 2px solid #444;
+}
+
+/* Наведение */
+tr:hover {
+  background: #262626;
+  transition: 0.2s;
+}
+
+h1 {
+  text-align: center;
+  color: #fff;
+  margin-bottom: 2rem;
+}
+button {
+  background-color: #ffffff;
+  color: #000;
+  border: 1px solid #555;
+  padding: 10px 20px;
+  font-size: 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+button:hover {
+  background-color: #ddd;
+  color: #000;
+}
+img {
+  border-radius: 50%;
+  box-shadow: 0 0 5px rgba(255,255,255,0.1);
+}
+table a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: bold;
+}
+table a:hover {
+  color: #ff6347;
+  text-decoration: underline;
+}
+details {
+  user-select: none;
+  border-radius: 12px;
+  cursor: pointer;
+}
+details:hover {
+  background: #2c2c2c;
+}
+details > summary {
+  font-size: 20px;
+  font-weight: bold;
+  transition: color 1s;
+}
+details[open] > summary {
+  color: #ff6347;
+}
+/* Топ-3 */
+.first { background: linear-gradient(90deg, #ffd70033, #ffd70011); font-weight:bold; }
+.first td { color: #ffd700; }
+.second { background: linear-gradient(90deg, #c0c0c033, #c0c0c011); font-weight:bold; }
+.second td { color: #c0c0c0; }
+.third { background: linear-gradient(90deg, #cd7f3233, #cd7f3211); font-weight:bold; }
+.third td { color: #cd7f32; }
+
+.nested-row { display: none; background: #2a2a2a; }
+.nested-row td { text-align: center; padding: 0; }
+
+/* Вложенная таблица (карты и PP) */
+.nested-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.nested-table th{
+  text-align: left;
+  padding: 10px
+}
+.nested-table td {
+  text-align: left;
+  padding: 10px;
+}
+
+.nested-table th {
+  background: #333;
+  font-size: 14px;
+}
+
+.nested-table tbody tr {
+  background: #202020;
+  transition: background 0.2s;
+}
+
+.nested-table tbody tr:hover {
+  background: #2c2c2c;
+}
+
+/* Ссылки на карты */
+.nested-table a {
+  color: #4da6ff;
+  text-decoration: none;
+  font-weight: 500;
+}
+.nested-table a:hover {
+  color: #80c0ff;
+  text-decoration: underline;
+}
+</style>
+</head>
+<body>
+<div>
+  <a href="/" class="button-link"><button>Вернуться на главную</button></a> 
+  <h1>История пп капа</h1>
+</div>
+<div id="history"></div>
+<h1>История пул капа</h1>
+<div id="pool-history"></div>
+<script>
+function escapeHtml(str) {
+  if (!str && str !== 0) return '';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
+async function loadHistory() {
+  const res = await fetch("/api/history");
+  const history = await res.json();
+  const container = document.getElementById("history");
+  container.innerHTML = "";
+
+  history.forEach(week => {
+    week.data.sort((a,b)=>b.points - a.points);
+    week.data.forEach((p,i)=>p.position=i+1);
+
+    const details = document.createElement("details");
+    details.className="week";
+    details.innerHTML = `
+      <summary>${week.date}</summary>
+      <table>
+        <tr>
+          <th>Позиция</th>
+          <th>Аватар</th>
+          <th>Игрок</th>
+          <th>PPstart</th>
+          <th>PPend</th>
+          <th>PPclear</th>
+          <th>Points</th>
+        </tr>
+        ${week.data.map(p=>{
+          let rowClass="", crown="";
+          if(p.position===1){rowClass="first"; crown=" 👑";}
+          else if(p.position===2){rowClass="second";}
+          else if(p.position===3){rowClass="third";}
+          return `<tr class="${rowClass}">
+            <td>${p.position}${crown}</td>
+            <td><img src="${p.avatar}" width="40" height="40"></td>
+            <td><a href="https://osu.ppy.sh/users/${p.useriD}" target="_blank">${escapeHtml(p.nickname)}</a></td>
+            <td>${p.ppstart}</td>
+            <td>${p.ppend}</td>
+            <td>${Math.floor(p.ppend - p.ppstart)}</td>
+            <td>${p.points}</td>
+          </tr>`;
+        }).join("")}
+      </table>`;
+    container.appendChild(details);
+  });
+}
+
+async function loadPoolHistory() {
+  const res = await fetch("/api/pool/history");
+  const history = await res.json();
+  const container = document.getElementById("pool-history");
+  container.innerHTML = "";
+
+  history.forEach(week => {
+    const details = document.createElement('details');
+    const summary = document.createElement('summary');
+    summary.textContent = week.tournament_date;
+    details.appendChild(summary);
+
+    const table = document.createElement('table');
+    table.innerHTML = `
+      <tr>
+        <th>Позиция</th>
+        <th>Аватар</th>
+        <th>Игрок</th>
+        <th>Всего PP</th>
+      </tr>
+    `;
+
+    const tbody = document.createElement('tbody');
+
+    week.data.forEach(player => {
+      // основная строка игрока
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${player.position}</td>
+        <td><img src="${escapeHtml(player.avatar_url)}" width="30"></td>
+        <td>${escapeHtml(player.nickname)}</td>
+        <td>${player.total_pp}</td>
+      `;
+      tbody.appendChild(tr);
+
+      // скрытая таблица для списка скоров
+      if (player.scores && player.scores.length > 0) {
+        const nestedTr = document.createElement('tr');
+        nestedTr.className = "nested-row";
+        const td = document.createElement('td');
+        td.colSpan = 4;
+        td.className = "nested-cell";
+
+        // внутренняя таблица
+        td.innerHTML = `
+          <table class="nested-table">
+            <thead>
+              <tr>
+                <th>Карта</th>
+                <th>PP</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${player.scores.map(s => `
+                <tr>
+                  <td>
+                    <a href="https://osu.ppy.sh/beatmapsets/${s.beatmap_id}" target="_blank">
+  ${escapeHtml(s.title || `Map ${s.beatmap_id}`)}
+</a>
+                  </td>
+                  <td>${s.pp}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+
+        nestedTr.appendChild(td);
+        nestedTr.style.display = "none"; // скрыто по умолчанию
+        tbody.appendChild(nestedTr);
+
+        tr.addEventListener('click', () => {
+          nestedTr.style.display = nestedTr.style.display === 'table-row' ? 'none' : 'table-row';
+        });
+      }
+    });
+
+    table.appendChild(tbody);
+    details.appendChild(table);
+    container.appendChild(details);
+  });
+}
+
+loadHistory();
+loadPoolHistory();
+</script>
+</body>
+</html>
+
   overflow: hidden;
   box-shadow: 0 4px 10px rgba(0,0,0,0.5);
 }

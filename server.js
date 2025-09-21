@@ -199,9 +199,9 @@ fetchOsuAccessToken().then(() => {
 // CRON: сохраняем историю и очищаем пул
 cron.schedule("0 0 * * 0", async () => {
   try {
-    console.log("=== Сохранение истории пул капа ===");
+    console.log("=== Сохранение истории пула ===");
 
-    // 1) Все участники
+    // 1) Получаем всех участников пула
     const { data: participants, error: pErr } = await supabase
       .from("pool_participants")
       .select("*")
@@ -213,34 +213,44 @@ cron.schedule("0 0 * * 0", async () => {
       return;
     }
 
-    // 2) Сохраняем каждого игрока в историю
-    for (const [index, p] of participants.entries()) {
-      const { data: scores, error: scErr } = await supabase
-        .from("player_scores")
-        .select(`
-          pp,
-          pool_maps (
-            difficulty_id,
-            beatmap_id,
-            title,
-            map_url,
-            background_url
-          )
-        `)
-        .eq("participant_id", p.id);
+    // 2) Получаем все карты пула заранее
+    const { data: allMaps, error: mapsErr } = await supabase
+      .from("player_scores")
+      .select(`
+        id,
+        participant_id,
+        map_id,
+        pp,
+        pool_maps (
+          difficulty_id,
+          beatmap_id,
+          title,
+          map_url,
+          background_url
+        )
+      `);
 
-      if (scErr) throw scErr;
+    if (mapsErr) throw mapsErr;
+
+    // 3) Проходим по каждому участнику
+    for (const [index, p] of participants.entries()) {
+      // Получаем карты текущего игрока
+      const scores = (allMaps || []).filter(s => s.participant_id === p.id);
 
       const formattedScores = (scores || []).map(s => ({
-        pp: s.pp,
-        difficulty_id: s.pool_maps?.difficulty_id,
-        beatmap_id: s.pool_maps?.beatmap_id,
-        title: s.pool_maps?.title,
-        map_url: s.pool_maps?.map_url,
-        background_url: s.pool_maps?.background_url
+        pp: Number(s.pp) || 0,
+        map_id: s.map_id,
+        difficulty_id: s.pool_maps?.difficulty_id || null,
+        beatmap_id: s.pool_maps?.beatmap_id || null,
+        title: s.pool_maps?.title || null,
+        map_url: s.pool_maps?.map_url || null,
+        background_url: s.pool_maps?.background_url || null
       }));
 
-      await supabase.from("pool_history").insert({
+      console.log(`Игрок ${p.nickname} (${p.id}) → ${formattedScores.length} карт для истории`);
+
+      // Вставляем запись в pool_history
+      const { error: insertErr } = await supabase.from("pool_history").insert({
         tournament_date: new Date().toISOString().split("T")[0],
         position: index + 1,
         avatar_url: p.avatar,
@@ -248,23 +258,23 @@ cron.schedule("0 0 * * 0", async () => {
         total_pp: p.total_pp,
         scores: formattedScores
       });
+
+      if (insertErr) console.error(`Ошибка вставки истории для ${p.nickname}:`, insertErr);
     }
 
-    console.log("История успешно сохранена!");
+    console.log("✅ История пула успешно сохранена!");
 
-    // 3) Чистим участников и карты
+    // 4) Очистка таблиц
     await supabase.from("pool_participants").delete().neq("id", 0);
     await supabase.from("player_scores").delete().neq("id", 0);
     await supabase.from("pool_maps").delete().neq("id", 0);
 
-    console.log("Пул и участники очищены.");
-
-   
+    console.log("Пул и карты очищены.");
 
   } catch (err) {
-    console.error("Ошибка в CRON сохранения истории:", err);
+    console.error("Ошибка в CRON сохранения истории пула:", err.response?.data || err.message || err);
   }
-});
+}, { timezone: "Europe/Moscow" });
 // CRON: каждое воскресенье в 00:00 по Москве — сохраняем историю и очищаем таблицу
 cron.schedule("0 0 * * 0", async () => {
   try {
