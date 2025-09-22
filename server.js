@@ -247,8 +247,6 @@ cron.schedule("0 0 * * 0", async () => {
         background_url: s.pool_maps?.background_url || null
       }));
 
-      console.log(`Игрок ${p.nickname} (${p.id}) → ${formattedScores.length} карт для истории`);
-
       // Вставляем запись в pool_history
       const { error: insertErr } = await supabase.from("pool_history").insert({
         tournament_date: new Date().toISOString().split("T")[0],
@@ -274,6 +272,53 @@ cron.schedule("0 0 * * 0", async () => {
   } catch (err) {
     console.error("Ошибка в CRON сохранения истории пула:", err.response?.data || err.message || err);
   }
+}, { timezone: "Europe/Moscow" });
+
+cron.schedule("0 0 * * 0", async () => {
+  const token = await getOsuAccessToken();
+  let count = 0;
+  await supabase.from("test_pool_maps").delete().neq("id", 0);
+  console.log("Прошлый маппул очищен");
+  console.log("Начата генерация пула карт");
+  while (count < 10) {
+    const randomSetId = Math.floor(Math.random() * 2300000) + 1; // до последнего ранкнутого сет-а
+    try {
+      const res = await axios.get(`https://osu.ppy.sh/api/v2/beatmapsets/${randomSetId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const set = res.data;
+
+      // проверяем, что сам сет ранкнутый
+      if (set.status !== "ranked") continue;
+
+      // фильтруем карты внутри сета
+      const validDiffs = set.beatmaps.filter(
+        bm => bm.mode === "osu" && bm.difficulty_rating >= 6 && bm.difficulty_rating <= 8
+      );
+
+      if (validDiffs.length > 0) {
+        // берём случайную подходящую сложность из сета
+        const map = validDiffs[Math.floor(Math.random() * validDiffs.length)];
+
+        // сохраняем сразу в БД
+        await supabase.from("test_pool_maps").insert([{
+          beatmap_id: set.id,
+          difficulty_id: map.id,
+          title: `${set.title} [${map.version}]`,
+          background_url: set.covers.cover,
+          map_url: `https://osu.ppy.sh/beatmaps/${map.id}`
+        }]);
+
+        console.log(`🎵 Добавлена карта: ${set.title} [${map.version}]`);
+
+        count++;
+      }
+    } catch (err) {
+      continue; // если ошибка или сет не подходит — пробуем снова
+    }
+  }
+
+  console.log("✅ Новый пул карт сгенерирован.");
 }, { timezone: "Europe/Moscow" });
 // CRON: каждое воскресенье в 00:00 по Москве — сохраняем историю и очищаем таблицу
 cron.schedule("0 0 * * 0", async () => {
@@ -450,10 +495,6 @@ async function updatePoolPP() {
         ? new Date(participant.participation_date)
         : new Date(0);
 
-      console.log(
-        `\n=== Обновление для ${participant.nickname} (${participant.userid}), участие: ${participationDate.toISOString()} ===`
-      );
-
       for (const map of maps) {
         try {
           // Проверяем запись в player_scores
@@ -545,9 +586,7 @@ async function updatePoolPP() {
           }
 
           // Обновляем таблицу player_scores
-          console.log(
-            `Map: "${map.title}", User: ${participant.nickname}, Best PP after participation: ${bestPP}`
-          );
+          
           await supabase
             .from("player_scores")
             .update({ pp: bestPP })
@@ -596,9 +635,7 @@ async function updatePoolPP() {
 
     console.log("✅ Total PP участников пула обновлены");
 
-    if (zeroPPMaps.length > 0) {
-      console.warn("Карты с pp=0 после обновления:", zeroPPMaps);
-    }
+    
   } catch (err) {
     console.error(
       "Ошибка updatePoolPP:",
