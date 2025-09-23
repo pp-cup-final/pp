@@ -679,7 +679,20 @@ app.get('/api/pool/participants', async (req, res) => {
     res.status(500).json({ error: "Ошибка при получении участников" });
   }
 });
+app.get('/api/pool/maps', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('pool_maps')
+      .select('id, beatmap_id, title, background_url, map_url, difficulty_id')
+      .order('id', { ascending: true });
 
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+  } catch (err) {
+    console.error('Ошибка /api/pool/maps:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 // Получение карт и результатов игрока (в пуле)
 app.get('/api/pool/player/:id', async (req, res) => {
   const { id } = req.params;
