@@ -2,6 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8" />
+<link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/e/e7/Twemoji12_1f913.svg" type="image/svg+xml">
 <title>Турнир — Пул карт</title>
 <style>
   body {
@@ -34,7 +35,16 @@
     cursor: pointer;
     transition: all 0.3s ease;
   }
+.nickname-cell a.nickname {
+  color: #fff;
+  font-weight: bold;
+  text-decoration: none;
+}
 
+.nickname-cell a.nickname:hover {
+  text-decoration: underline;
+  color: #ffb86b;
+}
   button:hover {
     background-color: #ddd;
   }
@@ -293,15 +303,19 @@
   tr.className = 'main-row';
   tr.dataset.playerId = item.id;
   tr.innerHTML = `
-    <td class="position-text">${index + 1}</td>
-    <td class="nickname-cell">
-      <img src="${item.avatar ? escapeHtml(item.avatar) : ''}" alt="avatar">
-      <a href="https://osu.ppy.sh/users/${item.userid}" target="_blank" rel="noopener noreferrer" class="nickname">
-        ${escapeHtml(item.nickname)}
-      </a>
-    </td>
-    <td class="pp">${Math.floor(item.total_pp ?? 0)}</td>
-  `;
+  <td class="position-text">${index + 1}</td>
+  <td class="nickname-cell">
+    <img src="${item.avatar ? escapeHtml(item.avatar) : ''}" alt="avatar">
+    <a href="https://osu.ppy.sh/users/${item.userid}" 
+       target="_blank" 
+       rel="noopener noreferrer" 
+       class="nickname"
+       onclick="event.stopPropagation()">
+       ${escapeHtml(item.nickname)}
+    </a>
+  </td>
+  <td class="pp">${Math.floor(item.total_pp ?? 0)}</td>
+`;
   tbody.appendChild(tr);
 
   const mapsTr = document.createElement('tr');
