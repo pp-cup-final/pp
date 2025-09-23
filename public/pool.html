@@ -98,7 +98,7 @@
   .maps-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 9px;
     margin: 6px 0;
   }
 
@@ -152,7 +152,18 @@
     align-items: center;
     gap: 10px;
   }
-
+#pool-table th:nth-child(2),
+#pool-table td:nth-child(2) {
+  text-align: center; /* центрируем весь столбец "Карта" */
+}
+#pool-table th:nth-child(3),
+#pool-table td:nth-child(3) {
+  text-align: left; /* центрируем весь столбец "Карта" */
+}
+#pool-table td img {
+  display: block;
+  margin: 0 auto; /* центрируем картинку в своем столбце */
+}
   .position {
     width: 80px;
     text-align: center;
@@ -178,9 +189,7 @@
     box-shadow: 0 0 3px rgba(255,255,255,0.2);
   }
 
-  #pool-table thead th:nth-child(2) {
-    text-align: left;
-  }
+  
 
   .nickname-cell .nickname {
     font-weight: bold;
@@ -220,14 +229,15 @@
 
   <!-- Пул карт (2 колонки: № и Карта) -->
   <table id="pool-table" aria-label="Пул карт">
-    <thead>
-      <tr>
-        <th style="width:60px;">№</th>
-        <th>Карта</th>
-      </tr>
-    </thead>
-    <tbody id="pool-body"></tbody>
-  </table>
+  <thead>
+    <tr>
+      <th style="width:60px;">№</th>
+      <th style="width:100px;">Карта</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody id="pool-body"></tbody>
+</table>
 
   <!-- Таблица участников -->
   <table>
@@ -377,37 +387,42 @@
 
   // Новая реализация: получаем пул напрямую из pool_maps (один запрос)
   async function loadPool() {
-    const res = await fetch('/api/pool/maps');
-    const tbody = document.getElementById('pool-body');
-    if (!res.ok) {
-      tbody.innerHTML = '<tr><td colspan="2" style="color:#f55">Ошибка загрузки пула карт</td></tr>';
-      return;
-    }
-
-    const maps = await res.json();
-    if (!Array.isArray(maps) || maps.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="2" style="color:#aaa">Пул пока пуст</td></tr>';
-      return;
-    }
-
-    tbody.innerHTML = '';
-    maps.forEach((map, index) => {
-      const title = escapeHtml(map.title ?? 'Без названия');
-      const bg = map.background_url ?? '';
-      // если map_url пустой, попробуем сформировать ссылку по beatmap_id
-      const url = map.map_url || (map.beatmap_id ? `https://osu.ppy.sh/beatmaps/${map.beatmap_id}` : '#');
-
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td style="width:60px;text-align:center">${index + 1}</td>
-        <td style="display:flex;align-items:center;gap:12px;">
-          <img src="${escapeHtml(bg)}" style="width:90px;height:55px;object-fit:cover;border-radius:6px;" alt="">
-          <a href="${escapeHtml(url)}" target="_blank" style="color:#fff;font-weight:bold;">${title}</a>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
+  const res = await fetch('/api/pool/maps');
+  const tbody = document.getElementById('pool-body');
+  if (!res.ok) {
+    tbody.innerHTML = '<tr><td colspan="3" style="color:#f55">Ошибка загрузки пула карт</td></tr>';
+    return;
   }
+
+  const maps = await res.json();
+  if (!Array.isArray(maps) || maps.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="3" style="color:#aaa">Пул пока пуст</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = '';
+  maps.forEach((map, index) => {
+  const title = escapeHtml(map.title ?? 'Без названия');
+  const bg = map.background_url ?? '';
+  const url = map.map_url || (map.beatmap_id ? `https://osu.ppy.sh/beatmaps/${map.beatmap_id}` : '#');
+
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td style="text-align:center">${index + 1}</td>
+    <td>
+      <img src="${escapeHtml(bg)}" 
+           style="width:90px;height:55px;object-fit:cover;border-radius:6px;" 
+           alt="">
+    </td>
+    <td style="text-align:left;">
+      <a href="${escapeHtml(url)}" target="_blank" style="color:#fff;font-weight:bold;">
+        ${title}
+      </a>
+    </td>
+  `;
+  tbody.appendChild(tr);
+});
+}
 
   document.getElementById('login').onclick = () => window.location.href = '/auth/login';
   document.getElementById('logout').onclick = () => window.location.href = '/auth/logout';
