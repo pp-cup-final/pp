@@ -2,7 +2,6 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/e/e7/Twemoji12_1f913.svg" type="image/svg+xml">
   <title>Таблица участников</title>
   <style>
     body {
@@ -76,36 +75,62 @@
       border-radius: 50%;
       box-shadow: 0 0 5px rgba(255,255,255,0.1);
     }
-    /* Выделение топ-3 */
     .first {
       background: linear-gradient(90deg, #ffd70033, #ffd70011);
       font-weight: bold;
     }
-    .first td {
-      color: #ffd700;
-    }
+    .first td { color: #ffd700; }
     .second {
       background: linear-gradient(90deg, #c0c0c033, #c0c0c011);
       font-weight: bold;
     }
-    .second td {
-      color: #c0c0c0;
-    }
+    .second td { color: #c0c0c0; }
     .third {
       background: linear-gradient(90deg, #cd7f3233, #cd7f3211);
       font-weight: bold;
     }
-    .third td {
-      color: #cd7f32;
-    }
+    .third td { color: #cd7f32; }
     @media (max-width: 600px) {
-      table, th, td {
-        font-size: 12px;
-      }
-      button {
-        padding: 8px 16px;
-        font-size: 14px;
-      }
+      table, th, td { font-size: 12px; }
+      button { padding: 8px 16px; font-size: 14px; }
+    }
+
+    /* стили для вложенной таблицы скориков */
+    .inner-table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 8px;
+    }
+    .inner-table th, .inner-table td {
+      padding: 8px;
+      border-bottom: 1px solid #444;
+      vertical-align: middle;
+    }
+    .inner-table th {
+      background-color: #2a2a2a;
+      color: #fff;
+      font-weight: bold;
+      text-align: center;
+    }
+    .inner-table td img {
+      width: 80px;
+      height: 45px;
+      display: block;
+      margin: 0 auto;
+      border-radius: 6px;
+    }
+    .bg-cell {
+      width: 90px; /* чуть больше чем изображение */
+    }
+    .map-title-cell {
+      text-align: left; /* текст слева */
+      padding-left: 10px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .pp-cell {
+      text-align: center;
     }
   </style>
 </head>
@@ -121,7 +146,7 @@
     <button id="participate" style="display:none;">Участвовать</button>
     <button id="unparticipate" style="display:none;">Перестать участвовать</button>
     <a href="/history" class="button-link"><button>История</button></a>
-    <a href="/pool" class="button-link" style="display: inline-block;"><button>Пул кап</button></a>
+    <a href="/pool" class="button-link" style="display: none;"><button>Бонус</button></a>
   </div>
   <h1>Таблица участников</h1>
   <table>
@@ -137,159 +162,224 @@
         <th id="admin-column" style="display:none;">Действия</th>
       </tr>
     </thead>
-    <tbody></tbody>
+    <tbody id="participants-body"></tbody>
   </table>
 
   <script>
-  let currentUser = null;
+    let currentUser = null;
 
-  function isSundayMoscow() {
-    const now = new Date();
-    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const moscow = new Date(utc + 3 * 60 * 60 * 1000); // MSK = UTC+3
-    return moscow.getDay() === 0; // 0 = воскресенье
-  }
-
-  function toggleButtonsVisibility() {
-    const isSunday = isSundayMoscow();
-    const participateBtn = document.getElementById("participate");
-    const leaveBtn = document.getElementById("unparticipate");
-
-    if (!participateBtn || !leaveBtn) return;
-
-    if (!isSunday) {
-      participateBtn.style.display = "none";
-      leaveBtn.style.display = "none";
-      return;
+    function isSundayMoscow() {
+      const now = new Date();
+      const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+      const moscow = new Date(utc + 3 * 60 * 60 * 1000);
+      return moscow.getDay() === 0;
     }
-  }
 
-  async function fetchUser() {
-    const res = await fetch('/api/me');
-    if (res.ok) {
-      currentUser = await res.json();
-      document.getElementById('user').innerText = `Привет, ${currentUser.username}!`;
-      document.getElementById('login').style.display = 'none';
-      document.getElementById('logout').style.display = 'inline-block';
+    function toggleButtonsVisibility() {
+      const isSunday = isSundayMoscow();
+      const participateBtn = document.getElementById("participate");
+      const leaveBtn = document.getElementById("unparticipate");
+      if (!participateBtn || !leaveBtn) return;
+      if (!isSunday) {
+        participateBtn.style.display = "none";
+        leaveBtn.style.display = "none";
+      }
+    }
 
-      const participantsRes = await fetch('/api/data');
-      const participants = await participantsRes.json();
-      const isParticipating = participants.some(p => p.Nickname === currentUser.username);
+    async function fetchUser() {
+      const res = await fetch('/api/me');
+      if (res.ok) {
+        currentUser = await res.json();
+        document.getElementById('user').innerText = `Привет, ${currentUser.username}!`;
+        document.getElementById('login').style.display = 'none';
+        document.getElementById('logout').style.display = 'inline-block';
 
-      document.getElementById('participate').style.display = isParticipating ? 'none' : 'inline-block';
-      document.getElementById('unparticipate').style.display = isParticipating ? 'inline-block' : 'none';
+        const participantsRes = await fetch('/api/data');
+        const participants = await participantsRes.json();
+        const isParticipating = participants.some(p => p.nickname === currentUser.username);
+        document.getElementById('participate').style.display = isParticipating ? 'none' : 'inline-block';
+        document.getElementById('unparticipate').style.display = isParticipating ? 'inline-block' : 'none';
 
-      if (currentUser.username === 'LLIaBKa') {
-        document.getElementById('admin-panel').style.display = 'block';
-        document.getElementById('admin-column').style.display = 'table-cell';
+        if (currentUser.username === 'LLIaBKa') {
+          document.getElementById('admin-panel').style.display = 'block';
+          document.getElementById('admin-column').style.display = 'table-cell';
+        }
       } else {
+        currentUser = null;
+        document.getElementById('user').innerText = '';
+        document.getElementById('login').style.display = 'inline-block';
+        document.getElementById('logout').style.display = 'none';
+        document.getElementById('participate').style.display = 'none';
+        document.getElementById('unparticipate').style.display = 'none';
         document.getElementById('admin-panel').style.display = 'none';
         document.getElementById('admin-column').style.display = 'none';
       }
-    } else {
-      currentUser = null;
-      document.getElementById('user').innerText = '';
-      document.getElementById('login').style.display = 'inline-block';
-      document.getElementById('logout').style.display = 'none';
-      document.getElementById('participate').style.display = 'none';
-      document.getElementById('unparticipate').style.display = 'none';
-      document.getElementById('admin-panel').style.display = 'none';
-      document.getElementById('admin-column').style.display = 'none';
+      toggleButtonsVisibility();
     }
-    toggleButtonsVisibility();
-  }
 
-  async function loadData() {
-    try {
-      const res = await fetch('/api/data');
-      if (!res.ok) throw new Error('Ошибка загрузки данных');
-      const data = await res.json();
-      const tbody = document.querySelector('tbody');
-      tbody.innerHTML = '';
-      data.forEach(item => {
-        let rowClass = "";
-        let crown = "";
-        if (item.position === 1) {
-          rowClass = "first";
-          crown = " 👑";
-        } else if (item.position === 2) {
-          rowClass = "second";
-        } else if (item.position === 3) {
-          rowClass = "third";
-        }
-
-        const tr = document.createElement('tr');
-        tr.className = rowClass;
-        tr.innerHTML = `
-          <td>${item.position}${crown}</td>
-          <td><img src="${item.avatar}" alt="avatar" width="40" height="40" /></td>
-          <td><a href="https://osu.ppy.sh/users/${item.userid}" target="_blank">${item.nickname}</a></td>
-          <td>${item.ppstart}</td>
-          <td>${item.ppend}</td>
-          <td>${Math.floor(item.ppend-item.ppstart)}</td>
-          <td>${item.points}</td>
-          ${currentUser?.username === 'LLIaBKa' ? `<td><button onclick="deleteParticipant('${item.nickname}')">Удалить</button></td>` : ''}
-        `;
-        tbody.appendChild(tr);
-      });
-    } catch (e) {
-      console.error(e);
+    function extractArrayFromJson(json) {
+      if (Array.isArray(json)) return json;
+      if (!json || typeof json !== 'object') return [];
+      const keys = ['data', 'scores', 'items', 'rows'];
+      for (const k of keys) {
+        if (Array.isArray(json[k])) return json[k];
+      }
+      for (const val of Object.values(json)) {
+        if (Array.isArray(val)) return val;
+      }
+      return [];
     }
-  }
 
-  async function deleteParticipant(nickname) {
-    if (confirm(`Удалить ${nickname}?`)) {
-      await fetch(`/api/participant/${encodeURIComponent(nickname)}`, { method: 'DELETE' });
-      loadData();
-    }
-  }
+    async function loadData() {
+      try {
+        const res = await fetch('/api/data');
+        if (!res.ok) throw new Error('Ошибка загрузки участников');
+        const data = await res.json();
+        const tbody = document.getElementById('participants-body');
+        tbody.innerHTML = '';
+        data.forEach(item => {
+          let rowClass = "";
+          let crown = "";
+          if (item.position === 1) { rowClass = "first"; crown = " 👑"; }
+          else if (item.position === 2) rowClass = "second";
+          else if (item.position === 3) rowClass = "third";
 
-  document.getElementById('clear-table')?.addEventListener('click', async () => {
-    if (confirm('Очистить всю таблицу?')) {
-      const res = await fetch('/api/participants', { method: 'DELETE' });
-      const result = await res.json();
-      if (res.ok) {
-        await loadData();
-        alert('Таблица очищена');
-      } else {
-        alert(result.error || 'Ошибка очистки');
+          const tr = document.createElement('tr');
+          tr.className = rowClass + " participant-row";
+          tr.dataset.userid = item.userid;
+          tr.innerHTML = `
+            <td>${item.position}${crown}</td>
+            <td><img src="${item.avatar}" alt="avatar" width="40" height="40" /></td>
+            <td><a href="https://osu.ppy.sh/users/${item.userid}" target="_blank" onclick="event.stopPropagation();">${item.nickname}</a></td>
+            <td>${item.ppstart}</td>
+            <td>${item.ppend}</td>
+            <td>${Math.floor(item.ppend - item.ppstart)}</td>
+            <td>${item.points}</td>
+            ${currentUser?.username === 'LLIaBKa' ? `<td><button onclick="deleteParticipant('${item.nickname}')">Удалить</button></td>` : ''}
+          `;
+          tbody.appendChild(tr);
+
+          const scoresRow = document.createElement('tr');
+          scoresRow.className = "scores-row";
+          scoresRow.style.display = "none";
+          scoresRow.innerHTML = `
+            <td colspan="8">
+              <table class="inner-table">
+                <thead>
+                  <tr>
+                    <th class="bg-cell">Карта</th>
+                    <th class="map-title-cell"></th>
+                    <th class="pp-cell">PP за скор</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </td>
+          `;
+          tbody.appendChild(scoresRow);
+
+          tr.addEventListener("click", async () => {
+            const isVisible = scoresRow.style.display === "table-row";
+            document.querySelectorAll(".scores-row").forEach(r => r.style.display = "none");
+            if (!isVisible) {
+              scoresRow.style.display = "table-row";
+              const scoresTbody = scoresRow.querySelector("tbody");
+              scoresTbody.innerHTML = `<tr><td colspan="3">Загрузка...</td></tr>`;
+              try {
+                const res2 = await fetch(`/api/participant/${item.userid}/scores`);
+                const j = await res2.json();
+                const scores = extractArrayFromJson(j);
+                if (!scores.length) {
+                  scoresTbody.innerHTML = `<tr><td colspan="3">Нет скоров за неделю</td></tr>`;
+                } else {
+                  const sortedScores = scores
+                    .slice()
+                    .sort((a, b) => (b.score_pp ?? b.pp ?? 0) - (a.score_pp ?? a.pp ?? 0));
+                  scoresTbody.innerHTML = sortedScores.map(s => {
+                    const map = s.pool_maps || s.beatmap || s.map || {};
+                    const bg = map.background_url || s.beatmap_bg || '';
+                    const beatmapId = map.id || s.beatmap_id || 0;
+                    const pp = Number(s.score_pp ?? s.pp ?? 0);
+                    const titleName = map.title || s.beatmap_title || 'Без названия';
+                    const diffName = map.version || s.beatmap_version || '';
+                    const fullTitle = diffName ? `${titleName} [${diffName}]` : titleName;
+
+                    return `
+                      <tr>
+                        <td class="bg-cell"><img src="${bg}" alt="cover"></td>
+                        <td class="map-title-cell">
+                          <a href="https://osu.ppy.sh/beatmaps/${beatmapId}" target="_blank">${fullTitle}</a>
+                        </td>
+                        <td class="pp-cell">${isFinite(pp) ? pp.toFixed(2) : '0'} pp</td>
+                      </tr>
+                    `;
+                  }).join('');
+                }
+              } catch (err) {
+                console.error("Ошибка при fetch scores:", err);
+                scoresRow.querySelector("tbody").innerHTML = `<tr><td colspan="3">Ошибка загрузки</td></tr>`;
+              }
+            }
+          });
+        });
+      } catch (e) {
+        console.error(e);
       }
     }
-  });
 
-  document.getElementById('login').onclick = () => window.location.href = '/auth/login';
-  document.getElementById('logout').onclick = () => window.location.href = '/auth/logout';
+    async function deleteParticipant(nickname) {
+      if (confirm(`Удалить ${nickname}?`)) {
+        await fetch(`/api/participant/${encodeURIComponent(nickname)}`, { method: 'DELETE' });
+        loadData();
+      }
+    }
 
-  document.getElementById('participate').onclick = async () => {
-    const res = await fetch('/api/participate', { method: 'POST' });
-    const result = await res.json();
-    if (res.ok) {
-      alert('Вы успешно участвуете!');
+    document.getElementById('clear-table')?.addEventListener('click', async () => {
+      if (confirm('Очистить всю таблицу?')) {
+        const res = await fetch('/api/participants', { method: 'DELETE' });
+        const result = await res.json();
+        if (res.ok) {
+          await loadData();
+          alert('Таблица очищена');
+        } else {
+          alert(result.error || 'Ошибка очистки');
+        }
+      }
+    });
+
+    document.getElementById('login').onclick = () => window.location.href = '/auth/login';
+    document.getElementById('logout').onclick = () => window.location.href = '/auth/logout';
+
+    document.getElementById('participate').onclick = async () => {
+      const res = await fetch('/api/participate', { method: 'POST' });
+      const result = await res.json();
+      if (res.ok) {
+        alert('Вы успешно участвуете!');
+        await fetchUser();
+        await loadData();
+      } else {
+        alert(result.error || 'Ошибка при участии');
+      }
+    };
+
+    document.getElementById('unparticipate').onclick = async () => {
+      const res = await fetch('/api/unparticipate', { method: 'POST' });
+      const result = await res.json();
+      if (res.ok) {
+        alert('Вы больше не участвуете');
+        await fetchUser();
+        await loadData();
+      } else {
+        alert(result.error || 'Ошибка при удалении');
+      }
+    };
+
+    (async () => {
       await fetchUser();
       await loadData();
-    } else {
-      alert(result.error || 'Ошибка при участии');
-    }
-  };
-
-  document.getElementById('unparticipate').onclick = async () => {
-    const res = await fetch('/api/unparticipate', { method: 'POST' });
-    const result = await res.json();
-    if (res.ok) {
-      alert('Вы больше не участвуете');
-      await fetchUser();
-      await loadData();
-    } else {
-      alert(result.error || 'Ошибка при удалении');
-    }
-  };
-
-  (async () => {
-    await fetchUser();
-    await loadData();
-    toggleButtonsVisibility();
-    setInterval(toggleButtonsVisibility, 60 * 1000);
-  })();
+      toggleButtonsVisibility();
+      setInterval(toggleButtonsVisibility, 60 * 1000);
+    })();
   </script>
 </body>
 </html>

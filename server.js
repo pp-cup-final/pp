@@ -37,6 +37,32 @@ const osuClientId = process.env.OSU_CLIENT_ID;
 const osuClientSecret = process.env.OSU_CLIENT_SECRET;
 const redirectUri = process.env.REDIRECT_URI || 'https://pp-cup-final-pp-b5fb.twc1.net/auth/callback';
 
+async function fetchUserScores(userId, sinceDate, token) {
+  const res = await fetch(`https://osu.ppy.sh/api/v2/users/${userId}/scores/recent?limit=100`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const scores = await res.json();
+
+  // фильтруем только новые (после participation_date)
+  return scores.filter(s => new Date(s.participation_date) > new Date(sinceDate));
+}
+async function saveScoresToDB(userid, scores) {
+  for (const s of scores) {
+    const { error } = await supabase
+      .from("participant_scores") // <== новая таблица
+      .upsert({
+        userid,
+        beatmap_id: s.beatmap.id,
+        score_id: s.id,
+        score_pp: s.pp,
+        pp_gain: s.statistics?.pp || s.pp,
+        beatmap_bg: s.beatmap.beatmapset.covers.card,
+        beatmap_title: s.beatmap.beatmapset.title,
+        beatmap_version: s.beatmap.version,
+      });
+    if (error) console.error("Ошибка вставки скора:", error);
+  }
+}
 async function fetchOsuAccessToken() {
   try {
     const response = await axios.post('https://osu.ppy.sh/oauth/token', {
@@ -48,7 +74,6 @@ async function fetchOsuAccessToken() {
 
     osuAccessToken = response.data.access_token;
     osuTokenExpiry = Date.now() + (response.data.expires_in * 1000); // обычно 3600 сек
-    console.log('osu! access token обновлен');
   } catch (error) {
     console.error('Ошибка получения токена:', error.response?.data || error.message);
   }
@@ -150,38 +175,97 @@ async function updatePositionsInDB() {
 // === Обновление PP участников ===
 async function updateParticipantsPP() {
   try {
-    const { data: participants, error } = await supabase.from("participants").select("*");
+    const { data: participants, error } = await supabase
+      .from("participants")
+      .select("*");
+
     if (error) {
       console.error("Ошибка загрузки участников:", error);
       return;
     }
 
+    const token = await getOsuAccessToken();
+
     for (let participant of participants) {
       try {
-        const token = await getOsuAccessToken();
-        const res = await axios.get(`https://osu.ppy.sh/api/v2/users/${participant.userid}/osu`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        // 1. Получаем профиль
+        const res = await axios.get(
+          `https://osu.ppy.sh/api/v2/users/${participant.userid}/osu`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
 
         const currentPP = res.data.statistics.pp;
-        const points = calculatePoints(parseFloat(participant.ppstart), parseFloat(currentPP));
+        const points = calculatePoints(
+          parseFloat(participant.ppstart),
+          parseFloat(currentPP)
+        );
 
-        await supabase.from("participants")
+        // Обновляем участника
+        await supabase
+          .from("participants")
           .update({
             ppend: currentPP,
             points: points
           })
           .eq("userid", participant.userid);
 
+        // 2. Получаем топ-200 скорборда (2 запроса по 100)
+        let allScores = [];
+        for (let offset of [0, 100]) {
+          const scoresRes = await axios.get(
+            `https://osu.ppy.sh/api/v2/users/${participant.userid}/scores/best?mode=osu&limit=100&offset=${offset}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          allScores = allScores.concat(scoresRes.data);
+        }
+
+        // 3. Фильтруем по дате участия
+        const joinDate = new Date(participant.participation_date);
+        const filteredScores = allScores.filter(
+          (score) => new Date(score.created_at) >= joinDate
+        );
+
+        // 4. Группируем по beatmap_id и выбираем максимум PP
+        const maxScoresMap = {};
+        filteredScores.forEach(score => {
+          const beatmapId = score.beatmap.id;
+          if (!maxScoresMap[beatmapId] || score.pp > maxScoresMap[beatmapId].pp) {
+            maxScoresMap[beatmapId] = score;
+          }
+        });
+
+        // 5. Формируем массив для upsert
+        const upsertData = Object.values(maxScoresMap).map(score => ({
+          userid: participant.userid,
+          score_id: score.id,
+          score_pp: score.pp,
+          pp_gain: score.pp,
+          beatmap_id: score.beatmap.id,
+          beatmap_title: `${score.beatmapset.title} [${score.beatmap.version}]`,
+          beatmap_bg: score.beatmapset.covers["cover@2x"],
+          created_at: score.created_at
+        }));
+
+        // 6. Upsert с обновлением только если score_pp больше
+        for (let row of upsertData) {
+          await supabase
+            .from("participant_scores")
+            .upsert(row, { onConflict: ["userid", "beatmap_id"] })
+            .eq("userid", row.userid)
+            .eq("beatmap_id", row.beatmap_id)
+            .filter("score_pp", "lt", row.score_pp); // обновление только если новое PP больше
+        }
+
       } catch (err) {
-        console.error(`Ошибка обновления ${participant.nickname}:`, err.response?.data || err.message);
+        console.error(
+          `Ошибка обновления ${participant.nickname}:`,
+          err.response?.data || err.message
+        );
       }
     }
 
-    // после обновления очков пересчитаем позиции
     await updatePositionsInDB();
-
-    console.log("✅ Участники обновлены");
+    console.log("✅ Участники и скоры обновлены");
   } catch (err) {
     console.error("Ошибка в updateParticipantsPP:", err);
   }
@@ -246,7 +330,6 @@ cron.schedule("0 0 * * 0", async () => {
         map_url: s.pool_maps?.map_url || null,
         background_url: s.pool_maps?.background_url || null
       }));
-
       // Вставляем запись в pool_history
       const { error: insertErr } = await supabase.from("pool_history").insert({
         tournament_date: new Date().toISOString().split("T")[0],
@@ -269,56 +352,34 @@ cron.schedule("0 0 * * 0", async () => {
 
     console.log("Пул и карты очищены.");
 
+    try {
+    // 1. Забираем все строки из table1
+    const { data: rows, error: fetchError } = await supabase
+      .from('test_pool_maps')
+      .select('*');
+
+    if (fetchError) throw fetchError;
+    if (!rows.length) {
+      console.log('Нет строк для перемещения');
+      return;
+    }
+
+    // 2. Вставляем их в table2
+    const { error: insertError } = await supabase
+      .from('pool_maps')
+      .insert(rows);
+
+    if (insertError) throw insertError;
+   
+
+    console.log(`✅ Перемещено ${rows.length} строк`);
+  } catch (err) {
+    console.error('Ошибка перемещения:', err.message || err);
+  }
+
   } catch (err) {
     console.error("Ошибка в CRON сохранения истории пула:", err.response?.data || err.message || err);
   }
-}, { timezone: "Europe/Moscow" });
-
-cron.schedule("0 0 * * 0", async () => {
-  const token = await getOsuAccessToken();
-  let count = 0;
-  await supabase.from("test_pool_maps").delete().neq("id", 0);
-  console.log("Прошлый маппул очищен");
-  console.log("Начата генерация пула карт");
-  while (count < 10) {
-    const randomSetId = Math.floor(Math.random() * 2300000) + 1; // до последнего ранкнутого сет-а
-    try {
-      const res = await axios.get(`https://osu.ppy.sh/api/v2/beatmapsets/${randomSetId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const set = res.data;
-
-      // проверяем, что сам сет ранкнутый
-      if (set.status !== "ranked") continue;
-
-      // фильтруем карты внутри сета
-      const validDiffs = set.beatmaps.filter(
-        bm => bm.mode === "osu" && bm.difficulty_rating >= 6 && bm.difficulty_rating <= 8
-      );
-
-      if (validDiffs.length > 0) {
-        // берём случайную подходящую сложность из сета
-        const map = validDiffs[Math.floor(Math.random() * validDiffs.length)];
-
-        // сохраняем сразу в БД
-        await supabase.from("test_pool_maps").insert([{
-          beatmap_id: set.id,
-          difficulty_id: map.id,
-          title: `${set.title} [${map.version}]`,
-          background_url: set.covers.cover,
-          map_url: `https://osu.ppy.sh/beatmaps/${map.id}`
-        }]);
-
-        console.log(`🎵 Добавлена карта: ${set.title} [${map.version}]`);
-
-        count++;
-      }
-    } catch (err) {
-      continue; // если ошибка или сет не подходит — пробуем снова
-    }
-  }
-
-  console.log("✅ Новый пул карт сгенерирован.");
 }, { timezone: "Europe/Moscow" });
 // CRON: каждое воскресенье в 00:00 по Москве — сохраняем историю и очищаем таблицу
 cron.schedule("0 0 * * 0", async () => {
@@ -355,7 +416,7 @@ cron.schedule("0 0 * * 0", async () => {
     }
 
     // Очистим таблицу участников
-    const { error: deleteErr } = await supabase.from("participants").delete().neq('id', 0);
+    const { error: deleteErr } = await supabase.from("participants").delete();
     if (deleteErr) {
       console.error('Ошибка очистки participants после сохранения истории:', deleteErr);
       return;
@@ -382,7 +443,131 @@ app.get('/api/history', async (req, res) => {
 app.get("/history", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "history.html"));
 });
+app.post('/api/participate', async (req, res) => {
+  // Проверка авторизации
+  if (!req.session.user) {
+    return res.status(401).json({ error: 'Not logged in' });
+  }
 
+  const user = req.session.user;
+
+  // Проверка на участие
+  const { data: exists, error: checkErr } = await supabase
+    .from("participants")
+    .select("userid")
+    .eq("userid", user.id)
+    .maybeSingle();
+
+  if (checkErr) {
+    console.error('Ошибка проверки участия:', checkErr);
+    return res.status(500).json({ error: 'DB error' });
+  }
+
+  if (exists) {
+    return res.status(400).json({ error: 'User already participating' });
+  }
+
+  // Проверка дня недели (только воскресенье)
+  const moscowTime = new Date(Date.now() + 3 * 60 * 60 * 1000); // UTC+3
+  if (moscowTime.getDay() !== 0) { // 0 = воскресенье
+    return res.status(400).json({ error: 'Участвовать можно только в воскресенье' });
+  }
+
+  try {
+    // Получаем токен для osu! API
+    const token = await getOsuAccessToken();
+
+    // Получаем статистику игрока
+    const resOsu = await axios.get(`https://osu.ppy.sh/api/v2/users/${user.id}/osu`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    const ppStart = resOsu.data.statistics.pp || 0;
+
+    // Создаем запись нового участника
+    const newEntry = {
+      userid: user.id,
+      avatar: user.avatar_url || '',
+      nickname: user.username,
+      ppstart: Number(ppStart),
+      ppend: ppStart,
+      points: 0,
+      participation_date: new Date().toISOString(),
+      position: null // будет пересчитано
+    };
+
+    // Вставляем запись в базу
+    const { error } = await supabase.from("participants").insert([newEntry]);
+    if (error) {
+      console.error('Ошибка вставки участника:', error);
+      return res.status(500).json({ error: error.message });
+    }
+
+    // Обновляем позиции после добавления
+    await updatePositionsInDB();
+
+    // Отправляем успешный ответ
+    res.json({ success: true, participant: newEntry });
+
+  } catch (err) {
+    console.error("Ошибка при регистрации:", err.response?.data || err.message);
+    res.status(500).json({ error: "Ошибка osu! API" });
+  }
+});
+app.get('/api/participant/:userid/scores', async (req, res) => {
+  const userid = req.params.userid;
+  try {
+    // Получаем дату участия из participants
+    const { data: participant, error: pErr } = await supabase
+      .from('participants')
+      .select('userid, nickname, participation_date')
+      .eq('userid', userid)
+      .maybeSingle();
+
+    if (pErr) {
+      console.error('participant fetch error', pErr);
+      return res.status(500).json({ error: pErr.message });
+    }
+
+    if (!participant) {
+      return res.status(404).json({ error: 'Участник не найден' });
+    }
+
+    const joinDate = participant.participation_date || null;
+
+    // Получаем все его скоры из participant_scores
+    let query = supabase
+      .from('participant_scores')
+      .select(`
+        id,
+        score_pp,
+        pp_gain,
+        created_at,
+        beatmap_id,
+        beatmap_title,
+        beatmap_version,
+        beatmap_bg
+      `)
+      .eq('userid', userid);
+
+    // Фильтрация по participation_date
+    if (joinDate) {
+      query = query.gte('created_at', joinDate);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('scores fetch error', error);
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json(data || []);
+  } catch (err) {
+    console.error('unexpected error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 // ========== pool endpoints (как у тебя было) ==========
 // Участие в пуле карт
 // server.js
@@ -427,6 +612,50 @@ app.get("/api/pool/history", async (req, res) => {
 app.get('/pool', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'pool.html'));
 });
+app.get('/api/pool/maps', async (req, res) => {
+  try {
+    // Берем карты из пула
+    const { data: maps, error: mapsError } = await supabase
+      .from('pool_maps')
+      .select('id, beatmap_id, title, background_url, map_url, difficulty_id')
+      .order('id', { ascending: true });
+
+    if (mapsError) return res.status(500).json({ error: mapsError.message });
+    if (!maps || maps.length === 0) return res.json([]);
+
+    // Получаем все лучшие PP сразу одним запросом
+    const { data: bestScores, error: scoresError } = await supabase
+      .from('player_scores')
+      .select('map_id, pp')
+      .in('map_id', maps.map(m => m.id))
+      .order('pp', { ascending: false });
+
+    if (scoresError) {
+      console.error('Ошибка загрузки скоров:', scoresError.message);
+      return res.status(500).json({ error: scoresError.message });
+    }
+
+    // Сопоставляем карты с их максимальным PP
+    const bestPPMap = {};
+    bestScores.forEach(s => {
+      if (!bestPPMap[s.map_id] || s.pp > bestPPMap[s.map_id]) {
+        bestPPMap[s.map_id] = Math.round(s.pp);
+      }
+    });
+
+    const mapsWithBest = maps.map(m => ({
+      ...m,
+      best_score_pp: bestPPMap[m.id] || 0
+    }));
+
+    res.json(mapsWithBest);
+  } catch (err) {
+    console.error('Ошибка /api/pool/maps:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
 app.post('/api/pool/participate', async (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
 
@@ -571,8 +800,8 @@ async function updatePoolPP() {
             // Фильтруем по дате участия
             candidates = candidates.filter((s) => {
               if (!s) return false;
-              if (!s.created_at) return true;
-              return new Date(s.created_at) >= participationDate;
+              if (!s.participation_date) return true;
+              return new Date(s.participation_date) >= participationDate;
             });
 
             if (candidates.length > 0) {
@@ -643,6 +872,56 @@ async function updatePoolPP() {
     );
   }
 }
+cron.schedule("1 0 * * 0", async () => {
+  const token = await getOsuAccessToken();
+  let count = 0;
+  const { error: deleteError } = await supabase
+      .from('test_pool_maps')
+      .delete()
+      .neq('id', 0); // удаляем все строки
+
+    if (deleteError) throw deleteError;
+  console.log("Начата генерация пула карт");
+  while (count < 10) {
+    const randomSetId = Math.floor(Math.random() * 2300000) + 1; // до последнего ранкнутого сет-а
+    try {
+      const res = await axios.get(`https://osu.ppy.sh/api/v2/beatmapsets/${randomSetId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const set = res.data;
+
+      // проверяем, что сам сет ранкнутый
+      if (set.status !== "ranked") continue;
+
+      // фильтруем карты внутри сета
+      const validDiffs = set.beatmaps.filter(
+        bm => bm.mode === "osu" && bm.difficulty_rating >= 6 && bm.difficulty_rating <= 8
+      );
+
+      if (validDiffs.length > 0) {
+        // берём случайную подходящую сложность из сета
+        const map = validDiffs[Math.floor(Math.random() * validDiffs.length)];
+
+        // сохраняем сразу в БД
+        await supabase.from("test_pool_maps").insert([{
+          beatmap_id: set.id,
+          difficulty_id: map.id,
+          title: `${set.title}`,
+          background_url: set.covers.cover,
+          map_url: `https://osu.ppy.sh/beatmaps/${map.id}`
+        }]);
+
+        console.log(`🎵 Добавлена карта: ${set.title} [${map.version}]`);
+
+        count++;
+      }
+    } catch (err) {
+      continue; // если ошибка или сет не подходит — пробуем снова
+    }
+  }
+
+  console.log("✅ Новый пул карт сгенерирован.");
+}, { timezone: "Europe/Moscow" });
 
 
 
@@ -672,27 +951,15 @@ app.get('/api/pool/participants', async (req, res) => {
       `);
 
     if (error) throw error;
-
+        
     res.json(data);
   } catch (err) {
     console.error("Ошибка при получении участников:", err);
     res.status(500).json({ error: "Ошибка при получении участников" });
   }
-});
-app.get('/api/pool/maps', async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('pool_maps')
-      .select('id, beatmap_id, title, background_url, map_url, difficulty_id')
-      .order('id', { ascending: true });
 
-    if (error) return res.status(500).json({ error: error.message });
-    res.json(data);
-  } catch (err) {
-    console.error('Ошибка /api/pool/maps:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
 });
+
 // Получение карт и результатов игрока (в пуле)
 app.get('/api/pool/player/:id', async (req, res) => {
   const { id } = req.params;
@@ -875,76 +1142,7 @@ app.delete('/api/participants', async (req, res) => {
 
   res.json({ success: true });
 });
-app.post('/api/participate', async (req, res) => {
-  // Проверка авторизации
-  if (!req.session.user) {
-    return res.status(401).json({ error: 'Not logged in' });
-  }
 
-  const user = req.session.user;
-
-  // Проверка на участие
-  const { data: exists, error: checkErr } = await supabase
-    .from("participants")
-    .select("userid")
-    .eq("userid", user.id)
-    .maybeSingle();
-
-  if (checkErr) {
-    console.error('Ошибка проверки участия:', checkErr);
-    return res.status(500).json({ error: 'DB error' });
-  }
-
-  if (exists) {
-    return res.status(400).json({ error: 'User already participating' });
-  }
-
-  // Проверка дня недели (только воскресенье)
-  const moscowTime = new Date(Date.now() + 3 * 60 * 60 * 1000); // UTC+3
-  if (moscowTime.getDay() !== 0) { // 0 = воскресенье
-    return res.status(400).json({ error: 'Участвовать можно только в воскресенье' });
-  }
-
-  try {
-    // Получаем токен для osu! API
-    const token = await getOsuAccessToken();
-
-    // Получаем статистику игрока
-    const resOsu = await axios.get(`https://osu.ppy.sh/api/v2/users/${user.id}/osu`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    const ppStart = resOsu.data.statistics.pp || 0;
-
-    // Создаем запись нового участника
-    const newEntry = {
-      userid: user.id,
-      avatar: user.avatar_url || '',
-      nickname: user.username,
-      ppstart: Number(ppStart),
-      ppend: ppStart,
-      points: 0,
-      position: null // будет пересчитано
-    };
-
-    // Вставляем запись в базу
-    const { error } = await supabase.from("participants").insert([newEntry]);
-    if (error) {
-      console.error('Ошибка вставки участника:', error);
-      return res.status(500).json({ error: error.message });
-    }
-
-    // Обновляем позиции после добавления
-    await updatePositionsInDB();
-
-    // Отправляем успешный ответ
-    res.json({ success: true, participant: newEntry });
-
-  } catch (err) {
-    console.error("Ошибка при регистрации:", err.response?.data || err.message);
-    res.status(500).json({ error: "Ошибка osu! API" });
-  }
-});
 // === Участие основного турнира ===
 app.post('/api/pool/participate', async (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
