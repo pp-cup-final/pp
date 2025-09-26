@@ -799,10 +799,9 @@ async function updatePoolPP() {
 
             // Фильтруем по дате участия
             candidates = candidates.filter((s) => {
-              if (!s) return false;
-              if (!s.participation_date) return true;
-              return new Date(s.participation_date) >= participationDate;
-            });
+  		if (!s?.created_at) return false;
+  		return new Date(s.created_at) >= participationDate;
+		});
 
             if (candidates.length > 0) {
               bestPP = Math.max(...candidates.map((s) => Number(s.pp || 0)));
