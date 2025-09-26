@@ -807,10 +807,7 @@ async function updatePoolPP() {
               bestPP = Math.max(...candidates.map((s) => Number(s.pp || 0)));
             }
           } catch (e) {
-            console.warn(
-              `Ошибка запроса user beatmap scores для map ${map.id}, user ${participant.userid}:`,
-              e.response?.data || e.message
-            );
+            
           }
 
           // Обновляем таблицу player_scores
@@ -846,7 +843,7 @@ async function updatePoolPP() {
         .eq("participant_id", participant.id);
 
       if (sErr) {
-        console.error(`Ошибка получения scores для ${participant.nickname}:`, sErr);
+       
         continue;
       }
 
