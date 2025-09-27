@@ -416,7 +416,7 @@ cron.schedule("0 0 * * 0", async () => {
     }
 
     // Очистим таблицу участников
-    const { error: deleteErr } = await supabase.from("participants").delete();
+    const { error: deleteErr } = await supabase.from("participants").delete().neq("id", 0);
     if (deleteErr) {
       console.error('Ошибка очистки participants после сохранения истории:', deleteErr);
       return;
@@ -1133,7 +1133,7 @@ app.delete('/api/participants', async (req, res) => {
     return res.status(403).json({ error: 'Not authorized' });
   }
 
-  const { error } = await supabase.from("participants").delete();
+  const { error } = await supabase.from("participants").delete().neq("id", 0);
   if (error) return res.status(500).json({ error: error.message });
 
   res.json({ success: true });
