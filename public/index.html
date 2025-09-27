@@ -135,6 +135,7 @@
   </style>
 </head>
 <body>
+  <h1 id="countdown" style="text-align:center; font-size:2.5rem; margin-bottom:2rem; color:#ffffff;"></h1>
   <div id="admin-panel" style="display: none; text-align: center; margin-bottom: 1rem;">
     <button id="clear-table">Очистить таблицу</button>
   </div>
@@ -146,7 +147,7 @@
     <button id="participate" style="display:none;">Участвовать</button>
     <button id="unparticipate" style="display:none;">Перестать участвовать</button>
     <a href="/history" class="button-link"><button>История</button></a>
-    <a href="/pool" class="button-link" style="display: inline-block;"><button>Пул кап</button></a>
+    <a href="/pool" class="button-link" style="display: none;"><button>Бонус</button></a>
   </div>
   <h1>Таблица участников</h1>
   <table>
@@ -373,7 +374,56 @@
         alert(result.error || 'Ошибка при удалении');
       }
     };
+function getNextSundayMidnightMSK() {
+  const now = new Date();
 
+  // Считаем время в UTC
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+
+  // Смещение Москвы (UTC+3)
+  const mskNow = new Date(utc + 3 * 60 * 60 * 1000);
+
+  let next = new Date(mskNow);
+  next.setHours(0, 0, 0, 0);
+
+  // День недели (0=вс, 1=пн, ...)
+  const day = next.getDay();
+
+  if (day !== 0) {
+    // если не воскресенье, добавляем до ближайшего вс
+    next.setDate(next.getDate() + (7 - day));
+  } else if (mskNow >= next) {
+    // если уже воскресенье и после полуночи → следующее воскресенье
+    next.setDate(next.getDate() + 7);
+  }
+
+  return next;
+}
+
+function updateCountdown() {
+  const target = getNextSundayMidnightMSK();
+
+  const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
+  const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
+
+  const diff = target - nowMSK;
+
+  if (diff <= 0) {
+    document.getElementById("countdown").textContent = "Обновление...";
+    return;
+  }
+
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+  document.getElementById("countdown").textContent =
+    `До обновления недели: ${hours.toString().padStart(2, "0")}:` +
+    `${minutes.toString().padStart(2, "0")}:` +
+    `${seconds.toString().padStart(2, "0")}`;
+}
+setInterval(updateCountdown, 1000);
+updateCountdown();
     (async () => {
       await fetchUser();
       await loadData();
