@@ -234,44 +234,30 @@ async function updateParticipantsPP() {
           }
         });
 
-        // 5. Формируем массив для вставки/обновления
-        const upsertData = Object.values(maxScoresMap).map(score => ({
+        // 5. Формируем массив для вставки
+        const insertData = Object.values(maxScoresMap).map(score => ({
           userid: participant.userid,
           score_id: score.id,
           score_pp: score.pp,
-          pp_gain: score.pp,
+          pp_gain: score.pp, // потом можно пересчитать
           beatmap_id: score.beatmap.id,
           beatmap_title: `${score.beatmapset.title} [${score.beatmap.version}]`,
           beatmap_bg: score.beatmapset.covers["cover@2x"],
           created_at: score.created_at
         }));
 
-        // 6. Обновляем participant_scores только если новый PP больше
-        for (let row of upsertData) {
-          const { data: existing, error: selectErr } = await supabase
+        // 6. Вставляем (insert), обновляем только если score_id совпадает
+        if (insertData.length > 0) {
+          const { error: insertErr } = await supabase
             .from("participant_scores")
-            .select("score_pp")
-            .eq("userid", row.userid)
-            .eq("beatmap_id", row.beatmap_id)
-            .maybeSingle();
+            .upsert(insertData, { onConflict: ["score_id"] });
 
-          if (selectErr) {
-            console.error("Ошибка выборки score:", selectErr);
-            continue;
-          }
-
-          if (!existing || row.score_pp > existing.score_pp) {
-            const { error: upsertErr } = await supabase
-              .from("participant_scores")
-              .upsert(row, { onConflict: ["userid", "beatmap_id"] });
-
-            if (upsertErr) {
-              console.error("Ошибка upsert:", upsertErr);
-            } else {
-              console.log(
-                `✅ Обновлён скор: ${row.beatmap_title} → ${row.score_pp.toFixed(2)}pp (${participant.nickname})`
-              );
-            }
+          if (insertErr) {
+            console.error("Ошибка вставки/обновления:", insertErr);
+          } else {
+            console.log(
+              `✅ Добавлено/обновлено ${insertData.length} скор(ов) для ${participant.nickname}`
+            );
           }
         }
 
@@ -289,6 +275,7 @@ async function updateParticipantsPP() {
     console.error("Ошибка в updateParticipantsPP:", err);
   }
 }
+
 
 // === Автоматический запуск ===
 fetchOsuAccessToken().then(() => {
