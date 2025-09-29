@@ -144,7 +144,7 @@
     <div id="user"></div>
     <button id="login">Войти через osu!</button>
     <button id="logout" style="display:none;">Выйти</button>
-    <button id="participate" style="display:none;">Участвовать</button>
+    <button id="participate" style="display:inline-block;">Участвовать</button>
     <button id="unparticipate" style="display:none;">Перестать участвовать</button>
     <a href="/history" class="button-link"><button>История</button></a>
     <a href="/pool" class="button-link" style="display: inline-block;"><button>Пул кап</button></a>
@@ -169,23 +169,7 @@
   <script>
     let currentUser = null;
 
-    function isSundayMoscow() {
-      const now = new Date();
-      const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-      const moscow = new Date(utc + 3 * 60 * 60 * 1000);
-      return moscow.getDay() === 0;
-    }
-
-    function toggleButtonsVisibility() {
-      const isSunday = isSundayMoscow();
-      const participateBtn = document.getElementById("participate");
-      const leaveBtn = document.getElementById("unparticipate");
-      if (!participateBtn || !leaveBtn) return;
-      if (!isSunday) {
-        participateBtn.style.display = "none";
-        leaveBtn.style.display = "none";
-      }
-    }
+    
 
     async function fetchUser() {
       const res = await fetch('/api/me');
