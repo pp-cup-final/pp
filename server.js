@@ -468,10 +468,10 @@ app.post('/api/participate', async (req, res) => {
   }
 
   // Проверка дня недели (только воскресенье)
-  const moscowTime = new Date(Date.now() + 3 * 60 * 60 * 1000); // UTC+3
-  if (moscowTime.getDay() !== 0) { // 0 = воскресенье
-    return res.status(400).json({ error: 'Участвовать можно только в воскресенье' });
-  }
+  //const moscowTime = new Date(Date.now() + 3 * 60 * 60 * 1000); // UTC+3
+  //if (moscowTime.getDay() !== 0) { // 0 = воскресенье
+  //  return res.status(400).json({ error: 'Участвовать можно только в воскресенье' });
+ // }
 
   try {
     // Получаем токен для osu! API
