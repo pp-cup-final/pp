@@ -5,115 +5,70 @@
 <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/e/e7/Twemoji12_1f913.svg" type="image/svg+xml">
 <title>Турнир — Пул карт</title>
 <style>
-  body {
-    font-family: "Segoe UI", sans-serif;
-    background: #121212;
-    margin: 0;
-    padding: 2rem;
-    color: #eee;
-  }
-  h1 { text-align: center; color: #fff; margin-bottom: 2rem; }
-  #controls { text-align: center; margin-bottom: 2rem; }
-  button { background-color:#fff; color:#000; border:1px solid #555; padding:10px 20px; margin:5px; font-size:16px; border-radius:8px; cursor:pointer; transition:all 0.3s ease;}
-  button:hover { background-color:#ddd; }
-  .nickname-cell a.nickname { color:#fff; font-weight:bold; text-decoration:none; }
-  .nickname-cell a.nickname:hover { text-decoration:underline; color:#ffb86b; }
-  #user { font-weight:bold; color:#ccc; margin:10px 0; }
-  table { width:100%; border-collapse:collapse; background-color:#1e1e1e; border-radius:12px; overflow:hidden; box-shadow:0 0 10px rgba(255,255,255,0.05); margin-bottom:1rem;}
-  thead th { padding:14px; text-align:center; border-bottom:1px solid #333; background-color:#2a2a2a; color:#fff; font-weight:bold; }
-  tbody td { padding:12px; text-align:center; border-bottom:1px solid #333; vertical-align:middle; }
-  tr.main-row:hover { background-color:#2c2c2c; cursor:pointer; }
-  tr.maps-row { display:none; background-color:#181818; }
-  .maps-cell { padding:12px 18px; }
-  .maps-list { display:flex; flex-direction:column; gap:9px; margin:6px 0; }
-  .map-entry { display:flex; align-items:center; gap:12px; padding:10px; background-color:#222; border-radius:8px; }
-  .map-entry a { color:#fff; font-weight:bold; text-decoration:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .map-cover { width:90px; height:55px; border-radius:6px; background-size:cover; background-position:center; flex-shrink:0; }
-  .map-entry:hover { background-color:#2a2a2a; }
-  .map-info { display:flex; justify-content:space-between; flex:1; color:#fff; font-weight:bold; }
-  .map-info a:hover { text-decoration:underline; color:#ffb86b; }
-  .nickname-cell { text-align:left; display:flex; align-items:center; gap:10px; }
-  .position { width:80px; text-align:center; }
-  .pp { width:10%; text-align:center; vertical-align:middle; }
-  .position-text { width:80px; text-align:center; font-weight:bold; }
-  .nickname-cell img { width:32px; height:32px; vertical-align:middle; border-radius:50%; box-shadow:0 0 3px rgba(255,255,255,0.2); }
-  .map-pp { font-weight:700; color:#ffcc00; }
+body {
+  font-family: "Segoe UI", sans-serif;
+  background: #121212;
+  margin: 0;
+  padding: 2rem;
+  color: #eee;
+}
+h1 { text-align:center; color:#fff; margin-bottom:2rem; }
+#controls { text-align:center; margin-bottom:2rem; }
+button { background-color:#fff; color:#000; border:1px solid #555; padding:10px 20px; margin:5px; font-size:16px; border-radius:8px; cursor:pointer; transition:all 0.3s ease;}
+button:hover { background-color:#ddd; }
+.nickname-cell a.nickname { color:#fff; font-weight:bold; text-decoration:none; }
+.nickname-cell a.nickname:hover { text-decoration:underline; color:#ffb86b; }
+#user { font-weight:bold; color:#ccc; margin:10px 0; }
+table { width:100%; border-collapse:collapse; background-color:#1e1e1e; border-radius:12px; overflow:hidden; box-shadow:0 0 10px rgba(255,255,255,0.05); margin-bottom:1rem;}
+thead th { padding:14px; text-align:center; border-bottom:1px solid #333; background-color:#2a2a2a; color:#fff; font-weight:bold; }
+tbody td { padding:12px; text-align:center; border-bottom:1px solid #333; vertical-align:middle; }
+tr.main-row:hover { background-color:#2c2c2c; cursor:pointer; }
+tr.maps-row { display:none; background-color:#181818; }
+.maps-cell { padding:12px 18px; }
+.maps-list { display:flex; flex-direction:column; gap:9px; margin:6px 0; }
+.map-entry { display:flex; align-items:center; gap:12px; padding:10px; background-color:#222; border-radius:8px; cursor:pointer; }
+.map-entry.disabled { cursor:default; opacity:0.5; }
+.map-entry a { color:#fff; font-weight:bold; text-decoration:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; pointer-events:none; }
+.map-cover { width:90px; height:55px; border-radius:6px; background-size:cover; background-position:center; flex-shrink:0; }
+.map-info { display:flex; justify-content:space-between; flex:1; color:#fff; font-weight:bold; }
+.nickname-cell { text-align:left; display:flex; align-items:center; gap:10px; }
+.position { width:80px; text-align:center; }
+.pp { width:10%; text-align:center; vertical-align:middle; }
+.position-text { width:80px; text-align:center; font-weight:bold; }
+.nickname-cell img { width:32px; height:32px; vertical-align:middle; border-radius:50%; box-shadow:0 0 3px rgba(255,255,255,0.2); }
 
-  /* карточки пула: 2 ряда с горизонтальной прокруткой */
-  .pool-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr); /* всегда 5 карточек в ряду */
-  grid-template-rows: repeat(2, auto);   /* два ряда */
-  gap: 16px;
-  margin-bottom: 2rem;
-  overflow-x: hidden;
-  padding-bottom: 4px;
-  overflow: visible;
+.pool-grid {
+  display:grid;
+  grid-template-columns: repeat(5,1fr);
+  grid-template-rows: repeat(2, auto);
+  gap:16px;
+  margin-bottom:2rem;
 }
-  .modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-}
-.modal.hidden { display: none; }
-.modal-content {
-  background: #1c1c1c;
-  color: #fff;
-  border-radius: 12px;
-  padding: 20px;
-  max-width: 600px;
-  width: 100%;
-  position: relative;
-  box-shadow: 0 0 20px rgba(0,0,0,0.5);
-}
-.modal-content .close {
-  position: absolute;
-  top: 10px;
-  right: 15px;
-  font-size: 28px;
-  cursor: pointer;
-}
-.score-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-.score-header img {
-  border-radius: 50%;
-  margin-right: 1rem;
-}
-.score-bg {
-  width: 100%;
-  border-radius: 10px;
-  margin-bottom: 1rem;
-}
- .pool-card {
+
+.pool-card {
   background-color:#1e1e1e;
   border-radius:12px;
   display:flex;
   flex-direction:column;
   overflow:hidden;
-  width:100%;   /* заполняет колонку полностью */
+  width:100%;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor:pointer;
 }
-  .pool-card:hover {
+.pool-card:hover {
   transform: translateY(-4px);
   box-shadow:0 4px 20px rgba(255,255,255,0.15);
 }
-  .pool-card img {
+.pool-card img {
   width:100%;
   height:140px;
   object-fit:cover;
 }
-  .pool-card-content {
+.pool-card-content {
   padding:10px 12px;
   display:flex;
   flex-direction:column;
-  justify-content: center;
+  justify-content:center;
   gap:4px;
   flex:1;
 }
@@ -128,13 +83,12 @@
   gap:8px;
 }
 .pool-card-footer .pp {
-  padding-right: 5%;
+  padding-right:5%;
   font-weight:700;
   color:#ffcc00;
   white-space:nowrap;
-  
 }
-  .best-player {
+.best-player {
   display:flex;
   align-items:center;
   gap:8px;
@@ -142,13 +96,12 @@
   min-width:0;
   flex:1 1 auto;
 }
-
-  .best-player img {
+.best-player img {
   width:30px; height:30px;
   border-radius:50%;
   object-fit:cover;
 }
- .best-player .name {
+.best-player .name {
   font-weight:600;
   font-size:13px;
   color:#fff;
@@ -156,8 +109,7 @@
   text-overflow:ellipsis;
   white-space:nowrap;
 }
-  .best-player .pp { color:var(--accent); font-weight:700; margin-left:8px; }
-  .pool-card-title {
+.pool-card-title {
   font-weight:700;
   color:#fff;
   font-size:15px;
@@ -167,24 +119,48 @@
   text-overflow:ellipsis;
   white-space:nowrap;
 }
-  .pool-card-diff { font-size:13px; color:var(--muted); text-align:center; }
-  .pool-card-pp { font-weight:700; color:#ffcc00; text-align:right; margin-top:8px; }
+.pool-card-diff { font-size:13px; color:var(--muted); text-align:center; }
+.pool-card-pp { font-weight:700; color:#ffcc00; text-align:right; margin-top:8px; }
 
-  @media(max-width:600px){
-    .pool-card img.cover { height:60%; }
-    .pool-card img{height:60%;}
-    .pool-card-title{font-size:clamp(10px,2vw,14px);}
-  }
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+.modal.hidden { display:none; }
+.modal-content {
+  background:#1c1c1c;
+  color:#fff;
+  border-radius:12px;
+  padding:20px;
+  max-width:600px;
+  width:100%;
+  position:relative;
+  box-shadow:0 0 20px rgba(0,0,0,0.5);
+}
+.modal-content .close {
+  position:absolute;
+  top:10px;
+  right:15px;
+  font-size:28px;
+  cursor:pointer;
+}
 </style>
 </head>
 <body>
-  <div id="scoreModal" class="modal hidden">
+<div id="scoreModal" class="modal hidden">
   <div class="modal-content">
     <span class="close">&times;</span>
     <div id="scoreDetails"></div>
   </div>
 </div>
-  <h1 id="countdown" style="text-align:center; font-size:2.5rem; margin-bottom:2rem; color:#ffffff;"></h1>
+
+<h1 id="countdown" style="text-align:center; font-size:2.5rem; margin-bottom:2rem; color:#ffffff;"></h1>
+
 <div id="controls">
   <div id="user"></div>
   <div id="addMapControls" style="display:none;">
@@ -198,7 +174,6 @@
 </div>
 
 <h1>Турнир: Пул кап</h1>
-
 <div id="pool-cards" class="pool-grid"></div>
 
 <table>
@@ -256,8 +231,12 @@ async function loadData(){
   data.forEach((item,index)=>{
     const tr=document.createElement('tr');
     tr.className='main-row'; tr.dataset.playerId=item.id;
-    tr.innerHTML=`<td class="position-text">${index+1}</td><td class="nickname-cell"><img src="${item.avatar?escapeHtml(item.avatar):''}" alt="avatar"><a href="https://osu.ppy.sh/users/${item.userid}" target="_blank" rel="noopener noreferrer" class="nickname" onclick="event.stopPropagation()">${escapeHtml(item.nickname)}</a></td><td class="pp">${Math.floor(item.total_pp??0)}</td>`;
+    tr.innerHTML=`<td class="position-text">${index+1}</td>
+      <td class="nickname-cell"><img src="${item.avatar?escapeHtml(item.avatar):''}" alt="avatar">
+      <a href="https://osu.ppy.sh/users/${item.userid}" target="_blank" rel="noopener noreferrer" class="nickname" onclick="event.stopPropagation()">${escapeHtml(item.nickname)}</a></td>
+      <td class="pp">${Math.floor(item.total_pp??0)}</td>`;
     tbody.appendChild(tr);
+
     const mapsTr=document.createElement('tr'); mapsTr.className='maps-row'; mapsTr.id=`maps-row-${item.id}`;
     mapsTr.innerHTML=`<td class="maps-cell" colspan="3"><div id="maps-container-${item.id}" class="maps-list"></div></td>`;
     tbody.appendChild(mapsTr);
@@ -277,24 +256,16 @@ async function toggleMaps(playerId){
     const maps=await res.json();
     if(!Array.isArray(maps)||maps.length===0){container.innerHTML='<div style="color:#aaa">Карт пока нет или игрок ещё не имеет записей (будут 0 pp).</div>'; mapsTr.style.display='table-row'; return;}
     const html = maps.map(m => {
-  const map = m.pool_maps || {};
-  const title = escapeHtml(map.title || 'Без названия');
-  const bg = map.background_url || '';
-  const pp = typeof m.pp === 'number' ? m.pp : 0;
-  const scoreId = m.score_id; // пробуем score_id, fallback на id
-
-  return `
-  <div class="map-entry">
-    <div class="map-cover" style="background-image:url('${escapeHtml(bg)}')"></div>
-    <div class="map-info">
-      <a href="https://osu.ppy.sh/scores/osu/${scoreId}" target="_blank">${title}</a>
-      <span class="map-pp">${pp} pp</span>
-    </div>
-  </div>
-`;
-}).join('');
-container.innerHTML = html;
-mapsTr.style.display = 'table-row';
+      const map = m.pool_maps || {};
+      const title = escapeHtml(map.title || 'Без названия');
+      const bg = map.background_url || '';
+      const pp = typeof m.pp==='number'?m.pp:0;
+      const scoreId = m.score_id;
+      if(!scoreId) return `<div class="map-entry disabled"><div class="map-cover" style="background-image:url('${escapeHtml(bg)}')"></div><div class="map-info"><span>${title}</span><span class="map-pp">${pp} pp</span></div></div>`;
+      return `<div class="map-entry" onclick="window.open('https://osu.ppy.sh/scores/osu/${scoreId}','_blank')"><div class="map-cover" style="background-image:url('${escapeHtml(bg)}')"></div><div class="map-info"><span>${title}</span><span class="map-pp">${pp} pp</span></div></div>`;
+    }).join('');
+    container.innerHTML = html;
+    mapsTr.style.display = 'table-row';
   } catch(err){
     console.error('Ошибка получения карт игрока:',err);
     container.innerHTML='<div style="color:#f55">Ошибка при получении данных</div>';
@@ -308,156 +279,75 @@ async function loadPool() {
       fetch('/api/pool/maps'),
       fetch('/api/pool/participants')
     ]);
-
-    if (!mapsRes.ok) {
-      document.getElementById('pool-cards').innerHTML = '<div style="color:#f55">Ошибка загрузки пула карт</div>';
-      return;
-    }
-
+    if(!mapsRes.ok){document.getElementById('pool-cards').innerHTML='<div style="color:#f55">Ошибка загрузки пула карт</div>'; return;}
     const mapsCache = await mapsRes.json();
-    const participantsCache = participantsRes.ok ? await participantsRes.json() : null;
-
-    const container = document.getElementById('pool-cards');
-    container.innerHTML = '';
-
-    for (let i = 0; i < mapsCache.length; i++) {
-      const map = mapsCache[i];
-      const mapUrl = escapeHtml(map.map_url || (map.beatmap_id ? `https://osu.ppy.sh/beatmaps/${map.beatmap_id}` : '#'));
+    const participantsCache = participantsRes.ok ? await participantsRes.json():null;
+    const container = document.getElementById('pool-cards'); container.innerHTML='';
+    mapsCache.forEach(map=>{
+      const mapUrl = escapeHtml(map.map_url || (map.beatmap_id?`https://osu.ppy.sh/beatmaps/${map.beatmap_id}`:'#'));
       const coverUrl = escapeHtml(map.background_url || '');
       const title = escapeHtml(map.title || `Map ${map.beatmap_id || map.id}`);
-
-      // ищем лучшего игрока
-      let best = null;
-      if (participantsCache && Array.isArray(participantsCache)) {
-        for (const p of participantsCache) {
-          if (!p.player_scores) continue;
-          for (const ps of p.player_scores) {
+      let best=null;
+      if(participantsCache && Array.isArray(participantsCache)){
+        for(const p of participantsCache){
+          if(!p.player_scores) continue;
+          for(const ps of p.player_scores){
             const pm = ps.pool_maps || ps.pool_map || null;
-            if (pm?.id === map.id) {
-              const pp = Number(ps.pp) || 0;
-              if (!best || pp > best.pp) {
-                best = {
-                  participantId: p.id,
-                  userid: p.userid,
-                  nickname: p.nickname,
-                  avatar: p.avatar,
-                  pp,
-                  scoreRowId: ps.id ?? null
-                };
-              }
+            if(pm?.id===map.id){
+              const pp=Number(ps.pp)||0;
+              if(!best || pp>best.pp) best={participantId:p.id, userid:p.userid, nickname:p.nickname, avatar:p.avatar, pp, scoreRowId: ps.id??null};
             }
           }
         }
       }
-
-      const card = document.createElement('div');
-      card.className = 'pool-card';
-      card.style.cursor = 'pointer';
-
-      // клик по карточке открывает карту
-      card.addEventListener('click', () => {
-        window.open(mapUrl, '_blank');
-      });
-
-      card.innerHTML = `
-        <img class="cover" src="${coverUrl}" alt="">
-        <div class="pool-card-content">
-          <div class="pool-card-title">${title}</div>
-        </div>
-      `;
-
-      // создаём футер отдельно
-      const footer = document.createElement('div');
-      footer.className = 'pool-card-footer';
-      footer.style.cursor = 'pointer';
-      footer.innerHTML = `
-        <div class="best-player">
-          ${best ? `<img src="${escapeHtml(best.avatar||'')}" alt="avatar"><div class="name" title="${escapeHtml(best.nickname||'')}">${escapeHtml(best.nickname||'')}</div>` : `<div style="color:#bbb">Нет скоров</div>`}
-        </div>
-        <div class="pp">${best ? `<span class="pp-value" style="color:var(--accent); font-weight:700">${Math.round(best.pp)} pp</span>` : `0 pp`}</div>
-      `;
-
-      // анимация наведения футера
-      footer.addEventListener('mouseenter', () => footer.style.background = 'rgba(255,255,255,0.05)');
-      footer.addEventListener('mouseleave', () => footer.style.background = 'rgba(0,0,0,0.03)');
-
-      // клик по футеру тоже открывает карту
-      footer.addEventListener('click', (e) => {
-        e.stopPropagation(); // чтобы не сработал двойной клик
-        window.open(mapUrl, '_blank');
-      });
-
+      const card=document.createElement('div'); card.className='pool-card';
+      card.addEventListener('click',()=>{window.open(mapUrl,'_blank');});
+      card.innerHTML=`<img class="cover" src="${coverUrl}" alt=""><div class="pool-card-content"><div class="pool-card-title">${title}</div></div>`;
+      const footer=document.createElement('div'); footer.className='pool-card-footer';
+      footer.innerHTML=`<div class="best-player">${best?`<img src="${escapeHtml(best.avatar||'')}" alt="avatar"><div class="name" title="${escapeHtml(best.nickname||'')}">${escapeHtml(best.nickname||'')}</div>`:'<div style="color:#bbb">Нет скоров</div>'}</div><div class="pp">${best?Math.round(best.pp)+' pp':'0 pp'}</div>`;
       card.appendChild(footer);
       container.appendChild(card);
-    }
-  } catch (err) {
-    console.error('loadPool error', err);
-    document.getElementById('pool-cards').innerHTML = '<div style="color:#f55">Ошибка при загрузке пула</div>';
-  }
+    });
+  } catch(err){console.error('loadPool error',err);document.getElementById('pool-cards').innerHTML='<div style="color:#f55">Ошибка при загрузке пула</div>';}
 }
 
-
-
-
-function getNextSundayMidnightMSK() {
-  const now = new Date();
-
-  // Считаем время в UTC
-  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-
-  // Смещение Москвы (UTC+3)
-  const mskNow = new Date(utc + 3 * 60 * 60 * 1000);
-
-  let next = new Date(mskNow);
-  next.setHours(0, 0, 0, 0);
-
-  // День недели (0=вс, 1=пн, ...)
-  const day = next.getDay();
-
-  if (day !== 0) {
-    // если не воскресенье, добавляем до ближайшего вс
-    next.setDate(next.getDate() + (7 - day));
-  } else if (mskNow >= next) {
-    // если уже воскресенье и после полуночи → следующее воскресенье
-    next.setDate(next.getDate() + 7);
-  }
-
+// Таймер
+function getNextSundayMidnightMSK(){
+  const now=new Date();
+  const utc=now.getTime()+now.getTimezoneOffset()*60000;
+  const mskNow=new Date(utc+3*60*60*1000);
+  let next=new Date(mskNow); next.setHours(0,0,0,0);
+  const day=next.getDay();
+  if(day!==0) next.setDate(next.getDate()+7-day);
+  else if(mskNow>=next) next.setDate(next.getDate()+7);
   return next;
 }
-
-function updateCountdown() {
-  const target = getNextSundayMidnightMSK();
-
-  const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
-  const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
-
-  let diff = target - nowMSK;
-
-  if (diff <= 0) {
-    document.getElementById("countdown").textContent = "Обновление...";
-    return;
-  }
-
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  diff -= days * (1000 * 60 * 60 * 24);
-
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  diff -= hours * (1000 * 60 * 60);
-
-  const minutes = Math.floor(diff / (1000 * 60));
-  diff -= minutes * (1000 * 60);
-
-  const seconds = Math.floor(diff / 1000);
-
-  let text = 'До обновления недели: ';
-  if (days > 0) text += `${days} дн. `;
-  text += `${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
-
-  document.getElementById("countdown").textContent = text;
+function updateCountdown(){
+  const target=getNextSundayMidnightMSK();
+  const nowUTC=Date.now()+new Date().getTimezoneOffset()*60000;
+  const nowMSK=new Date(nowUTC+3*60*60*1000);
+  let diff=target-nowMSK;
+  if(diff<=0){document.getElementById("countdown").textContent="Обновление..."; return;}
+  const days=Math.floor(diff/(1000*60*60*24)); diff-=days*1000*60*60*24;
+  const hours=Math.floor(diff/(1000*60*60)); diff-=hours*1000*60*60;
+  const minutes=Math.floor(diff/(1000*60)); diff-=minutes*1000*60;
+  const seconds=Math.floor(diff/1000);
+  document.getElementById("countdown").textContent=`До обновления недели: ${days>0?days+' дн. ':''}${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
 }
-
-setInterval(updateCountdown, 1000);
-updateCountdown();
+setInterval(updateCountdown,1000); updateCountdown();
+document.getElementById('login').onclick = () => window.location.href = '/auth/login';
+document.getElementById('logout').onclick = () => window.location.href = '/auth/logout';
+document.getElementById('participate').onclick = async () => {
+      const res = await fetch('/api/pool/participate', { method: 'POST' });
+      const result = await res.json();
+      if (res.ok) {
+        alert('Вы успешно участвуете!');
+        await fetchUser();
+        await loadData();
+      } else {
+        alert(result.error || 'Ошибка при участии');
+      }
+    };
 (async()=>{await fetchUser(); await loadPool(); await loadData();})();
 </script>
 </body>
