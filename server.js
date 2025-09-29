@@ -427,6 +427,11 @@ cron.schedule("0 0 * * 0", async () => {
       console.error('Ошибка очистки participants после сохранения истории:', deleteErr);
       return;
     }
+    const { error: deleteErr1 } = await supabase.from("participants_scores").delete().neq("id", 0);
+    if (deleteErr) {
+      console.error('Ошибка очистки participants_scores после сохранения истории:', deleteErr1);
+      return;
+    }
 
     console.log("✅ История сохранена и таблица участников очищена");
   } catch (err) {
