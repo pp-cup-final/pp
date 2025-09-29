@@ -27,7 +27,16 @@ tr.maps-row { display:none; background-color:#181818; }
 .maps-cell { padding:12px 18px; }
 .maps-list { display:flex; flex-direction:column; gap:9px; margin:6px 0; }
 .map-entry { display:flex; align-items:center; gap:12px; padding:10px; background-color:#222; border-radius:8px; cursor:pointer; }
-.map-entry.disabled { cursor:default; opacity:0.5; }
+.map-entry.disabled {
+  cursor: default;
+  opacity: 0.5;
+  pointer-events: none; /* блокирует клики */
+}
+.map-entry.active:hover .map-info span {
+  color: #ffb86b; /* или любой цвет/эффект */
+  text-decoration: underline;
+  transition: all 0.2s ease;
+}
 .map-entry a { color:#fff; font-weight:bold; text-decoration:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; pointer-events:none; }
 .map-cover { width:90px; height:55px; border-radius:6px; background-size:cover; background-position:center; flex-shrink:0; }
 .map-info { display:flex; justify-content:space-between; flex:1; color:#fff; font-weight:bold; }
@@ -256,14 +265,22 @@ async function toggleMaps(playerId){
     const maps=await res.json();
     if(!Array.isArray(maps)||maps.length===0){container.innerHTML='<div style="color:#aaa">Карт пока нет или игрок ещё не имеет записей (будут 0 pp).</div>'; mapsTr.style.display='table-row'; return;}
     const html = maps.map(m => {
-      const map = m.pool_maps || {};
-      const title = escapeHtml(map.title || 'Без названия');
-      const bg = map.background_url || '';
-      const pp = typeof m.pp==='number'?m.pp:0;
-      const scoreId = m.score_id;
-      if(!scoreId) return `<div class="map-entry disabled"><div class="map-cover" style="background-image:url('${escapeHtml(bg)}')"></div><div class="map-info"><span>${title}</span><span class="map-pp">${pp} pp</span></div></div>`;
-      return `<div class="map-entry" onclick="window.open('https://osu.ppy.sh/scores/osu/${scoreId}','_blank')"><div class="map-cover" style="background-image:url('${escapeHtml(bg)}')"></div><div class="map-info"><span>${title}</span><span class="map-pp">${pp} pp</span></div></div>`;
-    }).join('');
+  const map = m.pool_maps || {};
+  const title = escapeHtml(map.title || 'Без названия');
+  const bg = map.background_url || '';
+  const pp = typeof m.pp === 'number' ? m.pp : 0;
+  const scoreId = m.score_id;
+
+  const hasScore = !!scoreId;
+
+  return `<div class="map-entry${hasScore ? ' active' : ' disabled'}"${hasScore ? ` onclick="window.open('https://osu.ppy.sh/scores/osu/${scoreId}','_blank')"` : ''}>
+    <div class="map-cover" style="background-image:url('${escapeHtml(bg)}')"></div>
+    <div class="map-info">
+      <span>${title}</span>
+      <span class="map-pp">${pp} pp</span>
+    </div>
+  </div>`;
+}).join('');
     container.innerHTML = html;
     mapsTr.style.display = 'table-row';
   } catch(err){
