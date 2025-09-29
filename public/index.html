@@ -169,7 +169,23 @@
   <script>
     let currentUser = null;
 
-    
+    function isSundayMoscow() {
+      const now = new Date();
+      const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+      const moscow = new Date(utc + 3 * 60 * 60 * 1000);
+      return moscow.getDay() === 0;
+    }
+
+    function toggleButtonsVisibility() {
+      const isSunday = isSundayMoscow();
+      const participateBtn = document.getElementById("participate");
+      const leaveBtn = document.getElementById("unparticipate");
+      if (!participateBtn || !leaveBtn) return;
+      if (!isSunday) {
+        participateBtn.style.display = "inline-block";
+        leaveBtn.style.display = "none";
+      }
+    }
 
     async function fetchUser() {
       const res = await fetch('/api/me');
