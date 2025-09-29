@@ -234,7 +234,7 @@ async function updateParticipantsPP() {
           }
         });
 
-        // 5. Формируем массив для upsert
+        // 5. Формируем массив для вставки/обновления
         const upsertData = Object.values(maxScoresMap).map(score => ({
           userid: participant.userid,
           score_id: score.id,
@@ -246,14 +246,33 @@ async function updateParticipantsPP() {
           created_at: score.created_at
         }));
 
-        // 6. Upsert с обновлением только если score_pp больше
+        // 6. Обновляем participant_scores только если новый PP больше
         for (let row of upsertData) {
-          await supabase
+          const { data: existing, error: selectErr } = await supabase
             .from("participant_scores")
-            .upsert(row, { onConflict: ["userid", "beatmap_id"] })
+            .select("score_pp")
             .eq("userid", row.userid)
             .eq("beatmap_id", row.beatmap_id)
-            .filter("score_pp", "lt", row.score_pp); // обновление только если новое PP больше
+            .maybeSingle();
+
+          if (selectErr) {
+            console.error("Ошибка выборки score:", selectErr);
+            continue;
+          }
+
+          if (!existing || row.score_pp > existing.score_pp) {
+            const { error: upsertErr } = await supabase
+              .from("participant_scores")
+              .upsert(row, { onConflict: ["userid", "beatmap_id"] });
+
+            if (upsertErr) {
+              console.error("Ошибка upsert:", upsertErr);
+            } else {
+              console.log(
+                `✅ Обновлён скор: ${row.beatmap_title} → ${row.score_pp.toFixed(2)}pp (${participant.nickname})`
+              );
+            }
+          }
         }
 
       } catch (err) {
