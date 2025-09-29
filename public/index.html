@@ -406,21 +406,29 @@ function updateCountdown() {
   const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
   const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
 
-  const diff = target - nowMSK;
+  let diff = target - nowMSK;
 
   if (diff <= 0) {
     document.getElementById("countdown").textContent = "Обновление...";
     return;
   }
 
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  diff -= days * (1000 * 60 * 60 * 24);
 
-  document.getElementById("countdown").textContent =
-    `До обновления недели: ${hours.toString().padStart(2, "0")}:` +
-    `${minutes.toString().padStart(2, "0")}:` +
-    `${seconds.toString().padStart(2, "0")}`;
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  diff -= hours * (1000 * 60 * 60);
+
+  const minutes = Math.floor(diff / (1000 * 60));
+  diff -= minutes * (1000 * 60);
+
+  const seconds = Math.floor(diff / 1000);
+
+  let text = 'До обновления недели: ';
+  if (days > 0) text += `${days} дн. `;
+  text += `${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+
+  document.getElementById("countdown").textContent = text;
 }
 setInterval(updateCountdown, 1000);
 updateCountdown();

@@ -654,7 +654,33 @@ app.get('/api/pool/maps', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+app.get('/api/scores/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('player_scores')
+      .select(`
+        id, userid, score_id, score_pp, accuracy, mods,
+        max_combo, statistics, created_at,
+        beatmap_id, beatmapset_id, beatmap_version, beatmap_bg
+      `)
+      .eq('id', req.params.id)
+      .single();
 
+    if (error) return res.status(500).json({ error: error.message });
+
+    // подтянуть ник игрока
+    const { data: user } = await supabase
+      .from('participants')
+      .select('nickname')
+      .eq('userid', data.userid)
+      .maybeSingle();
+
+    res.json({ ...data, username: user?.nickname || 'Unknown' });
+  } catch (err) {
+    console.error('Ошибка /api/scores/:id', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 app.post('/api/pool/participate', async (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
@@ -962,7 +988,7 @@ app.get('/api/pool/player/:id', async (req, res) => {
 
   const { data, error } = await supabase
     .from("player_scores")
-    .select("pp, pool_maps(title, background_url, map_url)")
+    .select("id, score_id, pp, pool_maps(title, background_url, map_url)")
     .eq("participant_id", id)
     .order('pp', { ascending: false });
 
