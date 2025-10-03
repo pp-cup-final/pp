@@ -253,42 +253,73 @@ async function loadData(){
   });
 }
 
-async function toggleMaps(playerId){
-  const mapsTr=document.getElementById(`maps-row-${playerId}`);
-  if(!mapsTr)return;
-  if(mapsTr.style.display==='table-row'){mapsTr.style.display='none';return;}
-  const container=document.getElementById(`maps-container-${playerId}`);
-  container.innerHTML='<div style="color:#aaa">Загрузка...</div>';
-  try{
-    const res=await fetch(`/api/pool/player/${playerId}`);
-    if(!res.ok){container.innerHTML='<div style="color:#f55">Ошибка загрузки карт</div>'; mapsTr.style.display='table-row'; return;}
-    const maps=await res.json();
-    if(!Array.isArray(maps)||maps.length===0){container.innerHTML='<div style="color:#aaa">Карт пока нет или игрок ещё не имеет записей (будут 0 pp).</div>'; mapsTr.style.display='table-row'; return;}
+async function toggleMaps(playerId) {
+  const mapsTr = document.getElementById(`maps-row-${playerId}`);
+  if (!mapsTr) return;
+  if (mapsTr.style.display === 'table-row') { mapsTr.style.display = 'none'; return; }
+
+  const container = document.getElementById(`maps-container-${playerId}`);
+  container.innerHTML = '<div style="color:#aaa">Загрузка...</div>';
+
+  try {
+    const res = await fetch(`/api/pool/player/${playerId}`);
+    if (!res.ok) {
+      container.innerHTML = '<div style="color:#f55">Ошибка загрузки карт</div>';
+      mapsTr.style.display = 'table-row';
+      return;
+    }
+
+    const maps = await res.json();
+    if (!Array.isArray(maps) || maps.length === 0) {
+      container.innerHTML = '<div style="color:#aaa">Карт пока нет или игрок ещё не имеет записей (будут 0 pp).</div>';
+      mapsTr.style.display = 'table-row';
+      return;
+    }
+
     const html = maps.map(m => {
-  const map = m.pool_maps || {};
-  const title = escapeHtml(map.title || 'Без названия');
-  const bg = map.background_url || '';
-  const pp = typeof m.pp === 'number' ? m.pp : 0;
-  const scoreId = m.score_id;
+      const map = m.pool_maps || {};
+      const title = escapeHtml(map.title || 'Без названия');
+      const bg = escapeHtml(map.background_url || '');
+      // приводим pp к числу (устойчиво к строкам)
+      const pp = Number(m.pp) || 0;
+      const scoreId = m.score_id || null; // может быть undefined
+      const mapUrl = escapeHtml(map.map_url || (map.beatmap_id ? `https://osu.ppy.sh/beatmaps/${map.beatmap_id}` : '#'));
 
-  const hasScore = !!scoreId;
+      // считаем активность по pp или по наличию score_id
+      const hasScore = pp > 0 || !!scoreId;
 
-  return `<div class="map-entry${hasScore ? ' active' : ' disabled'}"${hasScore ? ` onclick="window.open('https://osu.ppy.sh/scores/osu/${scoreId}','_blank')"` : ''}>
-    <div class="map-cover" style="background-image:url('${escapeHtml(bg)}')"></div>
-    <div class="map-info">
-      <span>${title}</span>
-      <span class="map-pp">${pp} pp</span>
-    </div>
-  </div>`;
-}).join('');
+      // выбираем правильную ссылку: если есть score_id — ссылка на скор, иначе — на карту
+      let onclickAttr = '';
+      if (scoreId) {
+        onclickAttr = ` onclick="window.open('https://osu.ppy.sh/scores/osu/${encodeURIComponent(scoreId)}','_blank')"`; 
+      } else if (pp > 0 && mapUrl !== '#') {
+        onclickAttr = ` onclick="window.open('${mapUrl}','_blank')"`; 
+      }
+
+      // класс active/disabled
+      const stateClass = hasScore ? ' active' : ' disabled';
+
+      return `
+        <div class="map-entry${stateClass}" ${hasScore ? onclickAttr : ''} role="${hasScore ? 'button' : 'presentation'}">
+          <div class="map-cover" style="background-image:url('${bg}')"></div>
+          <div class="map-info">
+            <span>${title}</span>
+            <span class="map-pp">${Math.round(pp)} pp</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
     container.innerHTML = html;
     mapsTr.style.display = 'table-row';
-  } catch(err){
-    console.error('Ошибка получения карт игрока:',err);
-    container.innerHTML='<div style="color:#f55">Ошибка при получении данных</div>';
-    mapsTr.style.display='table-row';
+
+  } catch (err) {
+    console.error('Ошибка получения карт игрока:', err);
+    container.innerHTML = '<div style="color:#f55">Ошибка при получении данных</div>';
+    mapsTr.style.display = 'table-row';
   }
 }
+
 
 async function loadPool() {
   try {
