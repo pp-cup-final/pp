@@ -130,34 +130,106 @@ tr.maps-row { display:none; background-color:#181818; }
 }
 .pool-card-diff { font-size:13px; color:var(--muted); text-align:center; }
 .pool-card-pp { font-weight:700; color:#ffcc00; text-align:right; margin-top:8px; }
+#login{
+background: #c265b4;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+#login:hover{
+background: #8e077a;
+color: #000;
+}
+#logout{
+background: #c265b4;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+#logout:hover{
+background: #8e077a;
+color: #000;
+}
+.rules-btn {
+  background: #0078ff;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+.rules-btn:hover {
+  background: #005ad9;
+}
 
+/* ===== Модальное окно ===== */
 .modal {
+  display: none;
   position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
+  z-index: 999;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.6);
+  animation: fadeIn 0.2s ease;
 }
-.modal.hidden { display:none; }
+
 .modal-content {
-  background:#1c1c1c;
-  color:#fff;
-  border-radius:12px;
-  padding:20px;
-  max-width:600px;
-  width:100%;
-  position:relative;
-  box-shadow:0 0 20px rgba(0,0,0,0.5);
+  background-color: #fff;
+  margin: 8% auto;
+  padding: 20px 30px;
+  border: none;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  animation: slideDown 0.25s ease;
+  color: #222; /* ← добавь этот параметр */
 }
-.modal-content .close {
-  position:absolute;
-  top:10px;
-  right:15px;
-  font-size:28px;
-  cursor:pointer;
+
+.modal-content h2 {
+  color: #111; /* более контрастный заголовок */
+  text-align: center;
+  margin-bottom: 1rem;
 }
+
+.modal-content p {
+  color: #333; /* читаемый текст */
+  line-height: 1.5;
+   text-align: left;
+  font-size: 1rem;
+}
+
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.close:hover {
+  color: #333;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; } to { opacity: 1; }
+}
+@keyframes slideDown {
+  from { transform: translateY(-15px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
 </style>
 </head>
 <body>
@@ -178,8 +250,27 @@ tr.maps-row { display:none; background-color:#181818; }
   </div>
   <button id="login">Войти через osu!</button>
   <button id="logout" style="display:none;">Выйти</button>
+    <!-- ===== КНОПКА ОТКРЫТИЯ ===== -->
+<button id="rulesBtn" class="rules-btn">Правила / Инфо</button>
+
+<!-- ===== МОДАЛЬНОЕ ОКНО ===== -->
+<div id="rulesModal" class="modal">
+  <div class="modal-content">
+    <span id="closeModal" class="close">&times;</span>
+    <h2>Правила Пул капа</h2>
+    <p><b>1.</b> Для участия необходимо авторизоваться при помощи osu! аккаунта и нажать на кнопку участвовать.</p>
+    <p><b>2.</b> Разрешается участвовать в Пул капе тем, кто присутствует на Дискорд сервере <a href="https://discord.com/invite/4M5jDGDX96" >Шавоново</a> .</p>
+    <p><b>3.</b> Для скачивания карты — кликните на нужную карточку (откроется страница карты с нужной сложностью) .</p>
+    <p><b>4.</b> Чтобы посмотреть на какой карте сколько пп у определенного игрока — кликните на строчку этого игрока в таблице (раскроется таблица скоров).</p>
+    <p><b>5.</b> Чтобы посмотреть скор — кликните на карту в скорах игрока (откроется osu! score).</p>
+    <hr>
+    <p  style="font-size: 0.9em; opacity: 0.8; text-align: center;">Обновление данных происходит автоматически один раз в 5 минут.</p>
+  </div>
+</div>
   <button id="participate" style="display:none;">Участвовать</button>
+  <a href="/history" class="history"><button>История</button></a>
   <a href="/" class="button-link"><button>ПП кап</button></a>
+
 </div>
 
 <h1>Турнир: Пул кап</h1>
@@ -256,7 +347,10 @@ async function loadData(){
 async function toggleMaps(playerId) {
   const mapsTr = document.getElementById(`maps-row-${playerId}`);
   if (!mapsTr) return;
-  if (mapsTr.style.display === 'table-row') { mapsTr.style.display = 'none'; return; }
+  if (mapsTr.style.display === 'table-row') { 
+    mapsTr.style.display = 'none'; 
+    return; 
+  }
 
   const container = document.getElementById(`maps-container-${playerId}`);
   container.innerHTML = '<div style="color:#aaa">Загрузка...</div>';
@@ -279,33 +373,29 @@ async function toggleMaps(playerId) {
     const html = maps.map(m => {
       const map = m.pool_maps || {};
       const title = escapeHtml(map.title || 'Без названия');
+      const difficulty = escapeHtml(map.version || map.difficulty || '');
       const bg = escapeHtml(map.background_url || '');
-      // приводим pp к числу (устойчиво к строкам)
       const pp = Number(m.pp) || 0;
-      const scoreId = m.score_id || null; // может быть undefined
+      const scoreId = m.score_id || null;
       const mapUrl = escapeHtml(map.map_url || (map.beatmap_id ? `https://osu.ppy.sh/beatmaps/${map.beatmap_id}` : '#'));
 
-      // считаем активность по pp или по наличию score_id
+      const targetUrl = scoreId
+        ? `https://osu.ppy.sh/scores/osu/${encodeURIComponent(scoreId)}`
+        : mapUrl;
+
       const hasScore = pp > 0 || !!scoreId;
-
-      // выбираем правильную ссылку: если есть score_id — ссылка на скор, иначе — на карту
-      let onclickAttr = '';
-      if (scoreId) {
-        onclickAttr = ` onclick="window.open('https://osu.ppy.sh/scores/osu/${encodeURIComponent(scoreId)}','_blank')"`; 
-      } else if (pp > 0 && mapUrl !== '#') {
-        onclickAttr = ` onclick="window.open('${mapUrl}','_blank')"`; 
-      }
-
-      // класс active/disabled
       const stateClass = hasScore ? ' active' : ' disabled';
 
       return `
-        <div class="map-entry${stateClass}" ${hasScore ? onclickAttr : ''} role="${hasScore ? 'button' : 'presentation'}">
+        <div class="map-entry${stateClass}" 
+             ${hasScore ? `onclick="window.open('${targetUrl}','_blank')"` : ''} 
+             role="${hasScore ? 'button' : 'presentation'}">
           <div class="map-cover" style="background-image:url('${bg}')"></div>
-          <div class="map-info">
+          <div class="map-info" style="flex-direction:column; align-items:flex-start;">
             <span>${title}</span>
-            <span class="map-pp">${Math.round(pp)} pp</span>
+            
           </div>
+          <div class="map-pp" style="margin-left:auto; font-weight:600; color:#ffcc00;">${Math.round(pp)} pp</div>
         </div>
       `;
     }).join('');
@@ -319,7 +409,6 @@ async function toggleMaps(playerId) {
     mapsTr.style.display = 'table-row';
   }
 }
-
 
 async function loadPool() {
   try {
@@ -349,6 +438,7 @@ async function loadPool() {
         }
       }
       const card=document.createElement('div'); card.className='pool-card';
+      const difficulty = escapeHtml(map.version || map.difficulty || '');
       card.addEventListener('click',()=>{window.open(mapUrl,'_blank');});
       card.innerHTML=`<img class="cover" src="${coverUrl}" alt=""><div class="pool-card-content"><div class="pool-card-title">${title}</div></div>`;
       const footer=document.createElement('div'); footer.className='pool-card-footer';
@@ -358,7 +448,13 @@ async function loadPool() {
     });
   } catch(err){console.error('loadPool error',err);document.getElementById('pool-cards').innerHTML='<div style="color:#f55">Ошибка при загрузке пула</div>';}
 }
+const modal = document.getElementById("rulesModal");
+  const btn = document.getElementById("rulesBtn");
+  const closeBtn = document.getElementById("closeModal");
 
+  btn.onclick = () => modal.style.display = "block";
+  closeBtn.onclick = () => modal.style.display = "none";
+  window.onclick = (e) => { if (e.target === modal) modal.style.display = "none"; };
 // Таймер
 function getNextSundayMidnightMSK(){
   const now=new Date();
@@ -382,6 +478,7 @@ function updateCountdown(){
   const seconds=Math.floor(diff/1000);
   document.getElementById("countdown").textContent=`До обновления недели: ${days>0?days+' дн. ':''}${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
 }
+
 setInterval(updateCountdown,1000); updateCountdown();
 document.getElementById('login').onclick = () => window.location.href = '/auth/login';
 document.getElementById('logout').onclick = () => window.location.href = '/auth/logout';

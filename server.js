@@ -939,7 +939,7 @@ cron.schedule("1 0 * * 0", async () => {
         await supabase.from("test_pool_maps").insert([{
           beatmap_id: set.id,
           difficulty_id: map.id,
-          title: `${set.title}`,
+          title: `${set.title} [${set.version}]`,
           background_url: set.covers.cover,
           map_url: `https://osu.ppy.sh/beatmaps/${map.id}`
         }]);
@@ -1010,17 +1010,55 @@ app.get('/api/pool/player/:id', async (req, res) => {
 // === API основного турнира ===
 app.get('/api/data', async (req, res) => {
   try {
-    // Обновим позиции и получим отсортированный список
+    // 1. Обновляем позиции участников
     await updatePositionsInDB();
 
-    const { data, error } = await supabase
+    // 2. Загружаем всех участников
+    const { data: participants, error } = await supabase
       .from('participants')
       .select('*')
       .order('position', { ascending: true });
 
     if (error) return res.status(500).json({ error: error.message });
 
-    res.json(data);
+    const token = await getOsuAccessToken();
+
+    // 3. Обновляем playcount, если он устарел или отсутствует
+    const updatedParticipants = await Promise.all(
+      participants.map(async (p) => {
+        if (p.playcount && p.playcount > 0) {
+          // если уже есть playcount — просто возвращаем
+          return p;
+        }
+
+        try {
+          const resUser = await axios.get(
+            `https://osu.ppy.sh/api/v2/users/${p.userid}/osu`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          const playcount = resUser.data.statistics.play_count || 0;
+
+          // сохраняем playcount в Supabase
+          const { error: updateErr } = await supabase
+            .from('participants')
+            .update({ playcount })
+            .eq('userid', p.userid);
+
+          if (updateErr) {
+            console.error(`Ошибка обновления playcount для ${p.nickname}:`, updateErr.message);
+          }
+
+          return { ...p, playcount };
+        } catch (err) {
+          console.error(`Ошибка загрузки playcount для ${p.nickname}:`, err.message);
+          return { ...p, playcount: 0 };
+        }
+      })
+    );
+
+    // 4. Возвращаем все данные
+    res.json(updatedParticipants);
   } catch (err) {
     console.error('/api/data error:', err);
     res.status(500).json({ error: 'Internal server error' });

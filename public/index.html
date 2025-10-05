@@ -133,6 +133,137 @@
     .pp-cell {
       text-align: center;
     }
+    /* ===== Модальное окно ===== */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 999;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.6);
+  animation: fadeIn 0.2s ease;
+}
+#login{
+background: #c265b4;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+#login:hover{
+background: #8e077a;
+color: #000;
+}
+#logout{
+background: #c265b4;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+#logout:hover{
+background: #8e077a;
+color: #000;
+}
+.invalid-badge {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background-color: #ff4d4d;
+  border-radius: 50%;
+  margin-left: 6px;
+  vertical-align: middle;
+  position: relative;
+  cursor: default;
+}
+
+.invalid-badge:hover::after {
+  content: "PP < 4k или плейкаунт < 30k";
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #ff4d4d;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  pointer-events: none;
+  z-index: 10;
+}
+.rules-btn {
+  background: #0078ff;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+.rules-btn:hover {
+  background: #005ad9;
+}
+.modal-content {
+  background-color: #fff;
+  margin: 8% auto;
+  padding: 20px 30px;
+  border: none;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  animation: slideDown 0.25s ease;
+  color: #222; /* ← добавь этот параметр */
+}
+
+.modal-content h2 {
+  color: #111; /* более контрастный заголовок */
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.modal-content p {
+  color: #333; /* читаемый текст */
+  line-height: 1.5;
+   text-align: left;
+  font-size: 1rem;
+}
+.invalid-player {
+  background-color: rgba(255, 0, 0, 0.15) !important;
+  color: #ff6b6b !important;
+}
+
+.invalid-player:hover {
+  background-color: rgba(255, 0, 0, 0.25) !important;
+}
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.close:hover {
+  color: #333;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; } to { opacity: 1; }
+}
+@keyframes slideDown {
+  from { transform: translateY(-15px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
   </style>
 </head>
 <body>
@@ -145,10 +276,29 @@
     <div id="user"></div>
     <button id="login">Войти через osu!</button>
     <button id="logout" style="display:none;">Выйти</button>
-    <button id="participate" style="display:inline-block;">Участвовать</button>
-    <button id="unparticipate" style="display:none;">Перестать участвовать</button>
-    <a href="/history" class="button-link"><button>История</button></a>
-    <a href="/pool" class="button-link" style="display: inline-block;"><button>Пул кап</button></a>
+         <!-- ===== КНОПКА ОТКРЫТИЯ ===== -->
+<button id="rulesBtn" class="rules-btn">Правила / Инфо</button>
+
+<!-- ===== МОДАЛЬНОЕ ОКНО ===== -->
+<div id="rulesModal" class="modal">
+  <div class="modal-content">
+    <span id="closeModal" class="close">&times;</span>
+    <h2>Правила ПП капа</h2>
+    <p><b>1.</b> Для участия необходимо авторизоваться при помощи osu! аккаунта и нажать на кнопку участвовать.</p>
+    <p><b>2.</b> Разрешается участвовать в ПП капе тем, кто присутствует на Дискорд сервере <a href="https://discord.com/invite/4M5jDGDX96" >Шавоново</a>, имеет 4k pp и 30k плейкаунта.</p>
+    <p><b>3.</b> Чтобы посмотреть на каких картах игрок получил ПП — кликните на него в таблице (раскроется список карт, которые дали игроку пп на этой неделе).</p>
+    <p><b>3.</b> Очки высчитываются следуюшим образом — чистые пп умножаются на число, равное количеству тысяч пп, на которых эти чистые были получены.</p>
+    <hr>
+    <p  style="font-size: 0.9em; opacity: 0.8; text-align: center;">Обновление данных происходит автоматически один раз в 5 минут.</p>
+  </div>
+</div>
+
+    <button id="participate" style="display:none;">Участвовать</button>
+   
+    <a href="/history" class="history"><button>История</button></a>
+    <a href="/pool" class="pool"><button>Пул кап</button></a>
+
+</div>
   </div>
   <h1>Таблица участников</h1>
   <table>
@@ -180,11 +330,11 @@
     function toggleButtonsVisibility() {
       const isSunday = isSundayMoscow();
       const participateBtn = document.getElementById("participate");
-      const leaveBtn = document.getElementById("unparticipate");
-      if (!participateBtn || !leaveBtn) return;
+      
+      if (!participateBtn ) return;
       if (!isSunday) {
-        participateBtn.style.display = "inline-block";
-        leaveBtn.style.display = "none";
+        participateBtn.style.display = "none";
+        
       }
     }
 
@@ -200,7 +350,7 @@
         const participants = await participantsRes.json();
         const isParticipating = participants.some(p => p.nickname === currentUser.username);
         document.getElementById('participate').style.display = isParticipating ? 'none' : 'inline-block';
-        document.getElementById('unparticipate').style.display = isParticipating ? 'inline-block' : 'none';
+        
 
         if (currentUser.username === 'LLIaBKa') {
           document.getElementById('admin-panel').style.display = 'block';
@@ -212,7 +362,7 @@
         document.getElementById('login').style.display = 'inline-block';
         document.getElementById('logout').style.display = 'none';
         document.getElementById('participate').style.display = 'none';
-        document.getElementById('unparticipate').style.display = 'none';
+        
         document.getElementById('admin-panel').style.display = 'none';
         document.getElementById('admin-column').style.display = 'none';
       }
@@ -247,18 +397,29 @@
           else if (item.position === 3) rowClass = "third";
 
           const tr = document.createElement('tr');
-          tr.className = rowClass + " participant-row";
-          tr.dataset.userid = item.userid;
-          tr.innerHTML = `
-            <td>${item.position}${crown}</td>
-            <td><img src="${item.avatar}" alt="avatar" width="40" height="40" /></td>
-            <td><a href="https://osu.ppy.sh/users/${item.userid}" target="_blank" onclick="event.stopPropagation();">${item.nickname}</a></td>
-            <td>${item.ppstart}</td>
-            <td>${item.ppend}</td>
-            <td>${Math.floor(item.ppend - item.ppstart)}</td>
-            <td>${item.points}</td>
-            ${currentUser?.username === 'LLIaBKa' ? `<td><button onclick="deleteParticipant('${item.nickname}')">Удалить</button></td>` : ''}
-          `;
+
+// базовые классы
+tr.className = rowClass + " participant-row";
+tr.dataset.userid = item.userid;
+
+// проверяем условия
+const isInvalid = (item.ppend < 4000) || (item.playcount < 30000);
+
+tr.innerHTML = `
+  <td>${item.position}${crown}</td>
+  <td><img src="${item.avatar}" alt="avatar" width="40" height="40" /></td>
+  <td>
+    <a href="https://osu.ppy.sh/users/${item.userid}" target="_blank" onclick="event.stopPropagation();">
+      ${item.nickname}
+    </a>
+    ${isInvalid ? '<span class="invalid-badge"></span>' : ''}
+  </td>
+  <td>${item.ppstart}</td>
+  <td>${item.ppend}</td>
+  <td>${Math.floor(item.ppend - item.ppstart)}</td>
+  <td>${item.points}</td>
+  ${currentUser?.username === 'LLIaBKa' ? `<td><button onclick="deleteParticipant('${item.nickname}')">Удалить</button></td>` : ''}
+`;
           tbody.appendChild(tr);
 
           const scoresRow = document.createElement('tr');
@@ -328,7 +489,13 @@
         console.error(e);
       }
     }
+const modal = document.getElementById("rulesModal");
+  const btn = document.getElementById("rulesBtn");
+  const closeBtn = document.getElementById("closeModal");
 
+  btn.onclick = () => modal.style.display = "block";
+  closeBtn.onclick = () => modal.style.display = "none";
+  window.onclick = (e) => { if (e.target === modal) modal.style.display = "none"; };
     async function deleteParticipant(nickname) {
       if (confirm(`Удалить ${nickname}?`)) {
         await fetch(`/api/participant/${encodeURIComponent(nickname)}`, { method: 'DELETE' });
@@ -364,17 +531,7 @@
       }
     };
 
-    document.getElementById('unparticipate').onclick = async () => {
-      const res = await fetch('/api/unparticipate', { method: 'POST' });
-      const result = await res.json();
-      if (res.ok) {
-        alert('Вы больше не участвуете');
-        await fetchUser();
-        await loadData();
-      } else {
-        alert(result.error || 'Ошибка при удалении');
-      }
-    };
+    
 function getNextSundayMidnightMSK() {
   const now = new Date();
 
@@ -407,29 +564,21 @@ function updateCountdown() {
   const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
   const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
 
-  let diff = target - nowMSK;
+  const diff = target - nowMSK;
 
   if (diff <= 0) {
     document.getElementById("countdown").textContent = "Обновление...";
     return;
   }
 
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  diff -= days * (1000 * 60 * 60 * 24);
-
   const hours = Math.floor(diff / (1000 * 60 * 60));
-  diff -= hours * (1000 * 60 * 60);
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-  const minutes = Math.floor(diff / (1000 * 60));
-  diff -= minutes * (1000 * 60);
-
-  const seconds = Math.floor(diff / 1000);
-
-  let text = 'До обновления недели: ';
-  if (days > 0) text += `${days} дн. `;
-  text += `${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
-
-  document.getElementById("countdown").textContent = text;
+  document.getElementById("countdown").textContent =
+    `До обновления недели: ${hours.toString().padStart(2, "0")}:` +
+    `${minutes.toString().padStart(2, "0")}:` +
+    `${seconds.toString().padStart(2, "0")}`;
 }
 setInterval(updateCountdown, 1000);
 updateCountdown();
