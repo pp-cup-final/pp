@@ -188,7 +188,7 @@ async function updateParticipantsPP() {
 
     for (let participant of participants) {
       try {
-        // 1. Получаем профиль
+        // 1️⃣ Получаем профиль (для обновления PP и поинтов)
         const res = await axios.get(
           `https://osu.ppy.sh/api/v2/users/${participant.userid}/osu`,
           { headers: { Authorization: `Bearer ${token}` } }
@@ -209,7 +209,7 @@ async function updateParticipantsPP() {
           })
           .eq("userid", participant.userid);
 
-        // 2. Получаем топ-200 скорборда (2 запроса по 100)
+        // 2️⃣ Получаем его top-200 скорборд
         let allScores = [];
         for (let offset of [0, 100]) {
           const scoresRes = await axios.get(
@@ -219,45 +219,56 @@ async function updateParticipantsPP() {
           allScores = allScores.concat(scoresRes.data);
         }
 
-        // 3. Фильтруем по дате участия
+        // 3️⃣ Берём только скоры, сыгранные после участия
         const joinDate = new Date(participant.participation_date);
-        const filteredScores = allScores.filter(
-          (score) => new Date(score.created_at) >= joinDate
-        );
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7); // ограничим последнюю неделю
 
-        // 4. Группируем по beatmap_id и выбираем максимум PP
-        const maxScoresMap = {};
-        filteredScores.forEach(score => {
-          const beatmapId = score.beatmap.id;
-          if (!maxScoresMap[beatmapId] || score.pp > maxScoresMap[beatmapId].pp) {
-            maxScoresMap[beatmapId] = score;
-          }
+        const filteredScores = allScores.filter(score => {
+          const createdAt = new Date(score.created_at);
+          return createdAt >= joinDate && createdAt >= weekAgo;
         });
 
-        // 5. Формируем массив для вставки
-        const insertData = Object.values(maxScoresMap).map(score => ({
+        // 4️⃣ Оставляем только лучшие по PP на каждой карте
+        const bestScoresByMap = {};
+        for (const s of filteredScores) {
+          const id = s.beatmap.id;
+          if (!bestScoresByMap[id] || s.pp > bestScoresByMap[id].pp) {
+            bestScoresByMap[id] = s;
+          }
+        }
+
+        // 5️⃣ Готовим массив для вставки в БД
+        const insertData = Object.values(bestScoresByMap).map(score => ({
           userid: participant.userid,
           score_id: score.id,
           score_pp: score.pp,
-          pp_gain: score.pp, // потом можно пересчитать
+          pp_gain: score.pp,
           beatmap_id: score.beatmap.id,
           beatmap_title: `${score.beatmapset.title} [${score.beatmap.version}]`,
           beatmap_bg: score.beatmapset.covers["cover@2x"],
           created_at: score.created_at
         }));
 
-        // 6. Вставляем (insert), обновляем только если score_id совпадает
+        // 6️⃣ Удаляем старые записи игрока за последнюю неделю,
+        // чтобы не было дублирующихся скоров по картам
+        const deleteSince = weekAgo.toISOString();
+        await supabase
+          .from("participant_scores")
+          .delete()
+          .eq("userid", participant.userid)
+          .gte("created_at", deleteSince);
+
+        // 7️⃣ Вставляем новые лучшие скоры
         if (insertData.length > 0) {
           const { error: insertErr } = await supabase
             .from("participant_scores")
-            .upsert(insertData, { onConflict: ["score_id"] });
+            .insert(insertData);
 
           if (insertErr) {
-            console.error("Ошибка вставки/обновления:", insertErr);
+            console.error("Ошибка вставки скоров:", insertErr);
           } else {
-            console.log(
-              `✅ Добавлено/обновлено ${insertData.length} скор(ов) для ${participant.nickname}`
-            );
+            console.log(`✅ ${participant.nickname}: ${insertData.length} лучших скор(ов) за неделю сохранено`);
           }
         }
 
@@ -270,11 +281,12 @@ async function updateParticipantsPP() {
     }
 
     await updatePositionsInDB();
-    console.log("✅ Участники и скоры обновлены");
+    console.log("✅ Все участники и лучшие скоры за неделю обновлены");
   } catch (err) {
     console.error("Ошибка в updateParticipantsPP:", err);
   }
 }
+
 
 
 // === Автоматический запуск ===
