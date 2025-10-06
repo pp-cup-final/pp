@@ -388,17 +388,16 @@ const targetUrl = hasScore
   : null;
 
       return `
-        <div class="map-entry${stateClass}" 
-             ${hasScore ? `onclick="window.open('${targetUrl}','_blank')"` : ''} 
-             role="${hasScore ? 'button' : 'presentation'}">
-          <div class="map-cover" style="background-image:url('${bg}')"></div>
-          <div class="map-info" style="flex-direction:column; align-items:flex-start;">
-            <span>${title}</span>
-            
-          </div>
-          <div class="map-pp" style="margin-left:auto; font-weight:600; color:#ffcc00;">${Math.round(pp)} pp</div>
-        </div>
-      `;
+  <div class="map-entry${stateClass}"
+       ${hasScore ? `onclick="window.open('${targetUrl}','_blank')"` : ''}
+       role="${hasScore ? 'button' : 'presentation'}">
+    <div class="map-cover" style="background-image:url('${bg}')"></div>
+    <div class="map-info" style="flex-direction:column; align-items:flex-start;">
+      <span>${title}</span>
+    </div>
+    <div class="map-pp" style="margin-left:auto; font-weight:600; color:#ffcc00;">${Math.round(pp)} pp</div>
+  </div>
+`;
     }).join('');
 
     container.innerHTML = html;
