@@ -461,7 +461,7 @@ tr.innerHTML = `
                   scoresTbody.innerHTML = sortedScores.map(s => {
   const map = s.pool_maps || s.beatmap || s.map || {};
   const bg = map.background_url || s.beatmap_bg || '';
-  const scoreId = s.score_id  || 0; // <-- ссылка теперь будет по score_id
+  const scoreId = s.score_id || s.id || 0; // <-- ссылка теперь будет по score_id
   const pp = Number(s.score_pp ?? s.pp ?? 0);
   const titleName = map.title || s.beatmap_title || 'Без названия';
   const diffName = map.version || s.beatmap_version || '';

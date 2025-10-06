@@ -564,6 +564,7 @@ app.get('/api/participant/:userid/scores', async (req, res) => {
       .select(`
         id,
         score_pp,
+        score_id,
         pp_gain,
         created_at,
         beatmap_id,
