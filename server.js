@@ -742,169 +742,122 @@ async function updatePoolPP() {
   try {
     const token = await getOsuAccessToken();
 
-    // 1) Участники пула
+    // 1️⃣ Загружаем всех участников
     const { data: participants, error: pErr } = await supabase
       .from("pool_participants")
       .select("id, userid, nickname, participation_date");
-    if (pErr) throw pErr;
 
-    // 2) Все карты пула
+    if (pErr) throw pErr;
+    if (!participants?.length) {
+      console.log("Нет участников для обновления.");
+      return;
+    }
+
+    // 2️⃣ Загружаем карты пула
     const { data: maps, error: mErr } = await supabase
       .from("pool_maps")
-      .select("id, beatmap_id, difficulty_id, title, map_url");
+      .select("id, difficulty_id, title");
     if (mErr) throw mErr;
+    if (!maps?.length) {
+      console.log("Нет карт в пуле.");
+      return;
+    }
 
-    const zeroPPMaps = [];
+    console.log(`Обновление PP для ${participants.length} участников...`);
 
+    // 3️⃣ Обрабатываем каждого участника
     for (const participant of participants) {
-      const participationDate = participant.participation_date
-        ? new Date(participant.participation_date)
-        : new Date(0);
+      const participationDate = new Date(participant.participation_date);
+      let totalPP = 0;
 
       for (const map of maps) {
+        const difficultyId = map.difficulty_id;
+        let bestPP = 0;
+        let bestScoreId = null;
+
         try {
-          // Проверяем запись в player_scores
-          const { data: existingRows, error: eErr } = await supabase
-            .from("player_scores")
-            .select("id, pp")
-            .eq("participant_id", participant.id)
-            .eq("map_id", map.id);
+          // Получаем ВСЕ скорЫ игрока по карте
+          const scoreRes = await axios.get(
+            `https://osu.ppy.sh/api/v2/beatmaps/${difficultyId}/scores/users/${participant.userid}/all`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
 
-          if (eErr) throw eErr;
+          let candidates = Array.isArray(scoreRes.data)
+            ? scoreRes.data
+            : scoreRes.data?.scores || [];
 
-          if (!existingRows || existingRows.length === 0) {
-            await supabase.from("player_scores").insert([
-              { participant_id: participant.id, map_id: map.id, pp: 0 },
-            ]);
-          }
+          // Фильтруем только скоры после даты участия
+          candidates = candidates.filter((s) => {
+            if (!s?.created_at) return false;
+            return new Date(s.created_at) >= participationDate;
+          });
 
-          // Резолвим difficulty_id
-          let difficultyId = map.difficulty_id;
-          if (!difficultyId) {
-            const candidate =
-              map.map_url?.match(/beatmaps\/(\d+)/)?.[1] || map.beatmap_id || null;
-
-            if (candidate) {
-              try {
-                const bmRes = await axios.get(
-                  `https://osu.ppy.sh/api/v2/beatmaps/${candidate}`,
-                  { headers: { Authorization: `Bearer ${token}` } }
-                );
-                difficultyId = bmRes.data.id;
-                const setId = bmRes.data?.beatmapset?.id || map.beatmap_id || null;
-
-                if (difficultyId) {
-                  await supabase
-                    .from("pool_maps")
-                    .update({
-                      difficulty_id: difficultyId,
-                      beatmap_id: setId,
-                    })
-                    .eq("id", map.id);
-                }
-              } catch (e) {
-                console.warn(
-                  `Не удалось разрешить difficulty для map.id=${map.id}:`,
-                  e.response?.data || e.message
-                );
-              }
-            }
-          }
-
-          if (!difficultyId) {
-            console.warn(`Пропускаем map.id=${map.id} — отсутствует difficulty_id`);
-            zeroPPMaps.push({
-              participant: participant.nickname,
-              map: map.title,
-              bestPP: 0,
-              reason: "no difficulty_id",
-            });
-            continue;
-          }
-
-          // Получаем лучший pp игрока на карте
-          let bestPP = 0;
-          try {
-            const scoreRes = await axios.get(
-              `https://osu.ppy.sh/api/v2/beatmaps/${difficultyId}/scores/users/${participant.userid}/all`,
-              { headers: { Authorization: `Bearer ${token}` } }
+          if (candidates.length > 0) {
+            // Находим скор с максимальным PP
+            const bestScore = candidates.reduce((max, s) =>
+              (s.pp || 0) > (max.pp || 0) ? s : max
             );
 
-            let candidates = Array.isArray(scoreRes.data)
-              ? scoreRes.data
-              : scoreRes.data?.scores || [];
-
-            // Фильтруем по дате участия
-            candidates = candidates.filter((s) => {
-  		if (!s?.created_at) return false;
-  		return new Date(s.created_at) >= participationDate;
-		});
-
-            if (candidates.length > 0) {
-              bestPP = Math.max(...candidates.map((s) => Number(s.pp || 0)));
-            }
-          } catch (e) {
-            
+            bestPP = Number(bestScore.pp || 0);
+            bestScoreId = bestScore.id || null;
           }
-
-          // Обновляем таблицу player_scores
-          
-          await supabase
-            .from("player_scores")
-            .update({ pp: bestPP })
-            .eq("participant_id", participant.id)
-            .eq("map_id", map.id);
-
-          if (!bestPP) {
-            zeroPPMaps.push({
-              participant: participant.nickname,
-              map: map.title,
-              bestPP,
-              reason: "no score",
-            });
-          }
-        } catch (err) {
-          console.error(
-            `Ошибка обработки map ${map.id} для ${participant.nickname}:`,
-            err.response?.data || err.message
+        } catch (e) {
+          console.warn(
+            `Ошибка запроса для карты ${map.id}, игрок ${participant.nickname}:`,
+            e.response?.data || e.message
           );
         }
+
+        // Обновляем или вставляем запись в player_scores
+        const { data: existing, error: existingErr } = await supabase
+          .from("player_scores")
+          .select("id")
+          .eq("participant_id", participant.id)
+          .eq("map_id", map.id)
+          .maybeSingle();
+
+        if (existingErr) {
+          console.error("Ошибка проверки существующего скора:", existingErr);
+          continue;
+        }
+
+        if (existing) {
+          // обновляем
+          await supabase
+            .from("player_scores")
+            .update({
+              pp: bestPP,
+              score_id: bestScoreId,
+            })
+            .eq("id", existing.id);
+        } else {
+          // вставляем
+          await supabase.from("player_scores").insert({
+            participant_id: participant.id,
+            map_id: map.id,
+            pp: bestPP,
+            score_id: bestScoreId,
+          });
+        }
+
+        totalPP += bestPP;
       }
-    }
 
-    // Пересчёт total_pp
-    for (const participant of participants) {
-      const { data: scores, error: sErr } = await supabase
-        .from("player_scores")
-        .select("pp")
-        .eq("participant_id", participant.id);
-
-      if (sErr) {
-       
-        continue;
-      }
-
-      const total_pp = (scores || []).reduce(
-        (sum, s) => sum + (Number(s.pp) || 0),
-        0
-      );
-
+      // 4️⃣ Обновляем общий PP в таблице участников
       await supabase
         .from("pool_participants")
-        .update({ total_pp })
+        .update({ total_pp: totalPP })
         .eq("id", participant.id);
+
+      console.log(`✅ ${participant.nickname} обновлён (totalPP: ${totalPP.toFixed(2)})`);
     }
 
-    console.log("✅ Total PP участников пула обновлены");
-
-    
+    console.log("Обновление PP завершено!");
   } catch (err) {
-    console.error(
-      "Ошибка updatePoolPP:",
-      err.response?.data || err.message || err
-    );
+    console.error("Ошибка в updatePoolPP:", err);
   }
 }
+
 cron.schedule("1 0 * * 0", async () => {
   const token = await getOsuAccessToken();
   let count = 0;
