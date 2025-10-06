@@ -380,12 +380,12 @@ async function toggleMaps(playerId) {
       const scoreId = m.score_id || null;
       const mapUrl = escapeHtml(map.map_url || (map.beatmap_id ? `https://osu.ppy.sh/beatmaps/${map.beatmap_id}` : '#'));
 
-      const targetUrl = scoreId
-        ? `https://osu.ppy.sh/scores/osu/${encodeURIComponent(scoreId)}`
-        : mapUrl;
+      const hasScore = !!scoreId; // только если есть score_id
+const stateClass = hasScore ? ' active' : ' disabled';
 
-      const hasScore = pp > 0 || !!scoreId;
-      const stateClass = hasScore ? ' active' : ' disabled';
+const targetUrl = hasScore
+  ? `https://osu.ppy.sh/scores/osu/${encodeURIComponent(scoreId)}`
+  : null;
 
       return `
         <div class="map-entry${stateClass}" 
