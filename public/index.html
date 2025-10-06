@@ -459,24 +459,24 @@ tr.innerHTML = `
                     .slice()
                     .sort((a, b) => (b.score_pp ?? b.pp ?? 0) - (a.score_pp ?? a.pp ?? 0));
                   scoresTbody.innerHTML = sortedScores.map(s => {
-                    const map = s.pool_maps || s.beatmap || s.map || {};
-                    const bg = map.background_url || s.beatmap_bg || '';
-                    const beatmapId = map.id || s.beatmap_id || 0;
-                    const pp = Number(s.score_pp ?? s.pp ?? 0);
-                    const titleName = map.title || s.beatmap_title || 'Без названия';
-                    const diffName = map.version || s.beatmap_version || '';
-                    const fullTitle = diffName ? `${titleName} [${diffName}]` : titleName;
+  const map = s.pool_maps || s.beatmap || s.map || {};
+  const bg = map.background_url || s.beatmap_bg || '';
+  const scoreId = s.score_id || s.id || 0; // <-- ссылка теперь будет по score_id
+  const pp = Number(s.score_pp ?? s.pp ?? 0);
+  const titleName = map.title || s.beatmap_title || 'Без названия';
+  const diffName = map.version || s.beatmap_version || '';
+  const fullTitle = diffName ? `${titleName} [${diffName}]` : titleName;
 
-                    return `
-                      <tr>
-                        <td class="bg-cell"><img src="${bg}" alt="cover"></td>
-                        <td class="map-title-cell">
-                          <a href="https://osu.ppy.sh/beatmaps/${beatmapId}" target="_blank">${fullTitle}</a>
-                        </td>
-                        <td class="pp-cell">${isFinite(pp) ? pp.toFixed(2) : '0'} pp</td>
-                      </tr>
-                    `;
-                  }).join('');
+  return `
+    <tr>
+      <td class="bg-cell"><img src="${bg}" alt="cover"></td>
+      <td class="map-title-cell">
+        <a href="https://osu.ppy.sh/scores/osu/${scoreId}" target="_blank">${fullTitle}</a>
+      </td>
+      <td class="pp-cell">${isFinite(pp) ? pp.toFixed(2) : '0'} pp</td>
+    </tr>
+  `;
+}).join('');
                 }
               } catch (err) {
                 console.error("Ошибка при fetch scores:", err);
