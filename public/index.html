@@ -268,9 +268,7 @@ color: #000;
 </head>
 <body>
   
-  <div id="admin-panel" style="display: none; text-align: center; margin-bottom: 1rem;">
-    <button id="clear-table">Очистить таблицу</button>
-  </div>
+  
 
   <div id="controls">
     <div id="user"></div>
@@ -315,7 +313,6 @@ color: #000;
         <th>PP End</th>
         <th>PP Clear</th>
         <th>Очки</th>
-        <th id="admin-column" style="display:none;">Действия</th>
       </tr>
     </thead>
     <tbody id="participants-body"></tbody>
@@ -357,8 +354,7 @@ color: #000;
         
 
         if (currentUser.username === 'LLIaBKa') {
-          document.getElementById('admin-panel').style.display = 'block';
-          document.getElementById('admin-column').style.display = 'table-cell';
+          
         }
       } else {
         currentUser = null;
@@ -367,8 +363,7 @@ color: #000;
         document.getElementById('logout').style.display = 'none';
         document.getElementById('participate').style.display = 'none';
         
-        document.getElementById('admin-panel').style.display = 'none';
-        document.getElementById('admin-column').style.display = 'none';
+        
       }
       toggleButtonsVisibility();
     }
@@ -422,7 +417,7 @@ tr.innerHTML = `
   <td>${item.ppend}</td>
   <td>${Math.floor(item.ppend - item.ppstart)}</td>
   <td>${item.points}</td>
-  ${currentUser?.username === 'LLIaBKa' ? `<td><button onclick="deleteParticipant('${item.nickname}')">Удалить</button></td>` : ''}
+  
 `;
           tbody.appendChild(tr);
 
