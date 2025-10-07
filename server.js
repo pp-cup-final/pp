@@ -706,51 +706,7 @@ app.get('/api/scores/:id', async (req, res) => {
   }
 });
 
-app.post('/api/pool/participate', async (req, res) => {
-  if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
 
-  const user = req.session.user; // данные из osu!
-
-  try {
-    const { data: participant, error: pError } = await supabase
-      .from("pool_participants")
-      .insert([{
-        userid: user.id,
-        nickname: user.username,
-        avatar: user.avatar_url || '',
-        total_pp: 0
-      }])
-      .select()
-      .single();
-
-    if (pError) throw pError;
-
-    const participantId = participant.id;
-
-    const { data: pool, error: poolError } = await supabase
-      .from("pool_maps")
-      .select("id");
-
-    if (poolError) throw poolError;
-
-    const scoreRows = pool.map((map) => ({
-      participant_id: participantId,
-      map_id: map.id,
-      pp: 0
-    }));
-
-    const { error: sError } = await supabase
-      .from("player_scores")
-      .insert(scoreRows);
-
-    if (sError) throw sError;
-
-    res.json({ success: true, participantId });
-  } catch (err) {
-    console.error('Ошибка /api/pool/participate:', err);
-    res.status(500).json({ error: "Ошибка при добавлении участника" });
-  }
-});
 async function updatePoolPP() {
   try {
     const token = await getOsuAccessToken();
@@ -1184,18 +1140,31 @@ app.delete('/api/participants', async (req, res) => {
 app.post('/api/pool/participate', async (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
 
-  const user = req.session.user; // здесь твои данные из сессии osu!
+  const user = req.session.user;
 
   try {
-    // 1. Добавляем участника
+    // 1) Проверяем, есть ли участник в таблице
+    const { data: existing, error: checkError } = await supabase
+      .from("pool_participants")
+      .select("id")
+      .eq("userid", user.id)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') throw checkError; // PGRST116 = нет записи
+
+    if (existing) {
+      // Участник уже есть
+      return res.status(400).json({ error: "Вы уже участвуете!" });
+    }
+
+    // 2) Вставляем нового участника
     const { data: participant, error: pError } = await supabase
       .from("pool_participants")
       .insert([{
         userid: user.id,
-        nickname: user.username,       // <-- ЗДЕСЬ вместо "nickname"
+        nickname: user.username,
         avatar: user.avatar_url || '',
-        total_pp: 0,
-        participation_date: new Date() // <-- сохраняем текущую дату
+        total_pp: 0
       }])
       .select()
       .single();
@@ -1204,21 +1173,20 @@ app.post('/api/pool/participate', async (req, res) => {
 
     const participantId = participant.id;
 
-    // 2. Получаем все карты из пула
+    // 3) Получаем все карты пула
     const { data: pool, error: poolError } = await supabase
       .from("pool_maps")
       .select("id");
 
     if (poolError) throw poolError;
 
-    // 3. Для каждой карты создаём запись с pp = 0
+    // 4) Создаём записи для карт
     const scoreRows = pool.map((map) => ({
       participant_id: participantId,
       map_id: map.id,
       pp: 0
     }));
 
-    // 4. Вставляем в player_scores
     const { error: sError } = await supabase
       .from("player_scores")
       .insert(scoreRows);
@@ -1226,11 +1194,13 @@ app.post('/api/pool/participate', async (req, res) => {
     if (sError) throw sError;
 
     res.json({ success: true, participantId });
+
   } catch (err) {
     console.error('Ошибка /api/pool/participate:', err);
     res.status(500).json({ error: "Ошибка при добавлении участника" });
   }
 });
+
 
 app.post('/api/unparticipate', async (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
