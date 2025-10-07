@@ -267,7 +267,10 @@ color: #000;
   </style>
 </head>
 <body>
-  <h1 id="countdown" style="text-align:center; font-size:2.5rem; margin-bottom:2rem; color:#ffffff;"></h1>
+  <div id="countdown-container" style="width:100%; height:40px; background:#333; border-radius:8px; overflow:hidden; margin-bottom:2rem; position:relative;">
+  <div id="countdown-bar" style="width:100%; height:100%; background:green; transition: width 0.5s linear, background 0.5s linear;"></div>
+  <div id="countdown-text" style="position:absolute; width:100%; height:100%; top:0; left:0; display:flex; align-items:center; justify-content:center; font-weight:bold; color:#fff; font-size:1rem; text-shadow:0 0 5px #000;"></div>
+</div>
   <div id="admin-panel" style="display: none; text-align: center; margin-bottom: 1rem;">
     <button id="clear-table">Очистить таблицу</button>
   </div>
@@ -533,53 +536,59 @@ const modal = document.getElementById("rulesModal");
 
     
 function getNextSundayMidnightMSK() {
-  const now = new Date();
-
-  // Считаем время в UTC
-  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-
-  // Смещение Москвы (UTC+3)
-  const mskNow = new Date(utc + 3 * 60 * 60 * 1000);
-
-  let next = new Date(mskNow);
-  next.setHours(0, 0, 0, 0);
-
-  // День недели (0=вс, 1=пн, ...)
-  const day = next.getDay();
-
-  if (day !== 0) {
-    // если не воскресенье, добавляем до ближайшего вс
-    next.setDate(next.getDate() + (7 - day));
-  } else if (mskNow >= next) {
-    // если уже воскресенье и после полуночи → следующее воскресенье
-    next.setDate(next.getDate() + 7);
-  }
-
-  return next;
+  const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
+  const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
+  const nextSunday = new Date(nowMSK);
+  nextSunday.setDate(nowMSK.getDate() + ((7 - nowMSK.getDay()) % 7));
+  nextSunday.setHours(0, 0, 0, 0);
+  return nextSunday;
 }
 
 function updateCountdown() {
   const target = getNextSundayMidnightMSK();
-
   const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
   const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
 
-  const diff = target - nowMSK;
+  // Начало недели (прошлое воскресенье)
+  const weekStart = new Date(target);
+  weekStart.setDate(target.getDate() - 7);
+  const totalTime = target - weekStart;
+  let diff = target - nowMSK;
+
+  const bar = document.getElementById("countdown-bar");
+  const text = document.getElementById("countdown-text");
 
   if (diff <= 0) {
-    document.getElementById("countdown").textContent = "Обновление...";
+    bar.style.width = "0%";
+    bar.style.backgroundColor = "red";
+    text.textContent = "Обновление...";
     return;
   }
 
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+  // процент оставшегося времени
+  const percent = (diff / totalTime) * 100;
+  bar.style.width = percent + "%";
 
-  document.getElementById("countdown").textContent =
-    `До обновления недели: ${hours.toString().padStart(2, "0")}:` +
-    `${minutes.toString().padStart(2, "0")}:` +
-    `${seconds.toString().padStart(2, "0")}`;
+  // вычисляем цвет от зеленого к красному
+  const r = Math.min(255, Math.floor(255 * (1 - percent / 100))); // чем меньше процентов — тем больше красного
+  const g = Math.min(255, Math.floor(255 * (percent / 100)));     // чем больше процентов — тем больше зелёного
+  bar.style.backgroundColor = `rgb(${r}, ${g}, 0)`;
+
+  // форматируем время в стиле "4 дн. 3 ч. 20 мин. 20 сек."
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+  const minutes = Math.floor((diff / (1000 * 60)) % 60);
+  const seconds = Math.floor((diff / 1000) % 60);
+
+  let timeString = "";
+  if (days > 0) timeString += `${days} дня `;
+  if (hours > 0 || days > 0) timeString += `${hours} ч `;
+  if (minutes > 0 || hours > 0 || days > 0) timeString += `${minutes} мин `;
+  timeString += `${seconds} сек`;
+
+  text.textContent = `До обновления: ${timeString.trim()}`;
 }
+
 setInterval(updateCountdown, 1000);
 updateCountdown();
     (async () => {

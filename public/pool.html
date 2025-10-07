@@ -242,7 +242,7 @@ color: #000;
 
 <div id="countdown-container" style="width:100%; height:40px; background:#333; border-radius:8px; overflow:hidden; margin-bottom:2rem; position:relative;">
   <div id="countdown-bar" style="width:100%; height:100%; background:green; transition: width 0.5s linear, background 0.5s linear;"></div>
-  <div id="countdown-text" style="position:absolute; width:100%; height:100%; top:0; left:0; display:flex; align-items:center; justify-content:center; font-weight:bold; color:#fff; font-size:1rem; text-shadow: 0 0 5px #000;"></div>
+  <div id="countdown-text" style="position:absolute; width:100%; height:100%; top:0; left:0; display:flex; align-items:center; justify-content:center; font-weight:bold; color:#fff; font-size:1rem; text-shadow:0 0 5px #000;"></div>
 </div>
 
 <div id="controls">
@@ -459,41 +459,62 @@ const modal = document.getElementById("rulesModal");
   closeBtn.onclick = () => modal.style.display = "none";
   window.onclick = (e) => { if (e.target === modal) modal.style.display = "none"; };
 // Таймер
-function getNextSundayMidnightMSK(){
-  const now=new Date();
-  const utc=now.getTime()+now.getTimezoneOffset()*60000;
-  const mskNow=new Date(utc+3*60*60*1000);
-  let next=new Date(mskNow); next.setHours(0,0,0,0);
-  const day=next.getDay();
-  if(day!==0) next.setDate(next.getDate()+7-day);
-  else if(mskNow>=next) next.setDate(next.getDate()+7);
-  return next;
+function getNextSundayMidnightMSK() {
+  const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
+  const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
+  const nextSunday = new Date(nowMSK);
+  nextSunday.setDate(nowMSK.getDate() + ((7 - nowMSK.getDay()) % 7));
+  nextSunday.setHours(0, 0, 0, 0);
+  return nextSunday;
 }
-function updateCountdown(){
+
+function updateCountdown() {
   const target = getNextSundayMidnightMSK();
-  const nowUTC = Date.now() + new Date().getTimezoneOffset()*60000;
-  const nowMSK = new Date(nowUTC + 3*60*60*1000);
+  const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
+  const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
+
+  // Начало недели (прошлое воскресенье)
+  const weekStart = new Date(target);
+  weekStart.setDate(target.getDate() - 7);
+  const totalTime = target - weekStart;
   let diff = target - nowMSK;
 
   const bar = document.getElementById("countdown-bar");
-  if(diff <= 0){
+  const text = document.getElementById("countdown-text");
+
+  if (diff <= 0) {
     bar.style.width = "0%";
-    bar.style.background = "red";
+    bar.style.backgroundColor = "red";
+    text.textContent = "Обновление...";
     return;
   }
 
-  const totalTime = target - (new Date(nowMSK).setHours(0,0,0,0) - (7*24*60*60*1000)); // время до прошлого воскресенья
+  // процент оставшегося времени
   const percent = (diff / totalTime) * 100;
-
   bar.style.width = percent + "%";
 
-  // цвет от зеленого к красному
-  const green = Math.floor(255 * (percent / 100));
-  const red = 255 - green;
-  bar.style.background = `rgb(${red}, ${green}, 0)`;
+  // вычисляем цвет от зеленого к красному
+  const r = Math.min(255, Math.floor(255 * (1 - percent / 100))); // чем меньше процентов — тем больше красного
+  const g = Math.min(255, Math.floor(255 * (percent / 100)));     // чем больше процентов — тем больше зелёного
+  bar.style.backgroundColor = `rgb(${r}, ${g}, 0)`;
+
+  // форматируем время в стиле "4 дн. 3 ч. 20 мин. 20 сек."
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+  const minutes = Math.floor((diff / (1000 * 60)) % 60);
+  const seconds = Math.floor((diff / 1000) % 60);
+
+  let timeString = "";
+  if (days > 0) timeString += `${days} дня `;
+  if (hours > 0 || days > 0) timeString += `${hours} ч `;
+  if (minutes > 0 || hours > 0 || days > 0) timeString += `${minutes} мин `;
+  timeString += `${seconds} сек`;
+
+  text.textContent = `До обновления: ${timeString.trim()}`;
 }
 
-setInterval(updateCountdown,1000); updateCountdown();
+setInterval(updateCountdown, 1000);
+updateCountdown();
 document.getElementById('login').onclick = () => window.location.href = '/auth/login';
 document.getElementById('logout').onclick = () => window.location.href = '/auth/logout';
 document.getElementById('participate').onclick = async () => {
