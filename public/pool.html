@@ -476,45 +476,24 @@ function updateCountdown(){
   let diff = target - nowMSK;
 
   const bar = document.getElementById("countdown-bar");
-  const text = document.getElementById("countdown-text");
-
   if(diff <= 0){
     bar.style.width = "0%";
     bar.style.background = "red";
-    text.textContent = "Обновление...";
     return;
   }
 
-  // оставшееся время
-  const days = Math.floor(diff / (1000*60*60*24));
-  diff -= days * (1000*60*60*24);
-  const hours = Math.floor(diff / (1000*60*60));
-  diff -= hours * (1000*60*60);
-  const minutes = Math.floor(diff / (1000*60));
-  diff -= minutes * (1000*60);
-  const seconds = Math.floor(diff / 1000);
-
-  text.textContent = `До обновления: ${days>0?days+' дн. ':''}${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
-
-  // процент времени до воскресенья
-  const startOfWeek = new Date(nowMSK);
-  startOfWeek.setDate(startOfWeek.getDate() - nowMSK.getDay()); // начало недели (понедельник)
-  startOfWeek.setHours(0,0,0,0);
-  const totalTime = target - startOfWeek;
+  const totalTime = target - (new Date(nowMSK).setHours(0,0,0,0) - (7*24*60*60*1000)); // время до прошлого воскресенья
   const percent = (diff / totalTime) * 100;
 
   bar.style.width = percent + "%";
 
-  // цвет от зелёного к красному
+  // цвет от зеленого к красному
   const green = Math.floor(255 * (percent / 100));
   const red = 255 - green;
   bar.style.background = `rgb(${red}, ${green}, 0)`;
 }
 
-// запуск обновления каждую секунду
-setInterval(updateCountdown,1000);
-updateCountdown();
-
+setInterval(updateCountdown,1000); updateCountdown();
 document.getElementById('login').onclick = () => window.location.href = '/auth/login';
 document.getElementById('logout').onclick = () => window.location.href = '/auth/logout';
 document.getElementById('participate').onclick = async () => {
