@@ -12,126 +12,35 @@ body {
   padding: 2rem;
   color: #eee;
 }
-h1 { text-align:center; color:#fff;  }
-#controls { text-align:center; margin-bottom:2rem; }
-button { background-color:#fff; color:#000; border:1px solid #555; padding:10px 20px; margin:5px; font-size:16px; border-radius:8px; cursor:pointer; transition:all 0.3s ease;}
-button:hover { background-color:#ddd; }
-.nickname-cell a.nickname { color:#fff; font-weight:bold; text-decoration:none; }
-.nickname-cell a.nickname:hover { text-decoration:underline; color:#ffb86b; }
-#user { font-weight:bold; color:#ccc; margin:10px 0; }
-table { width:100%; border-collapse:collapse; background-color:#1e1e1e; border-radius:12px; overflow:hidden; box-shadow:0 0 10px rgba(255,255,255,0.05); margin-bottom:1rem;}
-thead th { padding:14px; text-align:center; border-bottom:1px solid #333; background-color:#2a2a2a; color:#fff; font-weight:bold; }
-tbody td { padding:12px; text-align:center; border-bottom:1px solid #333; vertical-align:middle; }
-tr.main-row:hover { background-color:#2c2c2c; cursor:pointer; }
-tr.maps-row { display:none; background-color:#181818; }
-.maps-cell { padding:12px 18px; }
-.maps-list { display:flex; flex-direction:column; gap:9px; margin:6px 0; }
-.map-entry { display:flex; align-items:center; gap:12px; padding:10px; background-color:#222; border-radius:8px; cursor:pointer; }
-.map-entry.disabled {
-  cursor: default;
-  opacity: 0.5;
-  pointer-events: none; /* блокирует клики */
-}
-.map-entry.active:hover .map-info span {
-  color: #ffb86b; /* или любой цвет/эффект */
-  text-decoration: underline;
-  transition: all 0.2s ease;
-}
-.map-entry a { color:#fff; font-weight:bold; text-decoration:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; pointer-events:none; }
-.map-cover { width:90px; height:55px; border-radius:6px; background-size:cover; background-position:center; flex-shrink:0; }
-.map-info { display:flex; justify-content:space-between; flex:1; color:#fff; font-weight:bold; }
-.nickname-cell { text-align:left; display:flex; align-items:center; gap:10px; }
-.position { width:80px; text-align:center; }
-.pp { width:10%; text-align:center; vertical-align:middle; }
-.position-text { width:80px; text-align:center; font-weight:bold; }
-.nickname-cell img { width:32px; height:32px; vertical-align:middle; border-radius:50%; box-shadow:0 0 3px rgba(255,255,255,0.2); }
+h1 { text-align: center; color: #fff; }
+#controls { text-align: center; margin-bottom: 2rem; }
 
-.pool-grid {
-  display:grid;
-  grid-template-columns: repeat(5,1fr);
-  grid-template-rows: repeat(2, auto);
-  gap:16px;
-  margin-bottom:2rem;
+/* Стили для навигационной панели */
+.navbar {
+  background-color: #1e1e1e;
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 2rem;
+  box-shadow: 0 0 10px rgba(255,255,255,0.05);
 }
 
-.pool-card {
-  background-color:#1e1e1e;
-  border-radius:12px;
-  display:flex;
-  flex-direction:column;
-  overflow:hidden;
-  width:100%;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  cursor:pointer;
+button {
+  background-color: #fff;
+  color: #000;
+  border: 1px solid #555;
+  padding: 10px 20px;
+  margin: 5px;
+  font-size: 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
-.pool-card:hover {
-  transform: translateY(-4px);
-  box-shadow:0 4px 20px rgba(255,255,255,0.15);
-}
-.pool-card img {
-  width:100%;
-  height:140px;
-  object-fit:cover;
-}
-.pool-card-content {
-  padding:10px 12px;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  gap:4px;
-  flex:1;
-}
-.pool-card-footer {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:8px 12px;
-  border-top:1px solid rgba(255,255,255,0.03);
-  background: rgba(0,0,0,0.03);
-  box-sizing:border-box;
-  gap:8px;
-}
-.pool-card-footer .pp {
-  padding-right:5%;
-  font-weight:700;
-  color:#ffcc00;
-  white-space:nowrap;
-}
-.best-player {
-  display:flex;
-  align-items:center;
-  gap:8px;
-  overflow:hidden;
-  min-width:0;
-  flex:1 1 auto;
-}
-.best-player img {
-  width:30px; height:30px;
-  border-radius:50%;
-  object-fit:cover;
-}
-.best-player .name {
-  font-weight:600;
-  font-size:13px;
-  color:#fff;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
-.pool-card-title {
-  font-weight:700;
-  color:#fff;
-  font-size:15px;
-  line-height:1.2;
-  text-align:center;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
-.pool-card-diff { font-size:13px; color:var(--muted); text-align:center; }
-.pool-card-pp { font-weight:700; color:#ffcc00; text-align:right; margin-top:8px; }
-#login{
-background: #c265b4;
+button:hover { background-color: #ddd; }
+#login {
+  background: #c265b4;
   color: white;
   border: none;
   padding: 10px 18px;
@@ -140,12 +49,12 @@ background: #c265b4;
   font-weight: 600;
   transition: background 0.2s ease;
 }
-#login:hover{
-background: #8e077a;
-color: #000;
+#login:hover {
+  background: #8e077a;
+  color: #000;
 }
-#logout{
-background: #c265b4;
+#logout {
+  background: #c265b4;
   color: white;
   border: none;
   padding: 10px 18px;
@@ -154,9 +63,9 @@ background: #c265b4;
   font-weight: 600;
   transition: background 0.2s ease;
 }
-#logout:hover{
-background: #8e077a;
-color: #000;
+#logout:hover {
+  background: #8e077a;
+  color: #000;
 }
 .rules-btn {
   background: #0078ff;
@@ -171,8 +80,123 @@ color: #000;
 .rules-btn:hover {
   background: #005ad9;
 }
+.button-link, .history {
+  text-decoration: none;
+}
+#user { font-weight: bold; color: #ccc; margin: 10px 0; }
+.nickname-cell a.nickname { color: #fff; font-weight: bold; text-decoration: none; }
+.nickname-cell a.nickname:hover { text-decoration: underline; color: #ffb86b; }
+table { width: 100%; border-collapse: collapse; background-color: #1e1e1e; border-radius: 12px; overflow: hidden; box-shadow: 0 0 10px rgba(255,255,255,0.05); margin-bottom: 1rem; }
+thead th { padding: 14px; text-align: center; border-bottom: 1px solid #333; background-color: #2a2a2a; color: #fff; font-weight: bold; }
+tbody td { padding: 12px; text-align: center; border-bottom: 1px solid #333; vertical-align: middle; }
+tr.main-row:hover { background-color: #2c2c2c; cursor: pointer; }
+tr.maps-row { display: none; background-color: #181818; }
+.maps-cell { padding: 12px 18px; }
+.maps-list { display: flex; flex-direction: column; gap: 9px; margin: 6px 0; }
+.map-entry { display: flex; align-items: center; gap: 12px; padding: 10px; background-color: #222; border-radius: 8px; cursor: pointer; }
+.map-entry.disabled {
+  cursor: default;
+  opacity: 0.5;
+  pointer-events: none;
+}
+.map-entry.active:hover .map-info span {
+  color: #ffb86b;
+  text-decoration: underline;
+  transition: all 0.2s ease;
+}
+.map-entry a { color: #fff; font-weight: bold; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; pointer-events: none; }
+.map-cover { width: 90px; height: 55px; border-radius: 6px; background-size: cover; background-position: center; flex-shrink: 0; }
+.map-info { display: flex; justify-content: space-between; flex: 1; color: #fff; font-weight: bold; }
+.nickname-cell { text-align: left; display: flex; align-items: center; gap: 10px; }
+.position { width: 80px; text-align: center; }
+.pp { width: 10%; text-align: center; vertical-align: middle; }
+.position-text { width: 80px; text-align: center; font-weight: bold; }
+.nickname-cell img { width: 32px; height: 32px; vertical-align: middle; border-radius: 50%; box-shadow: 0 0 3px rgba(255,255,255,0.2); }
+.pool-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(2, auto);
+  gap: 16px;
+  margin-bottom: 2rem;
+}
+.pool-card {
+  background-color: #1e1e1e;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 100%;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+.pool-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 20px rgba(255,255,255,0.15);
+}
+.pool-card img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+}
+.pool-card-content {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  flex: 1;
+}
+.pool-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-top: 1px solid rgba(255,255,255,0.03);
+  background: rgba(0,0,0,0.03);
+  box-sizing: border-box;
+  gap: 8px;
+}
+.pool-card-footer .pp {
+  padding-right: 5%;
+  font-weight: 700;
+  color: #ffcc00;
+  white-space: nowrap;
+}
+.best-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.best-player img {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.best-player .name {
+  font-weight: 600;
+  font-size: 13px;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pool-card-title {
+  font-weight: 700;
+  color: #fff;
+  font-size: 15px;
+  line-height: 1.2;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pool-card-diff { font-size: 13px; color: var(--muted); text-align: center; }
+.pool-card-pp { font-weight: 700; color: #ffcc00; text-align: right; margin-top: 8px; }
 
-/* ===== Модальное окно ===== */
+/* Модальное окно */
 .modal {
   display: none;
   position: fixed;
@@ -185,7 +209,6 @@ color: #000;
   background-color: rgba(0, 0, 0, 0.6);
   animation: fadeIn 0.2s ease;
 }
-
 .modal-content {
   background-color: #fff;
   margin: 8% auto;
@@ -195,22 +218,19 @@ color: #000;
   width: 90%;
   max-width: 600px;
   animation: slideDown 0.25s ease;
-  color: #222; /* ← добавь этот параметр */
+  color: #222;
 }
-
 .modal-content h2 {
-  color: #111; /* более контрастный заголовок */
+  color: #111;
   text-align: center;
   margin-bottom: 1rem;
 }
-
 .modal-content p {
-  color: #333; /* читаемый текст */
+  color: #333;
   line-height: 1.5;
-   text-align: left;
+  text-align: left;
   font-size: 1rem;
 }
-
 .close {
   color: #aaa;
   float: right;
@@ -221,7 +241,6 @@ color: #000;
 .close:hover {
   color: #333;
 }
-
 @keyframes fadeIn {
   from { opacity: 0; } to { opacity: 1; }
 }
@@ -229,7 +248,6 @@ color: #000;
   from { transform: translateY(-15px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
-
 </style>
 </head>
 <body>
@@ -240,38 +258,34 @@ color: #000;
   </div>
 </div>
 
-
+<!-- Навигационная панель -->
+<div class="navbar">
+  <button id="login">Войти через osu!</button>
+  <button id="logout" style="display:none;">Выйти</button>
+  <button id="rulesBtn" class="rules-btn">Правила / Инфо</button>
+  <a href="/history" class="history"><button>История</button></a>
+  <a href="/" class="button-link"><button>ПП кап</button></a>
+</div>
 
 <div id="controls">
   <div id="user"></div>
-  <div id="addMapControls" style="display:none;">
-    <input type="text" id="mapLink" placeholder="Вставь ссылку на карту">
-    <button onclick="addMap()">Добавить</button>
-  </div>
-  <button id="login">Войти через osu!</button>
-  <button id="logout" style="display:none;">Выйти</button>
-    <!-- ===== КНОПКА ОТКРЫТИЯ ===== -->
-<button id="rulesBtn" class="rules-btn">Правила / Инфо</button>
+  <button id="participate" style="display:none;">Участвовать</button>
+</div>
 
-<!-- ===== МОДАЛЬНОЕ ОКНО ===== -->
+<!-- Модальное окно -->
 <div id="rulesModal" class="modal">
   <div class="modal-content">
     <span id="closeModal" class="close">&times;</span>
     <h2>Правила Пул капа</h2>
     <p><b>1.</b> Для участия необходимо авторизоваться при помощи osu! аккаунта и нажать на кнопку участвовать.</p>
-    <p><b>2.</b> Разрешается участвовать в Пул капе тем, кто присутствует на Дискорд сервере <a href="https://discord.com/invite/4M5jDGDX96" >Шавоново</a>.</p>
+    <p><b>2.</b> Разрешается участвовать в Пул капе тем, кто присутствует на Дискорд сервере <a href="https://discord.com/invite/4M5jDGDX96">Шавоново</a>.</p>
     <p><b>3.</b> Для скачивания карты — кликните на нужную карточку (откроется страница карты с нужной сложностью).</p>
     <p><b>4.</b> Чтобы посмотреть на какой карте сколько пп у определенного игрока — кликните на строчку этого игрока в таблице (раскроется таблица скоров).</p>
     <p><b>5.</b> Чтобы посмотреть скор — кликните на карту в скорах игрока (откроется osu! score).</p>
     <p><b>6.</b> Учет скоров работает таким образом, что все прошлые скоры на картах из пула не учитываются. Учитываются только те скоры, которые были поставлены после участия.</p>
     <hr>
-    <p  style="font-size: 0.9em; opacity: 0.8; text-align: center;">Обновление данных происходит автоматически один раз в 5 минут.</p>
+    <p style="font-size: 0.9em; opacity: 0.8; text-align: center;">Обновление данных происходит автоматически один раз в 5 минут.</p>
   </div>
-</div>
-  <button id="participate" style="display:none;">Участвовать</button>
-  <a href="/history" class="history"><button>История</button></a>
-  <a href="/" class="button-link"><button>ПП кап</button></a>
-
 </div>
 
 <h1>Пул кап</h1>
@@ -293,68 +307,66 @@ color: #000;
 </table>
 
 <script>
-function escapeHtml(str){if(str===null||str===undefined)return'';return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
-
-async function addMap(){
-  const url=document.getElementById('mapLink').value;
-  const res=await fetch('/api/addMap',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
-  const data=await res.json();
-  alert(data.success?"Карта добавлена!":"Ошибка: "+(data.error||'unknown'));
-  if(data.success) await loadPool();
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-async function fetchUser(){
-  const res=await fetch('/api/me');
-  if(res.ok){
-    const currentUser=await res.json();
-    document.getElementById('user').innerText=`Привет, ${currentUser.username}!`;
-    document.getElementById('login').style.display='none';
-    document.getElementById('logout').style.display='inline-block';
-    if(currentUser.username==='LLIaBKa'){document.getElementById('addMapControls').style.display='block';}
-    const participantsRes=await fetch('/api/pool/participants');
-    if(participantsRes.ok){
-      const participants=await participantsRes.json();
-      const isParticipating=participants.some(p=>p.nickname===currentUser.username);
-      document.getElementById('participate').style.display=isParticipating?'none':'inline-block';
+async function fetchUser() {
+  const res = await fetch('/api/me');
+  const participantsRes = await fetch('/api/pool/participants');
+  if (res.ok) {
+    const currentUser = await res.json();
+    document.getElementById('user').innerText = `Привет, ${currentUser.username}!`;
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('logout').style.display = 'inline-block';
+
+    if (participantsRes.ok) {
+      const participants = await participantsRes.json();
+      const isParticipating = participants.some(p => p.nickname === currentUser.username);
+      document.getElementById('participate').style.display = isParticipating ? 'none' : 'inline-block';
     }
   } else {
-    document.getElementById('user').innerText='';
-    document.getElementById('login').style.display='inline-block';
-    document.getElementById('logout').style.display='none';
-    document.getElementById('participate').style.display='none';
-    document.getElementById('addMapControls').style.display='none';
+    document.getElementById('user').innerText = '';
+    document.getElementById('login').style.display = 'inline-block';
+    document.getElementById('logout').style.display = 'none';
+    document.getElementById('participate').style.display = 'none';
   }
 }
 
-async function loadData(){
-  const res=await fetch('/api/pool/participants');
-  if(!res.ok)return;
-  let data=await res.json();
-  data.sort((a,b)=>(b.total_pp??0)-(a.total_pp??0));
-  const tbody=document.getElementById('participants-body');
-  tbody.innerHTML='';
-  data.forEach((item,index)=>{
-    const tr=document.createElement('tr');
-    tr.className='main-row'; tr.dataset.playerId=item.id;
-    tr.innerHTML=`<td class="position-text">${index+1}</td>
-      <td class="nickname-cell"><img src="${item.avatar?escapeHtml(item.avatar):''}" alt="avatar">
+async function loadData() {
+  const res = await fetch('/api/pool/participants');
+  if (!res.ok) return;
+  let data = await res.json();
+  data.sort((a, b) => (b.total_pp ?? 0) - (a.total_pp ?? 0));
+  const tbody = document.getElementById('participants-body');
+  tbody.innerHTML = '';
+  data.forEach((item, index) => {
+    const tr = document.createElement('tr');
+    tr.className = 'main-row';
+    tr.dataset.playerId = item.id;
+    tr.innerHTML = `
+      <td class="position-text">${index + 1}</td>
+      <td class="nickname-cell"><img src="${item.avatar ? escapeHtml(item.avatar) : ''}" alt="avatar">
       <a href="https://osu.ppy.sh/users/${item.userid}" target="_blank" rel="noopener noreferrer" class="nickname" onclick="event.stopPropagation()">${escapeHtml(item.nickname)}</a></td>
-      <td class="pp">${Math.floor(item.total_pp??0)}</td>`;
+      <td class="pp">${Math.floor(item.total_pp ?? 0)}</td>`;
     tbody.appendChild(tr);
 
-    const mapsTr=document.createElement('tr'); mapsTr.className='maps-row'; mapsTr.id=`maps-row-${item.id}`;
-    mapsTr.innerHTML=`<td class="maps-cell" colspan="3"><div id="maps-container-${item.id}" class="maps-list"></div></td>`;
+    const mapsTr = document.createElement('tr');
+    mapsTr.className = 'maps-row';
+    mapsTr.id = `maps-row-${item.id}`;
+    mapsTr.innerHTML = `<td class="maps-cell" colspan="3"><div id="maps-container-${item.id}" class="maps-list"></div></td>`;
     tbody.appendChild(mapsTr);
-    tr.addEventListener('click',()=>toggleMaps(item.id));
+    tr.addEventListener('click', () => toggleMaps(item.id));
   });
 }
 
 async function toggleMaps(playerId) {
   const mapsTr = document.getElementById(`maps-row-${playerId}`);
   if (!mapsTr) return;
-  if (mapsTr.style.display === 'table-row') { 
-    mapsTr.style.display = 'none'; 
-    return; 
+  if (mapsTr.style.display === 'table-row') {
+    mapsTr.style.display = 'none';
+    return;
   }
 
   const container = document.getElementById(`maps-container-${playerId}`);
@@ -383,10 +395,7 @@ async function toggleMaps(playerId) {
       const pp = Number(m.pp) || 0;
       const scoreId = m.score_id || null;
       const mapUrl = escapeHtml(map.map_url || (map.beatmap_id ? `https://osu.ppy.sh/beatmaps/${map.beatmap_id}` : '#'));
-
       const targetUrl = `https://osu.ppy.sh/scores/osu/${encodeURIComponent(scoreId)}`;
-        
-
       const hasScore = pp > 0 || !!scoreId;
       const stateClass = hasScore ? ' active' : ' disabled';
 
@@ -397,7 +406,6 @@ async function toggleMaps(playerId) {
           <div class="map-cover" style="background-image:url('${bg}')"></div>
           <div class="map-info" style="flex-direction:column; align-items:flex-start;">
             <span>${title}</span>
-            
           </div>
           <div class="map-pp" style="margin-left:auto; font-weight:600; color:#ffcc00;">${Math.round(pp)} pp</div>
         </div>
@@ -406,7 +414,6 @@ async function toggleMaps(playerId) {
 
     container.innerHTML = html;
     mapsTr.style.display = 'table-row';
-
   } catch (err) {
     console.error('Ошибка получения карт игрока:', err);
     container.innerHTML = '<div style="color:#f55">Ошибка при получении данных</div>';
@@ -420,46 +427,64 @@ async function loadPool() {
       fetch('/api/pool/maps'),
       fetch('/api/pool/participants')
     ]);
-    if(!mapsRes.ok){document.getElementById('pool-cards').innerHTML='<div style="color:#f55">Ошибка загрузки пула карт</div>'; return;}
+    if (!mapsRes.ok) {
+      document.getElementById('pool-cards').innerHTML = '<div style="color:#f55">Ошибка загрузки пула карт</div>';
+      return;
+    }
     const mapsCache = await mapsRes.json();
-    const participantsCache = participantsRes.ok ? await participantsRes.json():null;
-    const container = document.getElementById('pool-cards'); container.innerHTML='';
-    mapsCache.forEach(map=>{
-      const mapUrl = escapeHtml(map.map_url || (map.beatmap_id?`https://osu.ppy.sh/beatmaps/${map.beatmap_id}`:'#'));
+    const participantsCache = participantsRes.ok ? await participantsRes.json() : null;
+    const container = document.getElementById('pool-cards');
+    container.innerHTML = '';
+    mapsCache.forEach(map => {
+      const mapUrl = escapeHtml(map.map_url || (map.beatmap_id ? `https://osu.ppy.sh/beatmaps/${map.beatmap_id}` : '#'));
       const coverUrl = escapeHtml(map.background_url || '');
       const title = escapeHtml(map.title || `Map ${map.beatmap_id || map.id}`);
-      let best=null;
-      if(participantsCache && Array.isArray(participantsCache)){
-        for(const p of participantsCache){
-          if(!p.player_scores) continue;
-          for(const ps of p.player_scores){
+      let best = null;
+      if (participantsCache && Array.isArray(participantsCache)) {
+        for (const p of participantsCache) {
+          if (!p.player_scores) continue;
+          for (const ps of p.player_scores) {
             const pm = ps.pool_maps || ps.pool_map || null;
-            if(pm?.id===map.id){
-              const pp=Number(ps.pp)||0;
-              if(!best || pp>best.pp) best={participantId:p.id, userid:p.userid, nickname:p.nickname, avatar:p.avatar, pp, scoreRowId: ps.id??null};
+            if (pm?.id === map.id) {
+              const pp = Number(ps.pp) || 0;
+              if (!best || pp > best.pp) best = { participantId: p.id, userid: p.userid, nickname: p.nickname, avatar: p.avatar, pp, scoreRowId: ps.id ?? null };
             }
           }
         }
       }
-      const card=document.createElement('div'); card.className='pool-card';
+      const card = document.createElement('div');
+      card.className = 'pool-card';
       const difficulty = escapeHtml(map.version || map.difficulty || '');
-      card.addEventListener('click',()=>{window.open(mapUrl,'_blank');});
-      card.innerHTML=`<img class="cover" src="${coverUrl}" alt=""><div class="pool-card-content"><div class="pool-card-title">${title}</div></div>`;
-      const footer=document.createElement('div'); footer.className='pool-card-footer';
-      footer.innerHTML=`<div class="best-player">${best?`<img src="${escapeHtml(best.avatar||'')}" alt="avatar"><div class="name" title="${escapeHtml(best.nickname||'')}">${escapeHtml(best.nickname||'')}</div>`:'<div style="color:#bbb">Нет скоров</div>'}</div><div class="pp">${best?Math.round(best.pp)+' pp':'0 pp'}</div>`;
+      card.addEventListener('click', () => { window.open(mapUrl, '_blank'); });
+      card.innerHTML = `
+        <img class="cover" src="${coverUrl}" alt="">
+        <div class="pool-card-content">
+          <div class="pool-card-title">${title}</div>
+        </div>`;
+      const footer = document.createElement('div');
+      footer.className = 'pool-card-footer';
+      footer.innerHTML = `
+        <div class="best-player">
+          ${best ? `<img src="${escapeHtml(best.avatar || '')}" alt="avatar"><div class="name" title="${escapeHtml(best.nickname || '')}">${escapeHtml(best.nickname || '')}</div>` : '<div style="color:#bbb">Нет скоров</div>'}
+        </div>
+        <div class="pp">${best ? Math.round(best.pp) + ' pp' : '0 pp'}</div>`;
       card.appendChild(footer);
       container.appendChild(card);
     });
-  } catch(err){console.error('loadPool error',err);document.getElementById('pool-cards').innerHTML='<div style="color:#f55">Ошибка при загрузке пула</div>';}
+  } catch (err) {
+    console.error('loadPool error', err);
+    document.getElementById('pool-cards').innerHTML = '<div style="color:#f55">Ошибка при загрузке пула</div>';
+  }
 }
-const modal = document.getElementById("rulesModal");
-  const btn = document.getElementById("rulesBtn");
-  const closeBtn = document.getElementById("closeModal");
 
-  btn.onclick = () => modal.style.display = "block";
-  closeBtn.onclick = () => modal.style.display = "none";
-  window.onclick = (e) => { if (e.target === modal) modal.style.display = "none"; };
-// Таймер
+const modal = document.getElementById("rulesModal");
+const btn = document.getElementById("rulesBtn");
+const closeBtn = document.getElementById("closeModal");
+
+btn.onclick = () => modal.style.display = "block";
+closeBtn.onclick = () => modal.style.display = "none";
+window.onclick = (e) => { if (e.target === modal) modal.style.display = "none"; };
+
 function getNextSundayMidnightMSK() {
   const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
   const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
@@ -473,8 +498,6 @@ function updateCountdown() {
   const target = getNextSundayMidnightMSK();
   const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
   const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
-
-  // Начало недели (прошлое воскресенье)
   const weekStart = new Date(target);
   weekStart.setDate(target.getDate() - 7);
   const totalTime = target - weekStart;
@@ -490,16 +513,12 @@ function updateCountdown() {
     return;
   }
 
-  // процент оставшегося времени
   const percent = (diff / totalTime) * 100;
   bar.style.width = percent + "%";
-
-  // вычисляем цвет от зеленого к красному
-  const r = Math.min(255, Math.floor(255 * (1 - percent / 100))); // чем меньше процентов — тем больше красного
-  const g = Math.min(255, Math.floor(255 * (percent / 100)));     // чем больше процентов — тем больше зелёного
+  const r = Math.min(255, Math.floor(255 * (1 - percent / 100)));
+  const g = Math.min(255, Math.floor(255 * (percent / 100)));
   bar.style.backgroundColor = `rgb(${r}, ${g}, 0)`;
 
-  // форматируем время в стиле "4 дн. 3 ч. 20 мин. 20 сек."
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
   const minutes = Math.floor((diff / (1000 * 60)) % 60);
@@ -516,20 +535,26 @@ function updateCountdown() {
 
 setInterval(updateCountdown, 1000);
 updateCountdown();
+
 document.getElementById('login').onclick = () => window.location.href = '/auth/login';
 document.getElementById('logout').onclick = () => window.location.href = '/auth/logout';
 document.getElementById('participate').onclick = async () => {
-      const res = await fetch('/api/pool/participate', { method: 'POST' });
-      const result = await res.json();
-      if (res.ok) {
-        alert('Вы успешно участвуете!');
-        await fetchUser();
-        await loadData();
-      } else {
-        alert(result.error || 'Ошибка при участии');
-      }
-    };
-(async()=>{await fetchUser(); await loadPool(); await loadData();})();
+  const res = await fetch('/api/pool/participate', { method: 'POST' });
+  const result = await res.json();
+  if (res.ok) {
+    alert('Вы успешно участвуете!');
+    await fetchUser();
+    await loadData();
+  } else {
+    alert(result.error || 'Ошибка при участии');
+  }
+};
+
+(async () => {
+  await fetchUser();
+  await loadPool();
+  await loadData();
+})();
 </script>
 </body>
 </html>
