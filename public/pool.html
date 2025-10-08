@@ -16,74 +16,176 @@ h1 { text-align: center; color: #fff; }
 #controls { text-align: center; margin-bottom: 2rem; }
 
 /* Стили для навигационной панели */
-.navbar {
-  background-color: #1e1e1e;
-  padding: 1rem;
-  border-radius: 8px;
+nav {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      backdrop-filter: blur(10px);
+      background: rgba(18, 18, 18, 0.9);
+      border-bottom: 1px solid #333;
+      z-index: 1000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.6rem 1.2rem;
+      box-sizing: border-box;
+      height: 7%;
+    }
+    .nav-left {
+      font-weight: bold;
+      font-size: 1.8rem;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-left: 3%; /* Это выравнивает PP Cup слева */
+    }
+    .nav-center {
+  position: absolute; /* Абсолютное позиционирование */
+  left: 50%;
+  transform: translateX(-50%); /* Центрируем по горизонтали */
   display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 2rem;
-  box-shadow: 0 0 10px rgba(255,255,255,0.05);
+  align-items: center;
 }
+    .nav-center a {
+      color: #fff;
+      text-decoration: none;
+      margin: 0 0.9rem;
+      position: relative;
+      transition: color 0.3s;
+      font-weight: 500;
+    }
+    .nav-center a:hover {
+      color: #ff7a00;
+    }
+    .nav-center a.active::after {
+      content: "";
+      position: absolute;
+      left: 0; bottom: -4px;
+      width: 100%; height: 2px;
+      background: #ff7a00;
+      border-radius: 1px;
+      animation: underline 0.3s ease;
+    }
+    @keyframes underline {
+      from { width: 0; opacity: 0.5; }
+      to { width: 100%; opacity: 1; }
+    }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding-right: 3%;
+      font-weight: bold;
+      color: #fff;
+      justify-content: center;
+      gap: 8px;
+      margin-left: 3%; /* Это выравнивает PP Cup слева */
+    }
+    .nav-right #user {
+      color: #ccc;
+      
+      white-space: nowrap;
+    }
+   
+    
 
-button {
-  background-color: #fff;
-  color: #000;
-  border: 1px solid #555;
-  padding: 10px 20px;
-  margin: 5px;
-  font-size: 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-button:hover { background-color: #ddd; }
+    /* === КОНТЕНТ === */
+    main {
+      padding-top: 2%;
+      max-width: 98%;
+      margin: 0 auto;
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+    #countdown-container {
+      width: 100%;
+      height: 42px;
+      background: #1d1d1d;
+      border-radius: 12px;
+      overflow: hidden;
+      margin: 0rem auto 1.5rem auto;
+      position: relative;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+    #countdown-bar {
+      width: 100%;
+      height: 100%;
+      background: green;
+      transition: width 0.5s linear, background 0.5s linear;
+    }
+    #countdown-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: #fff;
+      font-size: 1rem;
+      text-shadow: 0 0 5px #000;
+    }
+
 #login {
   background: #c265b4;
   color: white;
   border: none;
-  padding: 10px 18px;
+  padding: 10px 12px;
   border-radius: 8px;
   cursor: pointer;
-  font-weight: 600;
   transition: background 0.2s ease;
+  text-decoration: none;
+  position: relative;
+  transition: color 0.3s;
+  font-weight: 500;
 }
 #login:hover {
-  background: #8e077a;
-  color: #000;
+ background: #8e077a;
+color: #000;
+}
+#participate{
+background: #c265b4;
+  color: white;
+  border: none;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  text-decoration: none;
+  margin-left: 3%;
+  position: relative;
+  transition: color 0.3s;
+  font-weight: 500;
+}
+#participate:hover{
+background: #8e077a;
+color: #000;
 }
 #logout {
   background: #c265b4;
   color: white;
   border: none;
-  padding: 10px 18px;
+  padding: 10px 12px;
   border-radius: 8px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 500;
   transition: background 0.2s ease;
 }
 #logout:hover {
   background: #8e077a;
   color: #000;
 }
-.rules-btn {
-  background: #0078ff;
-  color: white;
-  border: none;
-  padding: 10px 18px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background 0.2s ease;
-}
-.rules-btn:hover {
-  background: #005ad9;
-}
+
 .button-link, .history {
   text-decoration: none;
 }
-#user { font-weight: bold; color: #ccc; margin: 10px 0; }
+#user {
+      font-weight: bold;
+      color: #ccc;
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
 .nickname-cell a.nickname { color: #fff; font-weight: bold; text-decoration: none; }
 .nickname-cell a.nickname:hover { text-decoration: underline; color: #ffb86b; }
 table { width: 100%; border-collapse: collapse; background-color: #1e1e1e; border-radius: 12px; overflow: hidden; box-shadow: 0 0 10px rgba(255,255,255,0.05); margin-bottom: 1rem; }
@@ -218,17 +320,17 @@ tr.maps-row { display: none; background-color: #181818; }
   width: 90%;
   max-width: 600px;
   animation: slideDown 0.25s ease;
-  color: #222;
+  color: #222; /* ← добавь этот параметр */
 }
 .modal-content h2 {
-  color: #111;
+  color: #111; /* более контрастный заголовок */
   text-align: center;
   margin-bottom: 1rem;
 }
 .modal-content p {
-  color: #333;
+  color: #333; /* читаемый текст */
   line-height: 1.5;
-  text-align: left;
+   text-align: left;
   font-size: 1rem;
 }
 .close {
@@ -251,26 +353,24 @@ tr.maps-row { display: none; background-color: #181818; }
 </style>
 </head>
 <body>
-<div id="scoreModal" class="modal hidden">
-  <div class="modal-content">
-    <span class="close">&times;</span>
-    <div id="scoreDetails"></div>
+<nav>
+  <div class="nav-left"><img  src="https://upload.wikimedia.org/wikipedia/commons/e/e7/Twemoji12_1f913.svg" width="28" height="28" 
+    style="border-radius:50%;  
+      "></img><b style="margin-bottom: 5px;">Pool Cup</b></div>
+  <div class="nav-center">
+    <a href="/" >ПП кап</a>
+    <a href="/pool" class="active" >Пул кап</a>
+    <a href="/history" class="history">История</a>
+    <a href="#" id="rulesBtn" >Правила</a>
+    <a href="https://discord.com/invite/4M5jDGDX96" target="_blank">Discord</a>
   </div>
-</div>
-
-<!-- Навигационная панель -->
-<div class="navbar">
-  <button id="login">Войти через osu!</button>
-  <button id="logout" style="display:none;">Выйти</button>
-  <button id="rulesBtn" class="rules-btn">Правила / Инфо</button>
-  <a href="/history" class="history"><button>История</button></a>
-  <a href="/" class="button-link"><button>ПП кап</button></a>
-</div>
-
-<div id="controls">
-  <div id="user"></div>
-  <button id="participate" style="display:none;">Участвовать</button>
-</div>
+  <div class="nav-right">
+    <div id="user"></div>
+    <button id="participate" >Участвовать</button>
+    <button id="login">Войти</button>
+    <button id="logout" style="display:none;">Выйти</button>
+  </div>
+</nav>>
 
 <!-- Модальное окно -->
 <div id="rulesModal" class="modal">
@@ -287,11 +387,10 @@ tr.maps-row { display: none; background-color: #181818; }
     <p style="font-size: 0.9em; opacity: 0.8; text-align: center;">Обновление данных происходит автоматически один раз в 5 минут.</p>
   </div>
 </div>
-
-<h1>Пул кап</h1>
-<div id="countdown-container" style="width:100%; height:40px; background:#333; border-radius:8px; overflow:hidden; margin-bottom:1rem; position:relative;">
-  <div id="countdown-bar" style="width:100%; height:100%; background:green; transition: width 0.5s linear, background 0.5s linear;"></div>
-  <div id="countdown-text" style="position:absolute; width:100%; height:100%; top:0; left:0; display:flex; align-items:center; justify-content:center; font-weight:bold; color:#fff; font-size:1rem; text-shadow:0 0 5px #000;"></div>
+<main>
+<div id="countdown-container">
+  <div id="countdown-bar"></div>
+  <div id="countdown-text" ></div>
 </div>
 <div id="pool-cards" class="pool-grid"></div>
 
@@ -305,7 +404,7 @@ tr.maps-row { display: none; background-color: #181818; }
 </thead>
 <tbody id="participants-body"></tbody>
 </table>
-
+</main>
 <script>
 function escapeHtml(str) {
   if (str === null || str === undefined) return '';
@@ -313,24 +412,33 @@ function escapeHtml(str) {
 }
 
 async function fetchUser() {
-  const res = await fetch('/api/me');
-  const participantsRes = await fetch('/api/pool/participants');
-  if (res.ok) {
-    const currentUser = await res.json();
-    document.getElementById('user').innerText = `Привет, ${currentUser.username}!`;
-    document.getElementById('login').style.display = 'none';
-    document.getElementById('logout').style.display = 'inline-block';
+  try {
+    const res = await fetch("/api/me");
+    const user = res.ok ? await res.json() : null;
+    currentUser = user;
 
-    if (participantsRes.ok) {
-      const participants = await participantsRes.json();
-      const isParticipating = participants.some(p => p.nickname === currentUser.username);
-      document.getElementById('participate').style.display = isParticipating ? 'none' : 'inline-block';
+    const userBox = document.getElementById("user");
+    const loginBtn = document.getElementById("login");
+    const logoutBtn = document.getElementById("logout");
+
+    if (user) {
+      userBox.innerHTML = `
+  <img 
+    src="${user.avatar_url || user.avatar}" 
+    width="28" height="28" 
+    style="border-radius:50%; vertical-align:middle; margin-right:8px;"
+    alt="avatar"
+  ><b style="text-align:bottom;">${user.username}</b>
+`;
+      loginBtn.style.display = "none";
+      logoutBtn.style.display = "inline-block";
+    } else {
+      userBox.textContent = "";
+      loginBtn.style.display = "inline-block";
+      logoutBtn.style.display = "none";
     }
-  } else {
-    document.getElementById('user').innerText = '';
-    document.getElementById('login').style.display = 'inline-block';
-    document.getElementById('logout').style.display = 'none';
-    document.getElementById('participate').style.display = 'none';
+  } catch (err) {
+    console.error("Ошибка /api/me:", err);
   }
 }
 
@@ -481,9 +589,25 @@ const modal = document.getElementById("rulesModal");
 const btn = document.getElementById("rulesBtn");
 const closeBtn = document.getElementById("closeModal");
 
-btn.onclick = () => modal.style.display = "block";
-closeBtn.onclick = () => modal.style.display = "none";
-window.onclick = (e) => { if (e.target === modal) modal.style.display = "none"; };
+btn.onclick = () => {
+  modal.style.display = "block";
+  document.querySelector("#rulesBtn").classList.add("active"); // Добавляем класс активной ссылки
+  document.getElementById("rulesBtn").style.color = '#ff7a00';
+};
+
+closeBtn.onclick = () => {
+  modal.style.display = "none";
+  document.querySelector("#rulesBtn").classList.remove("active"); 
+  document.getElementById("rulesBtn").style.color = 'white';// Убираем класс активной ссылки
+};
+
+window.onclick = (e) => {
+  if (e.target === modal) {
+    modal.style.display = "none";
+    document.querySelector("#rulesBtn").classList.remove("active"); // Убираем класс активной ссылки
+    document.getElementById("rulesBtn").style.color = 'white';
+  }
+};
 
 function getNextSundayMidnightMSK() {
   const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
