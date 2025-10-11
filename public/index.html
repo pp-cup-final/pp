@@ -669,58 +669,81 @@ function getNextSundayMidnightMSK() {
   const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
   const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
   const nextSunday = new Date(nowMSK);
-  nextSunday.setDate(nowMSK.getDate() + ((7 - nowMSK.getDay()) % 7));
+
+  // если уже наступило воскресенье после полуночи — берём следующее
+  let daysToAdd = (7 - nowMSK.getDay()) % 7;
+  if (nowMSK.getDay() === 0 && nowMSK.getHours() >= 0) daysToAdd = 7;
+
+  nextSunday.setDate(nowMSK.getDate() + daysToAdd);
   nextSunday.setHours(0, 0, 0, 0);
+
   return nextSunday;
 }
 
-function updateCountdown() {
-  const target = getNextSundayMidnightMSK();
-  const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
-  const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
+let countdownInterval = null;
 
-  // Начало недели (прошлое воскресенье)
-  const weekStart = new Date(target);
-  weekStart.setDate(target.getDate() - 7);
-  const totalTime = target - weekStart;
-  let diff = target - nowMSK;
+function startCountdown() {
+  clearInterval(countdownInterval);
 
-  const bar = document.getElementById("countdown-bar");
-  const text = document.getElementById("countdown-text");
+  countdownInterval = setInterval(async () => {
+    const target = getNextSundayMidnightMSK();
+    const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
+    const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
 
-  if (diff <= 0) {
-    bar.style.width = "0%";
-    bar.style.backgroundColor = "red";
-    text.textContent = "Обновление...";
-    return;
-  }
+    const weekStart = new Date(target);
+    weekStart.setDate(target.getDate() - 7);
+    const totalTime = target - weekStart;
+    let diff = target - nowMSK;
 
-  // процент оставшегося времени
-  const percent = (diff / totalTime) * 100;
-  bar.style.width = percent + "%";
+    const bar = document.getElementById("countdown-bar");
+    const text = document.getElementById("countdown-text");
 
-  // вычисляем цвет от зеленого к красному
-  const r = Math.min(255, Math.floor(255 * (1 - percent / 100))); // чем меньше процентов — тем больше красного
-  const g = Math.min(255, Math.floor(255 * (percent / 100)));     // чем больше процентов — тем больше зелёного
-  bar.style.backgroundColor = `rgb(${r}, ${g}, 0)`;
+    // === если время вышло — обновляем данные и перезапускаем таймер ===
+    if (diff <= 0) {
+      clearInterval(countdownInterval);
+      bar.style.width = "0%";
+      bar.style.backgroundColor = "red";
+      text.textContent = "Обновление данных...";
 
-  // форматируем время в стиле "4 дн. 3 ч. 20 мин. 20 сек."
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-  const minutes = Math.floor((diff / (1000 * 60)) % 60);
-  const seconds = Math.floor((diff / 1000) % 60);
+      try {
+        await loadData();
+        text.textContent = "Данные обновлены!";
+        bar.style.backgroundColor = "limegreen";
+        bar.style.width = "100%";
+      } catch (err) {
+        text.textContent = "Ошибка обновления!";
+        console.error(err);
+      }
 
-  let timeString = "";
-  if (days > 0) timeString += `${days} дня `;
-  if (hours > 0 || days > 0) timeString += `${hours} ч `;
-  if (minutes > 0 || hours > 0 || days > 0) timeString += `${minutes} мин `;
-  timeString += `${seconds} сек`;
+      // через 10 секунд после обновления — новый отсчёт
+      setTimeout(() => startCountdown(), 10000);
+      return;
+    }
 
-  text.textContent = `До обновления: ${timeString.trim()}`;
+    // === обычный отсчёт ===
+    const percent = (diff / totalTime) * 100;
+    bar.style.width = percent + "%";
+
+    const r = Math.min(255, Math.floor(255 * (1 - percent / 100)));
+    const g = Math.min(255, Math.floor(255 * (percent / 100)));
+    bar.style.backgroundColor = `rgb(${r}, ${g}, 0)`;
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const minutes = Math.floor((diff / (1000 * 60)) % 60);
+    const seconds = Math.floor((diff / 1000) % 60);
+
+    let timeString = "";
+    if (days > 0) timeString += `${days} д `;
+    if (hours > 0 || days > 0) timeString += `${hours} ч `;
+    if (minutes > 0 || hours > 0 || days > 0) timeString += `${minutes} мин `;
+    timeString += `${seconds} сек`;
+
+    text.textContent = `До обновления: ${timeString.trim()}`;
+  }, 1000);
 }
 
-setInterval(updateCountdown, 1000);
-updateCountdown();
+startCountdown();
     (async () => {
       await fetchUser();
       await loadData();

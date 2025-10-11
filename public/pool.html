@@ -613,52 +613,81 @@ function getNextSundayMidnightMSK() {
   const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
   const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
   const nextSunday = new Date(nowMSK);
-  nextSunday.setDate(nowMSK.getDate() + ((7 - nowMSK.getDay()) % 7));
+
+  // если уже наступило воскресенье после полуночи — берём следующее
+  let daysToAdd = (7 - nowMSK.getDay()) % 7;
+  if (nowMSK.getDay() === 0 && nowMSK.getHours() >= 0) daysToAdd = 7;
+
+  nextSunday.setDate(nowMSK.getDate() + daysToAdd);
   nextSunday.setHours(0, 0, 0, 0);
+
   return nextSunday;
 }
 
-function updateCountdown() {
-  const target = getNextSundayMidnightMSK();
-  const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
-  const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
-  const weekStart = new Date(target);
-  weekStart.setDate(target.getDate() - 7);
-  const totalTime = target - weekStart;
-  let diff = target - nowMSK;
+let countdownInterval = null;
 
-  const bar = document.getElementById("countdown-bar");
-  const text = document.getElementById("countdown-text");
+function startCountdown() {
+  clearInterval(countdownInterval);
 
-  if (diff <= 0) {
-    bar.style.width = "0%";
-    bar.style.backgroundColor = "red";
-    text.textContent = "Обновление...";
-    return;
-  }
+  countdownInterval = setInterval(async () => {
+    const target = getNextSundayMidnightMSK();
+    const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
+    const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
 
-  const percent = (diff / totalTime) * 100;
-  bar.style.width = percent + "%";
-  const r = Math.min(255, Math.floor(255 * (1 - percent / 100)));
-  const g = Math.min(255, Math.floor(255 * (percent / 100)));
-  bar.style.backgroundColor = `rgb(${r}, ${g}, 0)`;
+    const weekStart = new Date(target);
+    weekStart.setDate(target.getDate() - 7);
+    const totalTime = target - weekStart;
+    let diff = target - nowMSK;
 
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-  const minutes = Math.floor((diff / (1000 * 60)) % 60);
-  const seconds = Math.floor((diff / 1000) % 60);
+    const bar = document.getElementById("countdown-bar");
+    const text = document.getElementById("countdown-text");
 
-  let timeString = "";
-  if (days > 0) timeString += `${days} дня `;
-  if (hours > 0 || days > 0) timeString += `${hours} ч `;
-  if (minutes > 0 || hours > 0 || days > 0) timeString += `${minutes} мин `;
-  timeString += `${seconds} сек`;
+    // === если время вышло — обновляем данные и перезапускаем таймер ===
+    if (diff <= 0) {
+      clearInterval(countdownInterval);
+      bar.style.width = "0%";
+      bar.style.backgroundColor = "red";
+      text.textContent = "Обновление данных...";
 
-  text.textContent = `До обновления: ${timeString.trim()}`;
+      try {
+        await loadData();
+        text.textContent = "Данные обновлены!";
+        bar.style.backgroundColor = "limegreen";
+        bar.style.width = "100%";
+      } catch (err) {
+        text.textContent = "Ошибка обновления!";
+        console.error(err);
+      }
+
+      // через 10 секунд после обновления — новый отсчёт
+      setTimeout(() => startCountdown(), 10000);
+      return;
+    }
+
+    // === обычный отсчёт ===
+    const percent = (diff / totalTime) * 100;
+    bar.style.width = percent + "%";
+
+    const r = Math.min(255, Math.floor(255 * (1 - percent / 100)));
+    const g = Math.min(255, Math.floor(255 * (percent / 100)));
+    bar.style.backgroundColor = `rgb(${r}, ${g}, 0)`;
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const minutes = Math.floor((diff / (1000 * 60)) % 60);
+    const seconds = Math.floor((diff / 1000) % 60);
+
+    let timeString = "";
+    if (days > 0) timeString += `${days} д `;
+    if (hours > 0 || days > 0) timeString += `${hours} ч `;
+    if (minutes > 0 || hours > 0 || days > 0) timeString += `${minutes} мин `;
+    timeString += `${seconds} сек`;
+
+    text.textContent = `До обновления: ${timeString.trim()}`;
+  }, 1000);
 }
 
-setInterval(updateCountdown, 1000);
-updateCountdown();
+startCountdown();
 
 document.getElementById('login').onclick = () => window.location.href = '/auth/login';
 document.getElementById('logout').onclick = () => window.location.href = '/auth/logout';

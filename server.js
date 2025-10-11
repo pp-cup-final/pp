@@ -434,7 +434,7 @@ cron.schedule("0 0 * * 0", async () => {
     }
 
     // Очистим таблицу участников
-    const { error: deleteErr } = await supabase.from("participants").delete().neq("userId", 0);
+    const { error: deleteErr } = await supabase.from("participants").delete().neq("userid", 0);
     if (deleteErr) {
       console.error('Ошибка очистки participants после сохранения истории:', deleteErr);
       return;
