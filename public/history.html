@@ -672,6 +672,7 @@ async function loadPoolHistory() {
           player.scores.forEach(s => {
             const title = s.title || s.beatmap_title || (`Map ${s.beatmap_id || ''}`);
             const beatmapId = s.beatmap_id || s.beatmap?.id || '';
+            console.log(s.score_id);
             const scoreLink = s.score_id ? `https://osu.ppy.sh/scores/osu/${encodeURIComponent(s.score_id)}` : (beatmapId ? `https://osu.ppy.sh/beatmapsets/${encodeURIComponent(beatmapId)}` : '#');
             const ppVal = Math.round(Number(s.pp ?? s.score_pp ?? 0));
             const row = document.createElement('tr');

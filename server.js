@@ -342,6 +342,7 @@ cron.schedule("0 0 * * 0", async () => {
       const formattedScores = (scores || []).map(s => ({
         pp: Number(s.pp) || 0,
         map_id: s.map_id,
+        score_id: s.score_id || null,
         difficulty_id: s.pool_maps?.difficulty_id || null,
         beatmap_id: s.pool_maps?.beatmap_id || null,
         title: s.pool_maps?.title || null,
@@ -895,6 +896,7 @@ app.get('/api/pool/participants', async (req, res) => {
         total_pp,
         player_scores (
           pp,
+          score_id,
           pool_maps (
             id,
             beatmap_id,
