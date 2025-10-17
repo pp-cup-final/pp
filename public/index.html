@@ -36,7 +36,7 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      margin-left: 3%; /* Это выравнивает PP Cup слева */
+      margin-left: 3%;
     }
     .nav-center a {
       color: #fff;
@@ -49,13 +49,43 @@
     .nav-center a:hover {
       color: #ff7a00;
     }
+    .nav-center a, .nav-center #rulesBtn {
+      color: #fff;
+      text-decoration: none;
+      margin: 0 0.9rem;
+      position: relative;
+      transition: color 0.3s;
+      font-weight: 500;
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      font-family: inherit; /* Наследуем шрифт от body */
+      font-size: inherit; /* Наследуем размер шрифта */
+      line-height: inherit; /* Наследуем высоту строки */
+    }
+    .nav-center a:hover, .nav-center #rulesBtn:hover {
+      color: #ff7a00;
+    }
+    .nav-center a.active, .nav-center #rulesBtn.active {
+      color: #ff7a00;
+    }
+    .nav-center a.active::after, .nav-center #rulesBtn.active::after {
+      content: "";
+      position: absolute;
+      left: 0; bottom: -4px;
+      width: 100%; height: 2px;
+      background: #ff7a00;
+      border-radius: 1px;
+      animation: underline 0.3s ease;
+    }
     .nav-center {
-  position: absolute; /* Абсолютное позиционирование */
-  left: 50%;
-  transform: translateX(-50%); /* Центрируем по горизонтали */
-  display: flex;
-  align-items: center;
-}
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+    }
     .nav-center a.active::after {
       content: "";
       position: absolute;
@@ -78,66 +108,72 @@
       color: #fff;
       justify-content: center;
       gap: 8px;
-      margin-left: 3%; /* Это выравнивает PP Cup слева */
     }
     .nav-right #user {
       color: #ccc;
-      
       white-space: nowrap;
+      display: flex;
+      align-items: center;
+      text-decoration: none;
     }
-
-
-    
-#login {
-  background: #c265b4;
-  color: white;
-  border: none;
-  padding: 10px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.2s ease;
-  text-decoration: none;
-  position: relative;
-  transition: color 0.3s;
-  font-weight: 500;
-}
-#login:hover {
- background: #8e077a;
-color: #000;
-}
-#participate{
-background: #c265b4;
-  color: white;
-  border: none;
-  padding: 10px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.2s ease;
-  text-decoration: none;
-   margin-left: 3%;
-  position: relative;
-  transition: color 0.3s;
-  font-weight: 500;
-}
-#participate:hover{
-background: #8e077a;
-color: #000;
-}
-#logout {
-  background: #c265b4;
-  color: white;
-  border: none;
-  padding: 10px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background 0.2s ease;
-}
-#logout:hover {
-  background: #8e077a;
-  color: #000;
-}
-    /* === КОНТЕНТ === */
+    .nav-right #user a {
+      color: #ccc;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+    }
+    .nav-right #user :hover {
+      color: #ff7a00;
+    }
+    #login {
+      background: #c265b4;
+      color: white;
+      border: none;
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      text-decoration: none;
+      position: relative;
+      transition: color 0.3s;
+      font-weight: 500;
+    }
+    #login:hover {
+      background: #8e077a;
+      color: white;
+    }
+    #participate {
+      background: #c265b4;
+      color: white;
+      border: none;
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      text-decoration: none;
+      margin-left: 3%;
+      position: relative;
+      transition: color 0.3s;
+      font-weight: 500;
+    }
+    #participate:hover {
+      background: #8e077a;
+      color: white;
+    }
+    #logout {
+      background: #c265b4;
+      color: white;
+      border: none;
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.2s ease;
+    }
+    #logout:hover {
+      background: #8e077a;
+      color: white;
+    }
     main {
       padding-top: 3%;
       max-width: 98%;
@@ -184,18 +220,10 @@ color: #000;
     h1 {
       text-align: center;
       color: #fff;
-      
     }
     #controls {
       text-align: center;
       margin-bottom: 2rem;
-    }
-    
-    #user {
-      font-weight: bold;
-      color: #ccc;
-      margin-top: 10px;
-      margin-bottom: 10px;
     }
     table {
       width: 100%;
@@ -241,8 +269,6 @@ color: #000;
       table, th, td { font-size: 12px; }
       button { padding: 8px 16px; font-size: 14px; }
     }
-
-    /* стили для вложенной таблицы скориков */
     .inner-table {
       border-collapse: collapse;
       width: 100%;
@@ -267,10 +293,10 @@ color: #000;
       border-radius: 6px;
     }
     .bg-cell {
-      width: 90px; /* чуть больше чем изображение */
+      width: 90px;
     }
     .map-title-cell {
-      text-align: left; /* текст слева */
+      text-align: left;
       padding-left: 10px;
       white-space: nowrap;
       overflow: hidden;
@@ -279,166 +305,156 @@ color: #000;
     .pp-cell {
       text-align: center;
     }
-    /* ===== Модальное окно ===== */
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 999;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  background-color: rgba(0, 0, 0, 0.6);
-  animation: fadeIn 0.2s ease;
-}
-
-.invalid-badge {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  background-color: #ff4d4d;
-  border-radius: 50%;
-  margin-left: 6px;
-  vertical-align: middle;
-  position: relative;
-  cursor: default;
-}
-
-.invalid-badge:hover::after {
-  content: "PP < 4k или плейкаунт < 30k";
-  position: absolute;
-  top: -25px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #ff4d4d;
-  color: white;
-  padding: 2px 6px;
-  border-radius: 4px;
-  white-space: nowrap;
-  font-size: 0.75rem;
-  pointer-events: none;
-  z-index: 10;
-}
-.rules-btn {
-  background: #0078ff;
-  color: white;
-  border: none;
-  padding: 10px 18px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background 0.2s ease;
-}
-.rules-btn:hover {
-  background: #005ad9;
-}
-.modal-content {
-  background-color: #fff;
-  margin: 8% auto;
-  padding: 20px 30px;
-  border: none;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 600px;
-  animation: slideDown 0.25s ease;
-  color: #222; /* ← добавь этот параметр */
-}
-
-.modal-content h2 {
-  color: #111; /* более контрастный заголовок */
-  text-align: center;
-  margin-bottom: 1rem;
-}
-
-.modal-content p {
-  color: #333; /* читаемый текст */
-  line-height: 1.5;
-   text-align: left;
-  font-size: 1rem;
-}
-.invalid-player {
-  background-color: rgba(255, 0, 0, 0.15) !important;
-  color: #ff6b6b !important;
-}
-
-.invalid-player:hover {
-  background-color: rgba(255, 0, 0, 0.25) !important;
-}
-.close {
-  color: #aaa;
-  float: right;
-  font-size: 28px;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-.close:hover {
-  color: #333;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; } to { opacity: 1; }
-}
-@keyframes slideDown {
-  from { transform: translateY(-15px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.6);
+      animation: fadeIn 0.2s ease;
+    }
+    .invalid-badge {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      background-color: #ff4d4d;
+      border-radius: 50%;
+      margin-left: 6px;
+      vertical-align: middle;
+      position: relative;
+      cursor: default;
+    }
+    .invalid-badge:hover::after {
+      content: "PP < 4k или плейкаунт < 30k";
+      position: absolute;
+      top: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #ff4d4d;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+      font-size: 0.75rem;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .rules-btn {
+      background: #0078ff;
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s ease;
+    }
+    .rules-btn:hover {
+      background: #005ad9;
+    }
+    .modal-content {
+      background-color: #fff;
+      margin: 8% auto;
+      padding: 20px 30px;
+      border: none;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 600px;
+      animation: slideDown 0.25s ease;
+      color: #222;
+    }
+    .modal-content h2 {
+      color: #111;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .modal-content p {
+      color: #333;
+      line-height: 1.5;
+      text-align: left;
+      font-size: 1rem;
+    }
+    .invalid-player {
+      background-color: rgba(255, 0, 0, 0.15) !important;
+      color: #ff6b6b !important;
+    }
+    .invalid-player:hover {
+      background-color: rgba(255, 0, 0, 0.25) !important;
+    }
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+    .close:hover {
+      color: #333;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; } to { opacity: 1; }
+    }
+    @keyframes slideDown {
+      from { transform: translateY(-15px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
   </style>
 </head>
 <body>
   <nav>
-  <div class="nav-left"><img  src="https://upload.wikimedia.org/wikipedia/commons/e/e7/Twemoji12_1f913.svg" width="28" height="28" 
-    style="border-radius:50%;  
-      "></img><b style="margin-bottom: 5px;">PP Cup</b></div>
-  <div class="nav-center">
-    <a href="/" class="active">ПП кап</a>
-    <a href="/pool" class="pool" >Пул кап</a>
-    <a href="/history" class="history">История</a>
-    <a href="#" id="rulesBtn" >Правила</a>
-    <a href="https://discord.com/invite/4M5jDGDX96" target="_blank">Discord</a>
-  </div>
-  <div class="nav-right">
-    <div id="user"></div>
-    <button id="participate" >Участвовать</button>
-    <button id="login">Войти</button>
-    <button id="logout" style="display:none;">Выйти</button>
-  </div>
-</nav>
+    <div class="nav-left"><img src="https://upload.wikimedia.org/wikipedia/commons/e/e7/Twemoji12_1f913.svg" width="28" height="28" style="border-radius:50%;"><b style="margin-bottom: 5px;">PP cup</b></div>
+    <div class="nav-center">
+      <a href="/" class="active">ПП кап</a>
+      <a href="/pool">Пул кап</a>
+      <a href="/history" class="history">История</a>
+      <a href="/players" class="players">Участники</a>
+      <button id="rulesBtn">Правила</button>
+      <a href="https://discord.com/invite/4M5jDGDX96" target="_blank">Discord</a>
+    </div>
+    <div class="nav-right">
+      <div id="user"></div>
+      <button id="participate">Участвовать</button>
+      <button id="login">Войти</button>
+      <button id="logout" style="display:none;">Выйти</button>
+    </div>
+  </nav>
 
-<!-- ===== МОДАЛЬНОЕ ОКНО ===== -->
-<div id="rulesModal" class="modal">
-  <div class="modal-content">
-    <span id="closeModal" class="close">&times;</span>
-    <h2>Правила ПП капа</h2>
-    <p><b>1.</b> Для участия необходимо авторизоваться при помощи osu! аккаунта и нажать на кнопку участвовать.</p>
-    <p><b>2.</b> Разрешается участвовать в ПП капе тем, кто присутствует на Дискорд сервере <a href="https://discord.com/invite/4M5jDGDX96" >Шавоново</a>, имеет 4k pp и 30k плейкаунта.</p>
-    <p><b>3.</b> Чтобы посмотреть на каких картах игрок получил ПП — кликните на него в таблице (раскроется список карт, которые дали игроку пп на этой неделе).</p>
-    <p><b>4.</b> Очки высчитываются следующим образом — чистые пп умножаются на число, равное количеству тысяч пп, на которых эти чистые были получены.</p>
-    <hr>
-    <p  style="font-size: 0.9em; opacity: 0.8; text-align: center;">Обновление данных происходит автоматически один раз в 5 минут.</p>
+  <div id="rulesModal" class="modal">
+    <div class="modal-content">
+      <span id="closeModal" class="close">&times;</span>
+      <h2>Правила ПП капа</h2>
+      <p><b>1.</b> Для участия необходимо авторизоваться при помощи osu! аккаунта и нажать на кнопку участвовать.</p>
+      <p><b>2.</b> Разрешается участвовать в ПП капе тем, кто присутствует на Дискорд сервере <a href="https://discord.com/invite/4M5jDGDX96">Шавоново</a>, имеет 4k pp и 30k плейкаунта.</p>
+      <p><b>3.</b> Чтобы посмотреть на каких картах игрок получил ПП — кликните на него в таблице (раскроется список карт, которые дали игроку пп на этой неделе).</p>
+      <p><b>4.</b> Очки высчитываются следующим образом — чистые пп умножаются на число, равное количеству тысяч пп, на которых эти чистые были получены.</p>
+      <hr>
+      <p style="font-size: 0.9em; opacity: 0.8; text-align: center;">Обновление данных происходит автоматически один раз в 5 минут.</p>
+    </div>
   </div>
-</div>
 
-    
   <main>
-  <div id="countdown-container">
-    <div id="countdown-bar"></div>
-    <div id="countdown-text"></div>
-  </div>
-  <table>
-    <thead>
-      <tr>
-        <th>Позиция</th>
-        <th>Аватар</th>
-        <th>Ник</th>
-        <th>PP Start</th>
-        <th>PP End</th>
-        <th>PP Clear</th>
-        <th>Очки</th>
-      </tr>
-    </thead>
-    <tbody id="participants-body"></tbody>
-  </table>
+    <div id="countdown-container">
+      <div id="countdown-bar"></div>
+      <div id="countdown-text"></div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Позиция</th>
+          <th>Аватар</th>
+          <th>Ник</th>
+          <th>PP Start</th>
+          <th>PP End</th>
+          <th>PP Clear</th>
+          <th>Очки</th>
+        </tr>
+      </thead>
+      <tbody id="participants-body"></tbody>
+    </table>
   </main>
   <script>
     let currentUser = null;
@@ -453,42 +469,37 @@ color: #000;
     function toggleButtonsVisibility() {
       const isSunday = isSundayMoscow();
       const participateBtn = document.getElementById("participate");
-      
-      if (!participateBtn ) return;
-       
+      if (!participateBtn) return;
     }
 
     async function fetchUser() {
       try {
-    const res = await fetch("/api/me");
-    const user = res.ok ? await res.json() : null;
-    currentUser = user;
+        const res = await fetch("/api/me");
+        const user = res.ok ? await res.json() : null;
+        currentUser = user;
 
-    const userBox = document.getElementById("user");
-    const loginBtn = document.getElementById("login");
-    const logoutBtn = document.getElementById("logout");
+        const userBox = document.getElementById("user");
+        const loginBtn = document.getElementById("login");
+        const logoutBtn = document.getElementById("logout");
 
-    if (user) {
-      userBox.innerHTML = `
-  <img 
-    src="${user.avatar_url || user.avatar}" 
-    width="28" height="28" 
-    style="border-radius:50%; vertical-align:middle; margin-right:8px;"
-    alt="avatar"
-  ><b style="text-align:bottom;">${user.username}</b>
-`;
-      loginBtn.style.display = "none";
-      logoutBtn.style.display = "inline-block";
-    } else {
-      userBox.textContent = "";
-      loginBtn.style.display = "inline-block";
-      logoutBtn.style.display = "none";
+        if (user) {
+          userBox.innerHTML = `
+            <a href="/profile/${user.id}" style="text-decoration: none; color: #ccc; display: flex; align-items: center;">
+              <img src="${user.avatar_url || user.avatar}" width="28" height="28" style="border-radius:50%; vertical-align:middle; margin-right:8px;" alt="avatar">
+              <b style="text-align:bottom;">${user.username}</b>
+            </a>
+          `;
+          loginBtn.style.display = "none";
+          logoutBtn.style.display = "inline-block";
+        } else {
+          userBox.textContent = "";
+          loginBtn.style.display = "inline-block";
+          logoutBtn.style.display = "none";
+        }
+      } catch (err) {
+        console.error("Ошибка /api/me:", err);
+      }
     }
-  } catch (err) {
-    console.error("Ошибка /api/me:", err);
-  }
-}
-    
 
     function extractArrayFromJson(json) {
       if (Array.isArray(json)) return json;
@@ -518,29 +529,25 @@ color: #000;
           else if (item.position === 3) rowClass = "third";
 
           const tr = document.createElement('tr');
+          tr.className = rowClass + " participant-row";
+          tr.dataset.userid = item.userid;
 
-// базовые классы
-tr.className = rowClass + " participant-row";
-tr.dataset.userid = item.userid;
+          const isInvalid = (item.ppend < 4000) || (item.playcount < 30000);
 
-// проверяем условия
-const isInvalid = (item.ppend < 4000) || (item.playcount < 30000);
-
-tr.innerHTML = `
-  <td>${item.position}${crown}</td>
-  <td><img src="${item.avatar}" alt="avatar" width="40" height="40" /></td>
-  <td>
-    <a href="https://osu.ppy.sh/users/${item.userid}" target="_blank" onclick="event.stopPropagation();">
-      ${item.nickname}
-    </a>
-    ${isInvalid ? '<span class="invalid-badge"></span>' : ''}
-  </td>
-  <td>${item.ppstart}</td>
-  <td>${item.ppend}</td>
-  <td>${Math.floor(item.ppend - item.ppstart)}</td>
-  <td>${item.points}</td>
-  
-`;
+          tr.innerHTML = `
+            <td>${item.position}${crown}</td>
+            <td><img src="${item.avatar}" alt="avatar" width="40" height="40" /></td>
+            <td>
+              <a href="https://osu.ppy.sh/users/${item.userid}" target="_blank" onclick="event.stopPropagation();">
+                ${item.nickname}
+              </a>
+              ${isInvalid ? '<span class="invalid-badge"></span>' : ''}
+            </td>
+            <td>${item.ppstart}</td>
+            <td>${item.ppend}</td>
+            <td>${Math.floor(item.ppend - item.ppstart)}</td>
+            <td>${item.points}</td>
+          `;
           tbody.appendChild(tr);
 
           const scoresRow = document.createElement('tr');
@@ -580,24 +587,24 @@ tr.innerHTML = `
                     .slice()
                     .sort((a, b) => (b.score_pp ?? b.pp ?? 0) - (a.score_pp ?? a.pp ?? 0));
                   scoresTbody.innerHTML = sortedScores.map(s => {
-  const map = s.pool_maps || s.beatmap || s.map || {};
-  const bg = map.background_url || s.beatmap_bg || '';
-  const scoreId = s.score_id || s.id || 0; // <-- ссылка теперь будет по score_id
-  const pp = Number(s.score_pp ?? s.pp ?? 0);
-  const titleName = map.title || s.beatmap_title || 'Без названия';
-  const diffName = map.version || s.beatmap_version || '';
-  const fullTitle = diffName ? `${titleName} [${diffName}]` : titleName;
+                    const map = s.pool_maps || s.beatmap || s.map || {};
+                    const bg = map.background_url || s.beatmap_bg || '';
+                    const scoreId = s.score_id || s.id || 0;
+                    const pp = Number(s.score_pp ?? s.pp ?? 0);
+                    const titleName = map.title || s.beatmap_title || 'Без названия';
+                    const diffName = map.version || s.beatmap_version || '';
+                    const fullTitle = diffName ? `${titleName} [${diffName}]` : titleName;
 
-  return `
-    <tr>
-      <td class="bg-cell"><img src="${bg}" alt="cover"></td>
-      <td class="map-title-cell">
-        <a href="https://osu.ppy.sh/scores/osu/${scoreId}" target="_blank">${fullTitle}</a>
-      </td>
-      <td class="pp-cell">${isFinite(pp) ? pp.toFixed(2) : '0'} pp</td>
-    </tr>
-  `;
-}).join('');
+                    return `
+                      <tr>
+                        <td class="bg-cell"><img src="${bg}" alt="cover"></td>
+                        <td class="map-title-cell">
+                          <a href="https://osu.ppy.sh/scores/osu/${scoreId}" target="_blank">${fullTitle}</a>
+                        </td>
+                        <td class="pp-cell">${isFinite(pp) ? pp.toFixed(2) : '0'} pp</td>
+                      </tr>
+                    `;
+                  }).join('');
                 }
               } catch (err) {
                 console.error("Ошибка при fetch scores:", err);
@@ -610,6 +617,7 @@ tr.innerHTML = `
         console.error(e);
       }
     }
+
     async function deleteParticipant(nickname) {
       if (confirm(`Удалить ${nickname}?`)) {
         await fetch(`/api/participant/${encodeURIComponent(nickname)}`, { method: 'DELETE' });
@@ -644,106 +652,121 @@ tr.innerHTML = `
         alert(result.error || 'Ошибка при участии');
       }
     };
-const modal = document.getElementById("rulesModal");
-const btn = document.getElementById("rulesBtn");
-const closeBtn = document.getElementById("closeModal");
 
-btn.onclick = () => {
-  modal.style.display = "block";
-  document.querySelector("#rulesBtn").classList.add("active"); // Добавляем класс активной ссылки
-};
+    const modal = document.getElementById("rulesModal");
+    const rulesBtn = document.getElementById("rulesBtn");
+    const closeBtn = document.getElementById("closeModal");
 
-closeBtn.onclick = () => {
-  modal.style.display = "none";
-  document.querySelector("#rulesBtn").classList.remove("active"); // Убираем класс активной ссылки
-};
-
-window.onclick = (e) => {
-  if (e.target === modal) {
-    modal.style.display = "none";
-    document.querySelector("#rulesBtn").classList.remove("active"); // Убираем класс активной ссылки
-  }
-};
-    
-function getNextSundayMidnightMSK() {
-  const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
-  const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
-  const nextSunday = new Date(nowMSK);
-
-  // если уже наступило воскресенье после полуночи — берём следующее
-  let daysToAdd = (7 - nowMSK.getDay()) % 7;
-  if (nowMSK.getDay() === 0 && nowMSK.getHours() >= 0) daysToAdd = 7;
-
-  nextSunday.setDate(nowMSK.getDate() + daysToAdd);
-  nextSunday.setHours(0, 0, 0, 0);
-
-  return nextSunday;
-}
-
-let countdownInterval = null;
-
-function startCountdown() {
-  clearInterval(countdownInterval);
-
-  countdownInterval = setInterval(async () => {
-    const target = getNextSundayMidnightMSK();
-    const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
-    const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
-
-    const weekStart = new Date(target);
-    weekStart.setDate(target.getDate() - 7);
-    const totalTime = target - weekStart;
-    let diff = target - nowMSK;
-
-    const bar = document.getElementById("countdown-bar");
-    const text = document.getElementById("countdown-text");
-
-    // === если время вышло — обновляем данные и перезапускаем таймер ===
-    if (diff <= 0) {
-      clearInterval(countdownInterval);
-      bar.style.width = "0%";
-      bar.style.backgroundColor = "red";
-      text.textContent = "Обновление данных...";
-
-      try {
-        await loadData();
-        text.textContent = "Данные обновлены!";
-        bar.style.backgroundColor = "limegreen";
-        bar.style.width = "100%";
-      } catch (err) {
-        text.textContent = "Ошибка обновления!";
-        console.error(err);
+    // Функция для управления активным состоянием
+    function setRulesActive(active) {
+      if (active) {
+        rulesBtn.classList.add("active");
+      } else {
+        rulesBtn.classList.remove("active");
       }
-
-      // через 10 секунд после обновления — новый отсчёт
-      setTimeout(() => startCountdown(), 10000);
-      return;
     }
 
-    // === обычный отсчёт ===
-    const percent = (diff / totalTime) * 100;
-    bar.style.width = percent + "%";
+    rulesBtn.onclick = (e) => {
+      e.preventDefault(); // Предотвращаем изменение URL
+      modal.style.display = "block";
+      setRulesActive(true);
+    };
 
-    const r = Math.min(255, Math.floor(255 * (1 - percent / 100)));
-    const g = Math.min(255, Math.floor(255 * (percent / 100)));
-    bar.style.backgroundColor = `rgb(${r}, ${g}, 0)`;
+    closeBtn.onclick = () => {
+      modal.style.display = "none";
+      setRulesActive(false);
+    };
 
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-    const minutes = Math.floor((diff / (1000 * 60)) % 60);
-    const seconds = Math.floor((diff / 1000) % 60);
+    window.onclick = (e) => {
+      if (e.target === modal) {
+        modal.style.display = "none";
+        setRulesActive(false);
+      }
+    };
 
-    let timeString = "";
-    if (days > 0) timeString += `${days} д `;
-    if (hours > 0 || days > 0) timeString += `${hours} ч `;
-    if (minutes > 0 || hours > 0 || days > 0) timeString += `${minutes} мин `;
-    timeString += `${seconds} сек`;
+    // Закрытие модала по Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.style.display === 'block') {
+        modal.style.display = "none";
+        setRulesActive(false);
+      }
+    });
 
-    text.textContent = `До обновления: ${timeString.trim()}`;
-  }, 1000);
-}
+    function getNextSundayMidnightMSK() {
+      const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
+      const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
+      const nextSunday = new Date(nowMSK);
 
-startCountdown();
+      let daysToAdd = (7 - nowMSK.getDay()) % 7;
+      if (nowMSK.getDay() === 0 && nowMSK.getHours() >= 0) daysToAdd = 7;
+
+      nextSunday.setDate(nowMSK.getDate() + daysToAdd);
+      nextSunday.setHours(0, 0, 0, 0);
+
+      return nextSunday;
+    }
+
+    let countdownInterval = null;
+
+    function startCountdown() {
+      clearInterval(countdownInterval);
+
+      countdownInterval = setInterval(async () => {
+        const target = getNextSundayMidnightMSK();
+        const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
+        const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
+
+        const weekStart = new Date(target);
+        weekStart.setDate(target.getDate() - 7);
+        const totalTime = target - weekStart;
+        let diff = target - nowMSK;
+
+        const bar = document.getElementById("countdown-bar");
+        const text = document.getElementById("countdown-text");
+
+        if (diff <= 0) {
+          clearInterval(countdownInterval);
+          bar.style.width = "0%";
+          bar.style.backgroundColor = "red";
+          text.textContent = "Обновление данных...";
+
+          try {
+            await loadData();
+            text.textContent = "Данные обновлены!";
+            bar.style.backgroundColor = "limegreen";
+            bar.style.width = "100%";
+          } catch (err) {
+            text.textContent = "Ошибка обновления!";
+            console.error(err);
+          }
+
+          setTimeout(() => startCountdown(), 10000);
+          return;
+        }
+
+        const percent = (diff / totalTime) * 100;
+        bar.style.width = percent + "%";
+
+        const r = Math.min(255, Math.floor(255 * (1 - percent / 100)));
+        const g = Math.min(255, Math.floor(255 * (percent / 100)));
+        bar.style.backgroundColor = `rgb(${r}, ${g}, 0)`;
+
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((diff / (1000 * 60)) % 60);
+        const seconds = Math.floor((diff / 1000) % 60);
+
+        let timeString = "";
+        if (days > 0) timeString += `${days} д `;
+        if (hours > 0 || days > 0) timeString += `${hours} ч `;
+        if (minutes > 0 || hours > 0 || days > 0) timeString += `${minutes} мин `;
+        timeString += `${seconds} сек`;
+
+        text.textContent = `До обновления: ${timeString.trim()}`;
+      }, 1000);
+    }
+
+    startCountdown();
     (async () => {
       await fetchUser();
       await loadData();

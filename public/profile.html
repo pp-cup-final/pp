@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/e/e7/Twemoji12_1f913.svg" type="image/svg+xml">
+  <title>Профиль игрока</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #121212;
+      margin: 0;
+      padding: 2rem;
+      color: #eee;
+      overflow-x: hidden;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.6);
+      animation: fadeIn 0.2s ease;
+    }
+    .modal-content {
+      background-color: #fff;
+      margin: 8% auto;
+      padding: 20px 30px;
+      border: none;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 600px;
+      animation: slideDown 0.25s ease;
+      color: #222;
+    }
+    .modal-content h2 {
+      color: #111;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .modal-content p {
+      color: #333;
+      line-height: 1.5;
+      text-align: left;
+      font-size: 1rem;
+    }
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+    .close:hover {
+      color: #333;
+    }
+    nav {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      backdrop-filter: blur(10px);
+      background: rgba(18, 18, 18, 0.9);
+      border-bottom: 1px solid #333;
+      z-index: 1000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.6rem 1.2rem;
+      box-sizing: border-box;
+      height: 7%;
+    }
+    .nav-left {
+      font-weight: bold;
+      font-size: 1.8rem;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-left: 3%;
+    }
+    .nav-center {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+    }
+    .nav-center a, .nav-center #rulesBtn {
+      color: #fff;
+      text-decoration: none;
+      margin: 0 0.9rem;
+      position: relative;
+      transition: color 0.3s;
+      font-weight: 500;
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      font-family: inherit; /* Наследуем шрифт от body */
+      font-size: inherit; /* Наследуем размер шрифта */
+      line-height: inherit; /* Наследуем высоту строки */
+    }
+    .nav-center a:hover, .nav-center #rulesBtn:hover {
+      color: #ff7a00;
+    }
+    .nav-center a.active, .nav-center #rulesBtn.active {
+      color: #ff7a00;
+    }
+    .nav-center a.active::after, .nav-center #rulesBtn.active::after {
+      content: "";
+      position: absolute;
+      left: 0; bottom: -4px;
+      width: 100%; height: 2px;
+      background: #ff7a00;
+      border-radius: 1px;
+      animation: underline 0.3s ease;
+    }
+    @keyframes underline {
+      from { width: 0; opacity: 0.5; }
+      to { width: 100%; opacity: 1; }
+    }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding-right: 3%;
+      font-weight: bold;
+      color: #fff;
+      justify-content: center;
+      gap: 8px;
+    }
+    .nav-right #user {
+      color: #ccc;
+      white-space: nowrap;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .nav-right b:hover {
+      color: #ff7a00;
+    }
+    .nav-right #user img {
+      margin-right: 8px;
+      border-radius: 50%;
+    }
+    .nav-right .dropdown {
+      display: none;
+    }
+    #login, #logout {
+      background: #c265b4;
+      color: white;
+      border: none;
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      text-decoration: none;
+      position: relative;
+      transition: color 0.3s;
+      font-weight: 500;
+    }
+    #login:hover, #logout:hover {
+      background: #8e077a;
+      color: white;
+    }
+    #participate {
+      background: #c265b4;
+      color: white;
+      border: none;
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      text-decoration: none;
+      margin-left: 3%;
+      position: relative;
+      transition: color 0.3s;
+      font-weight: 500;
+    }
+    #participate:hover {
+      background: #8e077a;
+      color: white;
+    }
+    main {
+      padding-top: 3%;
+      max-width: 98%;
+      margin: 0 auto;
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+    .profile-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .profile-avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(255,255,255,0.2);
+      margin-bottom: 0.5rem;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .profile-nick {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #fff;
+      margin: 0 0 0.5rem 0;
+    }
+    /* Стили для ссылки на никнейм */
+    .profile-nick a {
+      color: inherit;
+      text-decoration: none;
+    }
+    .profile-nick a:hover {
+      text-decoration: underline;
+      color: #ff7a00;
+    }
+    .profile-nick-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .badges-container {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .badges-container img {
+      width: 48px;
+      height: 48px;
+      border-radius: 4px;
+      cursor: default;
+      transition: transform 0.2s;
+    }
+    .badges-container img:hover {
+      transform: scale(1.2);
+    }
+    .profile-info {
+      color: #ccc;
+      font-size: 1rem;
+    }
+    .profile-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: #1e1e1e;
+      padding: 1rem;
+      border-radius: 12px;
+      text-align: center;
+    }
+    .stat-title {
+      font-weight: bold;
+      color: #ccc;
+      margin-bottom: 0.5rem;
+    }
+    .stat-value {
+      font-size: 1.5rem;
+      color: #fff;
+    }
+    .badge {
+      font-size: 2rem;
+    }
+    .charts-container {
+      display: flex;
+      gap: 1rem;
+      width: 100%;
+      margin-bottom: 2rem;
+    }
+    .chart-wrapper {
+      flex: 1;
+      background: #1e1e1e;
+      border-radius: 12px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .chart-wrapper h3 {
+      color: #fff;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+    .chart-canvas {
+      max-height: 300px;
+      width: 100%;
+    }
+    .history-container {
+      display: flex;
+      gap: 1rem;
+      width: 100%;
+    }
+    .table-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .table-wrapper h2 {
+      text-align: center;
+      margin-bottom: 0.5rem;
+      color: #fff;
+    }
+    .history-table, .pool-history-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #1e1e1e;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .history-table th, .pool-history-table th {
+      background: #2a2a2a;
+      padding: 0.5rem;
+      font-weight: bold;
+      color: #fff;
+      text-align: center;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    .history-table td, .pool-history-table td {
+      padding: 0.5rem;
+      border-top: 1px solid #333;
+      text-align: center;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    .history-table tr:nth-child(even), .pool-history-table tr:nth-child(even) {
+      background: #181818;
+    }
+    .history-table tr:hover, .pool-history-table tr:hover {
+      background: #252525;
+    }
+    .elo-change.positive {
+      color: #00ff00;
+    }
+    .elo-change.negative {
+      color: #ff0000;
+    }
+    .elo-current {
+      color: #aaa;
+      margin-left: 5px;
+    }
+    @media (max-width: 768px) {
+      .charts-container, .history-container {
+        flex-direction: column;
+      }
+      .chart-wrapper {
+        width: 100%;
+      }
+      .table-wrapper {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-left"><img src="https://upload.wikimedia.org/wikipedia/commons/e/e7/Twemoji12_1f913.svg" width="28" height="28" style="border-radius:50%;"><b style="margin-bottom: 5px;">Profile</b></div>
+    <div class="nav-center">
+      <a href="/">ПП кап</a>
+      <a href="/pool">Пул кап</a>
+      <a href="/history" class="history">История</a>
+      <a href="/players" class="players">Участники</a>
+      <button id="rulesBtn">Правила</button>
+      <a href="https://discord.com/invite/4M5jDGDX96" target="_blank">Discord</a>
+    </div>
+    <div class="nav-right">
+      <span id="user"></span>
+      <div class="dropdown" id="user-dropdown">
+        <a href="#" id="profile-link">Профиль на сайте</a>
+      </div>
+      <button id="participate">Участвовать</button>
+      <button id="login">Войти</button>
+      <button id="logout" style="display:none;">Выйти</button>
+    </div>
+  </nav>
+  <div id="rulesModal" class="modal">
+    <div class="modal-content">
+      <span id="closeModal" class="close">&times;</span>
+      <h2>Правила ПП капа</h2>
+      <p><b>1.</b> Для участия необходимо авторизоваться при помощи osu! аккаунта и нажать на кнопку участвовать.</p>
+      <p><b>2.</b> Разрешается участвовать в ПП капе тем, кто присутствует на Дискорд сервере <a href="https://discord.com/invite/4M5jDGDX96">Шавоново</a>, имеет 4k pp и 30k плейкаунта.</p>
+      <p><b>3.</b> Чтобы посмотреть на каких картах игрок получил ПП — кликните на него в таблице (раскроется список карт, которые дали игроку пп на этой неделе).</p>
+      <p><b>4.</b> Очки высчитываются следующим образом — чистые пп умножаются на число, равное количеству тысяч пп, на которых эти чистые были получены.</p>
+      <hr>
+      <h2>Правила Пул капа</h2>
+      <p><b>1.</b> Для участия необходимо авторизоваться при помощи osu! аккаунта и нажать на кнопку участвовать.</p>
+      <p><b>2.</b> Разрешается участвовать в Пул капе тем, кто присутствует на Дискорд сервере <a href="https://discord.com/invite/4M5jDGDX96">Шавоново</a>.</p>
+      <p><b>3.</b> Для скачивания карты — кликните на нужную карточку (откроется страница карты с нужной сложностью).</p>
+      <p><b>4.</b> Чтобы посмотреть на какой карте сколько пп у определенного игрока — кликните на строчку этого игрока в таблице (раскроется таблица скоров).</p>
+      <p><b>5.</b> Чтобы посмотреть скор — кликните на карту в скорах игрока (откроется osu! score).</p>
+      <p><b>6.</b> Учет скоров работает таким образом, что все прошлые скоры на картах из пула не учитываются. Учитываются только те скоры, которые были поставлены после участия.</p>
+      <hr>
+      <p style="font-size: 0.9em; opacity: 0.8; text-align: center;">Обновление данных происходит автоматически один раз в 5 минут.</p>
+    </div>
+  </div>
+  <main>
+   <div class="profile-header">
+      <img id="avatar" class="profile-avatar" src="" alt="avatar">
+      <div class="profile-nick-container">
+        <h1 id="nick" class="profile-nick"></h1>
+        <div id="badges" class="badges-container"></div>
+      </div>
+      <p id="basic-info" class="profile-info"></p>
+    </div>
+
+    <div class="profile-stats">
+      <div class="stat-card">
+        <div class="stat-title">Текущие PP</div>
+        <div class="stat-value" id="current-pp"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Playcount</div>
+        <div class="stat-value" id="playcount"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">ELO PP Cup</div>
+        <div class="stat-value" id="elo-pp"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">ELO Pool Cup</div>
+        <div class="stat-value" id="elo-pool"></div>
+      </div>
+    </div>
+
+    <div class="charts-container">
+      <div class="chart-wrapper">
+        <h3>График ELO PP Cup</h3>
+        <canvas id="ppEloChart" class="chart-canvas"></canvas>
+      </div>
+      <div class="chart-wrapper">
+        <h3>График ELO Pool Cup</h3>
+        <canvas id="poolEloChart" class="chart-canvas"></canvas>
+      </div>
+    </div>
+
+    <div class="history-container">
+      <div class="table-wrapper">
+        <h2>История участий (PP Cup)</h2>
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Дата</th>
+              <th>Позиция</th>
+              <th>Очки</th>
+              <th>Изменение ELO</th>
+            </tr>
+          </thead>
+          <tbody id="pp-history-body"></tbody>
+        </table>
+      </div>
+      <div class="table-wrapper">
+        <h2>История участий (Pool Cup)</h2>
+        <table class="pool-history-table">
+          <thead>
+            <tr>
+              <th>Дата</th>
+              <th>Позиция</th>
+              <th>Total PP</th>
+              <th>Изменение ELO</th>
+            </tr>
+          </thead>
+          <tbody id="pool-history-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+  <script>
+    let ppEloChart = null;
+    let poolEloChart = null;
+
+    async function fetchUser() {
+      try {
+        const res = await fetch('/api/me', {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('user').innerHTML = `
+            <a href="/profile/${data.id}" style="text-decoration: none; color: #ccc;">
+              <img 
+                src="${data.avatar_url || data.avatar}" 
+                width="28" height="28" 
+                style="border-radius:50%; vertical-align:middle; margin-right:8px;"
+                alt="avatar"
+              ><b style="text-align:bottom;">${data.username}</b>
+            </a>
+          ` || '';
+          document.getElementById('login').style.display = 'none';
+          document.getElementById('logout').style.display = 'inline-block';
+          document.getElementById('participate').style.display = 'inline-block';
+        } else {
+          document.getElementById('user').textContent = '';
+          document.getElementById('login').style.display = 'inline-block';
+          document.getElementById('logout').style.display = 'none';
+          document.getElementById('participate').style.display = 'inline-block';
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки пользователя:', err);
+        document.getElementById('user').textContent = '';
+        document.getElementById('login').style.display = 'inline-block';
+        document.getElementById('logout').style.display = 'none';
+        document.getElementById('participate').style.display = 'inline-block';
+      }
+    }
+
+    function createEloChart(canvasId, labels, data, title) {
+      const ctx = document.getElementById(canvasId).getContext('2d');
+      
+      if (window[canvasId + 'Chart']) {
+        window[canvasId + 'Chart'].destroy();
+      }
+
+      window[canvasId + 'Chart'] = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'ELO',
+            data: data,
+            borderColor: '#00ff00',
+            backgroundColor: 'rgba(0, 255, 0, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.1,
+            pointBackgroundColor: '#00ff00',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: 5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: {
+              display: false
+            },
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: false,
+              ticks: {
+                color: '#ccc'
+              },
+              grid: {
+                color: '#333'
+              }
+            },
+            x: {
+              ticks: {
+                color: '#ccc',
+                maxRotation: 45
+              },
+              grid: {
+                color: '#333'
+              }
+            }
+          },
+          elements: {
+            point: {
+              hoverRadius: 8
+            }
+          }
+        }
+      });
+    }
+
+    async function loadProfile() {
+      const userid = window.location.pathname.split('/profile/')[1];
+      try {
+        const res = await fetch(`/api/profile/${userid}`, { credentials: 'include' });
+        if (!res.ok) {
+          document.body.innerHTML = '<h1>Игрок не найден</h1>';
+          return;
+        }
+        const data = await res.json();
+        console.log('API Response:', data);
+
+        document.getElementById('avatar').src = data.avatar_url || '';
+        
+        // Никнейм как ссылка на osu! профиль
+        const nickElement = document.getElementById('nick');
+        nickElement.innerHTML = data.userid 
+          ? `<a href="https://osu.ppy.sh/users/${data.userid}" target="_blank" rel="noopener noreferrer">${data.nickname || 'Unknown'}</a>`
+          : (data.nickname || 'Unknown');
+
+        document.getElementById('basic-info').textContent = `Страна: ${data.country || 'N/A'} | Регистрация: ${data.join_date ? new Date(data.join_date).toLocaleDateString() : 'N/A'}`;
+        document.getElementById('current-pp').textContent = data.current_pp ? data.current_pp.toFixed(2) : 'N/A';
+        document.getElementById('playcount').textContent = data.playcount || 'N/A';
+        document.getElementById('elo-pp').textContent = data.elo_pp_cup ? data.elo_pp_cup.toFixed(0) : '1000';
+        document.getElementById('elo-pool').textContent = data.elo_pool_cup ? data.elo_pool_cup.toFixed(0) : '1000';
+
+        const badgesContainer = document.getElementById('badges');
+        badgesContainer.innerHTML = '';
+
+        const badgeTypes = [
+          { img: '/ppcup.png', count: data.wins_pp || 0, title: 'Победы PP Cup' },
+          { img: '/poolcup.png', count: data.wins_pool || 0, title: 'Победы Pool Cup' }
+        ];
+
+        let hasBadges = false;
+        badgeTypes.forEach(b => {
+          if (b.count > 0) {
+            const img = document.createElement('img');
+            img.src = b.img;
+            img.alt = b.title;
+            img.title = b.title + ` x${b.count}`;
+            img.className = 'badge';
+            badgesContainer.appendChild(img);
+
+            const spanCount = document.createElement('span');
+            spanCount.textContent = `x${b.count}`;
+            spanCount.style.marginRight = '8px';
+            badgesContainer.appendChild(spanCount);
+
+            hasBadges = true;
+          }
+        });
+
+        if (!hasBadges) {
+          badgesContainer.textContent = 'Нет достижений';
+        }
+
+        const ppTbody = document.getElementById('pp-history-body');
+        ppTbody.innerHTML = '';
+        const poolTbody = document.getElementById('pool-history-body');
+        poolTbody.innerHTML = '';
+
+        // Сортируем по убыванию для отображения новых записей сверху
+        const sortedPPHistory = [...(data.pp_history || [])].sort((a, b) => new Date(b.date) - new Date(a.date));
+        const sortedPoolHistory = [...(data.pool_history || [])].sort((a, b) => new Date(b.tournament_date) - new Date(a.tournament_date));
+
+        // Данные для графиков PP Cup
+        const ppChronological = [...sortedPPHistory].sort((a, b) => new Date(a.date) - new Date(b.date));
+        const ppLabels = ppChronological.map(h => h.date ? new Date(h.date).toLocaleDateString() : 'N/A');
+        const ppEloData = [];
+        let prevEloPP = 1000;
+
+        ppChronological.forEach(h => {
+          const currentElo = h.elo_after || prevEloPP;
+          ppEloData.push(currentElo);
+          prevEloPP = currentElo;
+        });
+
+        // Данные для графиков Pool Cup
+        const poolChronological = [...sortedPoolHistory].sort((a, b) => new Date(a.tournament_date) - new Date(b.tournament_date));
+        const poolLabels = poolChronological.map(h => h.tournament_date ? new Date(h.tournament_date).toLocaleDateString() : 'N/A');
+        const poolEloData = [];
+        let prevEloPool = 1000;
+
+        poolChronological.forEach(h => {
+          const currentElo = h.elo_after || prevEloPool;
+          poolEloData.push(currentElo);
+          prevEloPool = currentElo;
+        });
+
+        // Создаем графики
+        if (ppChronological.length > 0) {
+          createEloChart('ppEloChart', ppLabels, ppEloData, 'ELO PP Cup');
+        } else {
+          document.getElementById('ppEloChart').parentElement.innerHTML = '<p style="color: #aaa; text-align: center;">Нет данных для графика</p>';
+        }
+
+        if (poolChronological.length > 0) {
+          createEloChart('poolEloChart', poolLabels, poolEloData, 'ELO Pool Cup');
+        } else {
+          document.getElementById('poolEloChart').parentElement.innerHTML = '<p style="color: #aaa; text-align: center;">Нет данных для графика</p>';
+        }
+
+        // Обрабатываем PP историю для таблицы
+        if (sortedPPHistory.length > 0) {
+          const chronologicalPPHistory = [...sortedPPHistory].sort((a, b) => new Date(a.date) - new Date(b.date));
+          
+          let prevElo = 1000;
+          chronologicalPPHistory.forEach(h => {
+            const currentElo = h.elo_after || prevElo;
+            const eloChange = currentElo - prevElo;
+            const eloDisplay = eloChange === 0 ? '0' : (eloChange > 0 ? `+${eloChange.toFixed(0)}` : `${eloChange.toFixed(0)}`);
+            const eloClass = eloChange > 0 ? 'positive' : (eloChange < 0 ? 'negative' : '');
+            
+            h.calculatedEloChange = eloDisplay;
+            h.calculatedEloClass = eloClass;
+            h.displayElo = currentElo.toFixed(0);
+            prevElo = currentElo;
+          });
+
+          sortedPPHistory.forEach(h => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${h.date ? new Date(h.date).toLocaleDateString() : 'N/A'}</td>
+              <td>${h.position || 'N/A'}</td>
+              <td>${h.points || 'N/A'}</td>
+              <td><span class="elo-change ${h.calculatedEloClass}">${h.calculatedEloChange}</span> <span class="elo-current">(ELO: ${h.displayElo})</span></td>
+            `;
+            ppTbody.appendChild(tr);
+          });
+        }
+
+        // Обрабатываем Pool историю для таблицы
+        if (sortedPoolHistory.length > 0) {
+          const chronologicalPoolHistory = [...sortedPoolHistory].sort((a, b) => new Date(a.tournament_date) - new Date(b.tournament_date));
+          
+          let prevElo = 1000;
+          chronologicalPoolHistory.forEach(h => {
+            const currentElo = h.elo_after || prevElo;
+            const eloChange = currentElo - prevElo;
+            const eloDisplay = eloChange === 0 ? '0' : (eloChange > 0 ? `+${eloChange.toFixed(0)}` : `${eloChange.toFixed(0)}`);
+            const eloClass = eloChange > 0 ? 'positive' : (eloChange < 0 ? 'negative' : '');
+            
+            h.calculatedEloChange = eloDisplay;
+            h.calculatedEloClass = eloClass;
+            h.displayElo = currentElo.toFixed(0);
+            prevElo = currentElo;
+          });
+
+          sortedPoolHistory.forEach(h => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${h.tournament_date ? new Date(h.tournament_date).toLocaleDateString() : 'N/A'}</td>
+              <td>${h.position || 'N/A'}</td>
+              <td>${Math.round(h.total_pp) || 'N/A'}</td>
+              <td><span class="elo-change ${h.calculatedEloClass}">${h.calculatedEloChange}</span> <span class="elo-current">(ELO: ${h.displayElo})</span></td>
+            `;
+            poolTbody.appendChild(tr);
+          });
+        }
+
+        if (!data.pp_history?.length && !data.pool_history?.length) {
+          ppTbody.innerHTML = '<tr><td colspan="4">Нет данных об истории PP Cup</td></tr>';
+          poolTbody.innerHTML = '<tr><td colspan="4">Нет данных об истории Pool Cup</td></tr>';
+        } else if (!data.pp_history?.length) {
+          ppTbody.innerHTML = '<tr><td colspan="4">Нет данных об истории PP Cup</td></tr>';
+        } else if (!data.pool_history?.length) {
+          poolTbody.innerHTML = '<tr><td colspan="4">Нет данных об истории Pool Cup</td></tr>';
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки профиля:', err);
+        document.body.innerHTML = '<h1>Ошибка загрузки профиля</h1>';
+      }
+    }
+
+    // Обработка модального окна "Правила"
+    const modal = document.getElementById("rulesModal");
+    const rulesBtn = document.getElementById("rulesBtn");
+    const closeBtn = document.getElementById("closeModal");
+
+    // Функция для управления активным состоянием
+    function setRulesActive(active) {
+      if (active) {
+        rulesBtn.classList.add("active");
+      } else {
+        rulesBtn.classList.remove("active");
+      }
+    }
+
+    rulesBtn.onclick = (e) => {
+      e.preventDefault(); // Предотвращаем изменение URL
+      modal.style.display = "block";
+      setRulesActive(true);
+    };
+
+    closeBtn.onclick = () => {
+      modal.style.display = "none";
+      setRulesActive(false);
+    };
+
+    window.onclick = (e) => {
+      if (e.target === modal) {
+        modal.style.display = "none";
+        setRulesActive(false);
+      }
+    };
+
+    // Закрытие модала по Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.style.display === 'block') {
+        modal.style.display = "none";
+        setRulesActive(false);
+      }
+    });
+
+    document.getElementById('login').onclick = () => window.location.href = '/auth/login';
+    document.getElementById('logout').onclick = () => window.location.href = '/auth/logout';
+    document.getElementById('participate').onclick = () => alert('Функция участия доступна только на странице турнира!');
+
+    fetchUser();
+    loadProfile();
+  </script>
+</body>
+</html>

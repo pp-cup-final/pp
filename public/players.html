@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/e/e7/Twemoji12_1f913.svg" type="image/svg+xml">
+  <title>Все игроки</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #121212;
+      margin: 0;
+      padding: 2rem;
+      color: #eee;
+      overflow-x: hidden;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.6);
+      animation: fadeIn 0.2s ease;
+    }
+    .modal-content {
+      background-color: #fff;
+      margin: 8% auto;
+      padding: 20px 30px;
+      border: none;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 600px;
+      animation: slideDown 0.25s ease;
+      color: #222;
+    }
+    .modal-content h2 {
+      color: #111;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .modal-content p {
+      color: #333;
+      line-height: 1.5;
+      text-align: left;
+      font-size: 1rem;
+    }
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+    .close:hover {
+      color: #333;
+    }
+    .button-link button {
+      background-color: #ffffff;
+      color: #000;
+      border: 1px solid #555;
+      padding: 8px 14px;
+      font-size: 14px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    nav {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      backdrop-filter: blur(10px);
+      background: rgba(18, 18, 18, 0.9);
+      border-bottom: 1px solid #333;
+      z-index: 1000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.6rem 1.2rem;
+      box-sizing: border-box;
+      height: 7%;
+    }
+    .nav-left {
+      font-weight: bold;
+      font-size: 1.8rem;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-left: 3%;
+    }
+    .nav-center a, .nav-center button {
+      color: #fff;
+      text-decoration: none;
+      margin: 0 0.9rem;
+      position: relative;
+      transition: color 0.3s;
+      font-weight: 500;
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: inherit;
+      line-height: inherit;
+    }
+    .nav-center a:hover, .nav-center button:hover {
+      color: #ff7a00;
+    }
+    .nav-center {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+    }
+    .nav-center a.active, .nav-center button.active {
+      color: #ff7a00;
+    }
+    .nav-center a.active::after, .nav-center button.active::after {
+      content: "";
+      position: absolute;
+      left: 0; bottom: -4px;
+      width: 100%; height: 2px;
+      background: #ff7a00;
+      border-radius: 1px;
+      animation: underline 0.3s ease;
+    }
+    @keyframes underline {
+      from { width: 0; opacity: 0.5; }
+      to { width: 100%; opacity: 1; }
+    }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding-right: 3%;
+      font-weight: bold;
+      color: #fff;
+      justify-content: center;
+      gap: 8px;
+    }
+    .nav-right #user {
+      color: #ccc;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .nav-right #user a {
+      color: #ccc;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+    }
+    .nav-right #user :hover {
+      color: #ff7a00;
+    }
+    #login, #logout {
+      background: #c265b4;
+      color: white;
+      border: none;
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.3s;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    #login:hover, #logout:hover {
+      background: #8e077a;
+      color: white;
+    }
+    #participate {
+      background: #c265b4;
+      color: white;
+      border: none;
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      text-decoration: none;
+      margin-left: 3%;
+      position: relative;
+      transition: color 0.3s;
+      font-weight: 500;
+    }
+    #participate:hover {
+      background: #8e077a;
+      color: white;
+    }
+    main {
+      padding-top: 3%;
+      max-width: 98%;
+      margin: 0 auto;
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+    table a {
+      color: #fff;
+      text-decoration: none;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+    }
+    table a:hover {
+      color: #ff6347;
+      text-decoration: underline;
+    }
+    .player-nickname {
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    h1 {
+      text-align: center;
+      color: #fff;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #1e1e1e;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 10px rgba(255,255,255,0.05);
+      table-layout: fixed;
+    }
+    th, td {
+      padding: 14px;
+      border-bottom: 1px solid #333;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      box-sizing: border-box;
+    }
+    th {
+      background-color: #2a2a2a;
+      color: #fff;
+      font-weight: bold;
+      position: relative;
+      cursor: pointer;
+      text-align: center;
+    }
+    th:hover {
+      background-color: #3a3a3a;
+    }
+    th.sorted::after {
+      content: '▼';
+      color: #ff7a00;
+      margin-left: 5px;
+      font-size: 0.8em;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    th.sorted.asc::after {
+      content: '▲';
+    }
+    /* Игрок занимает больше места */
+    td:nth-child(1), th:nth-child(1) {
+      width: 35%;
+      text-align: left;
+    }
+    /* Бейджи в отдельном столбце */
+    td:nth-child(2), th:nth-child(2) {
+      width: 8%;
+      text-align: center;
+      padding: 8px;
+    }
+    /* Остальные столбцы */
+    td:not(:nth-child(1)):not(:nth-child(2)), th:not(:first-child):not(:nth-child(2)) {
+      width: 19%;
+      text-align: center;
+    }
+    tr:hover {
+      background-color: #2c2c2c;
+    }
+    .player-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      box-shadow: 0 0 5px rgba(255,255,255,0.1);
+      vertical-align: middle;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+    .badges-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      flex-wrap: wrap;
+    }
+    .badges-container img {
+      width: 20px;
+      height: 20px;
+      border-radius: 2px;
+      cursor: default;
+      transition: transform 0.2s;
+    }
+    .badges-container img:hover {
+      transform: scale(1.2);
+    }
+    .badge-count {
+      font-size: 0.75em;
+      color: #ccc;
+      font-weight: bold;
+      margin-left: 2px;
+      white-space: nowrap;
+    }
+    .no-badges {
+      color: #666;
+      font-size: 0.8em;
+    }
+    .search-input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 1rem;
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #eee;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+    .search-input:focus {
+      border-color: #ff7a00;
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-left"><img src="https://upload.wikimedia.org/wikipedia/commons/e/e7/Twemoji12_1f913.svg" width="28" height="28" style="border-radius:50%;"><b style="margin-bottom: 5px;">Players</b></div>
+    <div class="nav-center">
+      <a href="/">ПП кап</a>
+      <a href="/pool">Пул кап</a>
+      <a href="/history" class="history">История</a>
+      <a href="/players" class="active">Участники</a>
+      <button id="rulesBtn">Правила</button>
+      <a href="https://discord.com/invite/4M5jDGDX96" target="_blank">Discord</a>
+    </div>
+    <div class="nav-right">
+      <div id="user"></div>
+      <button id="participate">Участвовать</button>
+      <button id="login">Войти</button>
+      <button id="logout" style="display:none;">Выйти</button>
+    </div>
+  </nav>
+  <div id="rulesModal" class="modal">
+    <div class="modal-content">
+      <span id="closeModal" class="close">&times;</span>
+      <h2>Правила ПП капа</h2>
+      <p><b>1.</b> Для участия необходимо авторизоваться при помощи osu! аккаунта и нажать на кнопку участвовать.</p>
+      <p><b>2.</b> Разрешается участвовать в ПП капе тем, кто присутствует на Дискорд сервере <a href="https://discord.com/invite/4M5jDGDX96">Шавоново</a>, имеет 4k pp и 30k плейкаунта.</p>
+      <p><b>3.</b> Чтобы посмотреть на каких картах игрок получил ПП — кликните на него в таблице (раскроется список карт, которые дали игроку пп на этой неделе).</p>
+      <p><b>4.</b> Очки высчитываются следующим образом — чистые пп умножаются на число, равное количеству тысяч пп, на которых эти чистые были получены.</p>
+      <hr>
+      <h2>Правила Пул капа</h2>
+      <p><b>1.</b> Для участия необходимо авторизоваться при помощи osu! аккаунта и нажать на кнопку участвовать.</p>
+      <p><b>2.</b> Разрешается участвовать в Пул капе тем, кто присутствует на Дискорд сервере <a href="https://discord.com/invite/4M5jDGDX96">Шавоново</a>.</p>
+      <p><b>3.</b> Для скачивания карты — кликните на нужную карточку (откроется страница карты с нужной сложностью).</p>
+      <p><b>4.</b> Чтобы посмотреть на какой карте сколько пп у определенного игрока — кликните на строчку этого игрока в таблице (раскроется таблица скоров).</p>
+      <p><b>5.</b> Чтобы посмотреть скор — кликните на карту в скорах игрока (откроется osu! score).</p>
+      <p><b>6.</b> Учет скоров работает таким образом, что все прошлые скоры на картах из пула не учитываются. Учитываются только те скоры, которые были поставлены после участия.</p>
+      <hr>
+      <p style="font-size: 0.9em; opacity: 0.8; text-align: center;">Обновление данных происходит автоматически один раз в 5 минут.</p>
+    </div>
+  </div>
+  <main>
+    <h1>Все игроки</h1>
+    <input type="text" id="search" class="search-input" placeholder="Поиск по нику...">
+    <table id="players-table">
+      <thead>
+        <tr>
+          <th>Игрок</th>
+          <th>Медали</th>
+          <th data-sort="current_pp" class="sorted">PP</th>
+          <th data-sort="elo_pp_cup">ELO PP Cup</th>
+          <th data-sort="elo_pool_cup">ELO Pool Cup</th>
+        </tr>
+      </thead>
+      <tbody id="players-body"></tbody>
+    </table>
+  </main>
+  <script>
+    async function fetchUser() {
+      try {
+        const res = await fetch('/api/me', {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('user').innerHTML = `
+            <a href="/profile/${data.id}" style="text-decoration: none; color: #ccc; display: flex; align-items: center;">
+              <img src="${data.avatar_url || data.avatar}" width="28" height="28" style="border-radius:50%; vertical-align:middle; margin-right:8px;" alt="avatar">
+              <b style="text-align:bottom;">${data.username}</b>
+            </a>
+          `;
+          document.getElementById('login').style.display = 'none';
+          document.getElementById('logout').style.display = 'inline-block';
+          document.getElementById('participate').style.display = 'inline-block';
+        } else {
+          document.getElementById('user').textContent = '';
+          document.getElementById('login').style.display = 'inline-block';
+          document.getElementById('logout').style.display = 'none';
+          document.getElementById('participate').style.display = 'inline-block';
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки пользователя:', err);
+        document.getElementById('user').textContent = '';
+        document.getElementById('login').style.display = 'inline-block';
+        document.getElementById('logout').style.display = 'none';
+        document.getElementById('participate').style.display = 'inline-block';
+      }
+    }
+
+    function createBadgesElement(player) {
+      const badgeTypes = [
+        { img: '/ppcup.png', count: player.wins_pp || 0, title: 'Победы PP Cup' },
+        { img: '/poolcup.png', count: player.wins_pool || 0, title: 'Победы Pool Cup' }
+      ];
+
+      const badgesContainer = document.createElement('div');
+      badgesContainer.className = 'badges-container';
+
+      let hasBadges = false;
+      badgeTypes.forEach(b => {
+        if (b.count > 0) {
+          const img = document.createElement('img');
+          img.src = b.img;
+          img.alt = b.title;
+          img.title = `${b.title} x${b.count}`;
+          badgesContainer.appendChild(img);
+
+          const spanCount = document.createElement('span');
+          spanCount.textContent = `x${b.count}`;
+          spanCount.className = 'badge-count';
+          badgesContainer.appendChild(spanCount);
+
+          hasBadges = true;
+        }
+      });
+
+      if (!hasBadges) {
+        const noBadge = document.createElement('span');
+        noBadge.textContent = '—';
+        noBadge.className = 'no-badges';
+        badgesContainer.appendChild(noBadge);
+      }
+
+      return badgesContainer;
+    }
+
+    let playersData = [];
+    let currentSort = { key: 'current_pp', order: 'desc' };
+
+    async function loadPlayers() {
+      try {
+        const res = await fetch('/api/players', { credentials: 'include' });
+        if (!res.ok) {
+          document.body.innerHTML = '<h1>Ошибка загрузки данных</h1>';
+          return;
+        }
+        playersData = await res.json();
+        renderTable(playersData, currentSort.key, currentSort.order);
+      } catch (err) {
+        console.error('Ошибка загрузки игроков:', err);
+        document.body.innerHTML = '<h1>Ошибка загрузки данных</h1>';
+      }
+    }
+
+    function renderTable(data, sortBy, sortOrder = 'desc') {
+      const tbody = document.getElementById('players-body');
+      tbody.innerHTML = '';
+
+      currentSort = { key: sortBy, order: sortOrder };
+
+      document.querySelectorAll('th').forEach(th => th.classList.remove('sorted', 'asc'));
+
+      const sortedHeader = document.querySelector(`th[data-sort="${sortBy}"]`);
+      if (sortedHeader) {
+        sortedHeader.classList.add('sorted');
+        if (sortOrder === 'asc') sortedHeader.classList.add('asc');
+      }
+
+      data.sort((a, b) => {
+        let valA = sortBy === 'current_pp' ? (a.current_pp || 0) : (sortBy === 'elo_pp_cup' ? (a.elo_pp_cup || 0) : (a.elo_pool_cup || 0));
+        let valB = sortBy === 'current_pp' ? (b.current_pp || 0) : (sortBy === 'elo_pp_cup' ? (b.elo_pp_cup || 0) : (b.elo_pool_cup || 0));
+        return sortOrder === 'asc' ? valA - valB : valB - valA;
+      });
+
+      data.forEach(player => {
+        const tr = document.createElement('tr');
+        
+        // Столбец с игроком (аватар + ник)
+        const playerTd = document.createElement('td');
+        const playerLink = document.createElement('a');
+        playerLink.href = `/profile/${player.userid}`;
+        
+        const avatar = document.createElement('img');
+        avatar.src = player.avatar_url || '';
+        avatar.alt = 'avatar';
+        avatar.className = 'player-avatar';
+        
+        const nickname = document.createElement('span');
+        nickname.textContent = player.nickname || 'Unknown';
+        nickname.className = 'player-nickname';
+        
+        playerLink.appendChild(avatar);
+        playerLink.appendChild(nickname);
+        playerTd.appendChild(playerLink);
+        
+        // Столбец с бейджами
+        const badgesTd = document.createElement('td');
+        badgesTd.appendChild(createBadgesElement(player));
+        
+        // Остальные столбцы
+        const ppTd = document.createElement('td');
+        ppTd.textContent = player.current_pp ? player.current_pp.toFixed(2) : 'N/A';
+        
+        const eloPpTd = document.createElement('td');
+        eloPpTd.textContent = player.elo_pp_cup ? player.elo_pp_cup.toFixed(0) : '1000';
+        
+        const eloPoolTd = document.createElement('td');
+        eloPoolTd.textContent = player.elo_pool_cup ? player.elo_pool_cup.toFixed(0) : '1000';
+        
+        tr.appendChild(playerTd);
+        tr.appendChild(badgesTd);
+        tr.appendChild(ppTd);
+        tr.appendChild(eloPpTd);
+        tr.appendChild(eloPoolTd);
+        
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Обработка модального окна "Правила"
+    const modal = document.getElementById("rulesModal");
+    const rulesBtn = document.getElementById("rulesBtn");
+    const closeBtn = document.getElementById("closeModal");
+
+    function setRulesActive(active) {
+      if (active) {
+        rulesBtn.classList.add("active");
+      } else {
+        rulesBtn.classList.remove("active");
+      }
+    }
+
+    rulesBtn.onclick = (e) => {
+      e.preventDefault();
+      modal.style.display = "block";
+      setRulesActive(true);
+    };
+
+    closeBtn.onclick = () => {
+      modal.style.display = "none";
+      setRulesActive(false);
+    };
+
+    window.onclick = (e) => {
+      if (e.target === modal) {
+        modal.style.display = "none";
+        setRulesActive(false);
+      }
+    };
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.style.display === 'block') {
+        modal.style.display = "none";
+        setRulesActive(false);
+      }
+    });
+
+    const headers = document.querySelectorAll('th[data-sort]');
+    headers.forEach(header => {
+      header.addEventListener('click', () => {
+        const sortBy = header.dataset.sort;
+        let sortOrder = currentSort.key === sortBy && currentSort.order === 'desc' ? 'asc' : 'desc';
+        renderTable(playersData, sortBy, sortOrder);
+      });
+    });
+
+    const searchInput = document.getElementById('search');
+    searchInput.addEventListener('input', () => {
+      const filter = searchInput.value.toLowerCase();
+      const filteredData = playersData.filter(player => (player.nickname || '').toLowerCase().includes(filter));
+      renderTable(filteredData, currentSort.key, currentSort.order);
+    });
+
+    document.getElementById('login').onclick = () => window.location.href = '/auth/login';
+    document.getElementById('logout').onclick = () => window.location.href = '/auth/logout';
+    document.getElementById('participate').onclick = () => alert('Функция участия доступна только на странице турнира!');
+
+    fetchUser();
+    loadPlayers();
+  </script>
+</body>
+</html>

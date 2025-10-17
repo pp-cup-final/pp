@@ -72,6 +72,36 @@ nav {
       from { width: 0; opacity: 0.5; }
       to { width: 100%; opacity: 1; }
     }
+    .nav-center a, .nav-center #rulesBtn {
+      color: #fff;
+      text-decoration: none;
+      margin: 0 0.9rem;
+      position: relative;
+      transition: color 0.3s;
+      font-weight: 500;
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      font-family: inherit; /* Наследуем шрифт от body */
+      font-size: inherit; /* Наследуем размер шрифта */
+      line-height: inherit; /* Наследуем высоту строки */
+    }
+    .nav-center a:hover, .nav-center #rulesBtn:hover {
+      color: #ff7a00;
+    }
+    .nav-center a.active, .nav-center #rulesBtn.active {
+      color: #ff7a00;
+    }
+    .nav-center a.active::after, .nav-center #rulesBtn.active::after {
+      content: "";
+      position: absolute;
+      left: 0; bottom: -4px;
+      width: 100%; height: 2px;
+      background: #ff7a00;
+      border-radius: 1px;
+      animation: underline 0.3s ease;
+    }
    .nav-right {
       display: flex;
       align-items: center;
@@ -81,12 +111,15 @@ nav {
       color: #fff;
       justify-content: center;
       gap: 8px;
-      margin-left: 3%; /* Это выравнивает PP Cup слева */
     }
     .nav-right #user {
       color: #ccc;
-      
       white-space: nowrap;
+      position: relative;
+      cursor: pointer;
+    }
+    .nav-right #user:hover {
+      color: #ff7a00;
     }
     
 
@@ -120,7 +153,7 @@ nav {
 }
 #login:hover {
  background: #8e077a;
-color: #000;
+color: white;
 }
 #participate{
 background: #c265b4;
@@ -138,7 +171,7 @@ background: #c265b4;
 }
 #participate:hover{
 background: #8e077a;
-color: #000;
+color: white;
 }
 #logout {
   background: #c265b4;
@@ -152,7 +185,7 @@ color: #000;
 }
 #logout:hover {
   background: #8e077a;
-  color: #000;
+  color: white;
 }
 /* сводная таблица (неделя / дата начала) */
 .summary-table {
@@ -383,7 +416,9 @@ a:hover { text-decoration: underline; color: #80c0ff; }
     <a href="/" >ПП кап</a>
     <a href="/pool"  >Пул кап</a>
     <a href="/history" class="active">История</a>
-    <a href="#" id="rulesBtn" >Правила</a>
+    <a href="/players" class="players">Участники</a>
+    <button id="rulesBtn">Правила</button>
+    
     <a href="https://discord.com/invite/4M5jDGDX96" target="_blank">Discord</a>
   </div>
   <div class="nav-right">
@@ -672,7 +707,7 @@ async function loadPoolHistory() {
           player.scores.forEach(s => {
             const title = s.title || s.beatmap_title || (`Map ${s.beatmap_id || ''}`);
             const beatmapId = s.beatmap_id || s.beatmap?.id || '';
-            console.log(s.score_id);
+            console.log(s);
             const scoreLink = s.score_id ? `https://osu.ppy.sh/scores/osu/${encodeURIComponent(s.score_id)}` : (beatmapId ? `https://osu.ppy.sh/beatmapsets/${encodeURIComponent(beatmapId)}` : '#');
             const ppVal = Math.round(Number(s.pp ?? s.score_pp ?? 0));
             const row = document.createElement('tr');
@@ -710,31 +745,46 @@ tr.addEventListener('click', (e) => {
   }
 }
 const modal = document.getElementById("rulesModal");
-const btn = document.getElementById("rulesBtn");
-const closeBtn = document.getElementById("closeModal");
+    const rulesBtn = document.getElementById("rulesBtn");
+    const closeBtn = document.getElementById("closeModal");
 
-btn.onclick = () => {
-  modal.style.display = "block";
-  document.querySelector("#rulesBtn").classList.add("active"); // Добавляем класс активной ссылки
-  document.getElementById("rulesBtn").style.color = '#ff7a00';
-};
+    // Функция для управления активным состоянием
+    function setRulesActive(active) {
+      if (active) {
+        rulesBtn.classList.add("active");
+      } else {
+        rulesBtn.classList.remove("active");
+      }
+    }
 
-closeBtn.onclick = () => {
-  modal.style.display = "none";
-  document.querySelector("#rulesBtn").classList.remove("active"); 
-  document.getElementById("rulesBtn").style.color = 'white';// Убираем класс активной ссылки
-};
+    rulesBtn.onclick = (e) => {
+      e.preventDefault(); // Предотвращаем изменение URL
+      modal.style.display = "block";
+      setRulesActive(true);
+    };
 
-window.onclick = (e) => {
-  if (e.target === modal) {
-    modal.style.display = "none";
-    document.querySelector("#rulesBtn").classList.remove("active"); // Убираем класс активной ссылки
-    document.getElementById("rulesBtn").style.color = 'white';
-  }
-};
+    closeBtn.onclick = () => {
+      modal.style.display = "none";
+      setRulesActive(false);
+    };
+
+    window.onclick = (e) => {
+      if (e.target === modal) {
+        modal.style.display = "none";
+        setRulesActive(false);
+      }
+    };
+
+    // Закрытие модала по Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.style.display === 'block') {
+        modal.style.display = "none";
+        setRulesActive(false);
+      }
+    });
 document.getElementById('login').onclick = () => window.location.href = '/auth/login';
 document.getElementById('logout').onclick = () => window.location.href = '/auth/logout';
-document.getElementById('participate').onclick =()=> alert("Вы находитесь в разделе 'История' \nУчастие невозможно");
+document.getElementById('participate').onclick =()=> alert("Функция участия доступна только на странице турнира!");
 (async () => {
   await fetchUser();
   await loadHistory();
