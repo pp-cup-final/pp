@@ -9,12 +9,18 @@ const PORT = process.env.PORT || 3000;
 const cron = require("node-cron");
 const { createClient } = require('@supabase/supabase-js');
 
+// Папка для истории (локальная, можно оставить или удалить)
+const historyDir = path.join(__dirname, "history");
+if (!fs.existsSync(historyDir)) {
+  fs.mkdirSync(historyDir);
+}
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY // на бэке используем service_role
 );
 
+// middlewares
 app.use(express.static('public'));
 app.use(express.json());
 app.use(session({
@@ -23,6 +29,7 @@ app.use(session({
   saveUninitialized: true,
 }));
 
+// === osu! API токен ===
 let osuAccessToken = null;
 let osuTokenExpiry = 0;
 
@@ -30,6 +37,32 @@ const osuClientId = process.env.OSU_CLIENT_ID;
 const osuClientSecret = process.env.OSU_CLIENT_SECRET;
 const redirectUri = process.env.REDIRECT_URI || 'https://xn--80aea7bebb7e.xn--p1ai/auth/callback';
 
+async function fetchUserScores(userId, sinceDate, token) {
+  const res = await fetch(`https://osu.ppy.sh/api/v2/users/${userId}/scores/recent?limit=100`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const scores = await res.json();
+
+  // фильтруем только новые (после participation_date)
+  return scores.filter(s => new Date(s.participation_date) > new Date(sinceDate));
+}
+async function saveScoresToDB(userid, scores) {
+  for (const s of scores) {
+    const { error } = await supabase
+      .from("participant_scores") // <== новая таблица
+      .upsert({
+        userid,
+        beatmap_id: s.beatmap.id,
+        score_id: s.id,
+        score_pp: s.pp,
+        pp_gain: s.statistics?.pp || s.pp,
+        beatmap_bg: s.beatmap.beatmapset.covers.card,
+        beatmap_title: s.beatmap.beatmapset.title,
+        beatmap_version: s.beatmap.version,
+      });
+    if (error) console.error("Ошибка вставки скора:", error);
+  }
+}
 async function fetchOsuAccessToken() {
   try {
     const response = await axios.post('https://osu.ppy.sh/oauth/token', {
@@ -53,6 +86,7 @@ async function getOsuAccessToken() {
   return osuAccessToken;
 }
 
+// === Подсчет очков ===
 function calculatePoints(ppStart, ppEnd) {
   const start = Math.floor(ppStart);
   const end = Math.floor(ppEnd);
@@ -77,6 +111,7 @@ function calculatePoints(ppStart, ppEnd) {
   return Math.round(points);
 }
 
+// === Обновление позиций в БД ===
 async function updatePositionsInDB() {
   try {
     const { data: participants, error: selectErr } = await supabase
@@ -88,31 +123,25 @@ async function updatePositionsInDB() {
       return [];
     }
 
+    // сортируем по points desc
     participants.sort((a, b) => {
       const pa = parseFloat(a.points) || 0;
       const pb = parseFloat(b.points) || 0;
-
-      if (pb !== pa) return pb - pa; 
-
-      const dateA = new Date(a.participation_date);
-      const dateB = new Date(b.participation_date);
-      return dateA - dateB; 
+      return pb - pa;
     });
 
+    // считаем позиции (ровные очки — одинаковая позиция)
     let lastPoints = null;
-    let lastDate = null;
     let lastPosition = 0;
     const updates = [];
 
     for (let i = 0; i < participants.length; i++) {
       const p = participants[i];
       const pPoints = parseFloat(p.points) || 0;
-      const pDate = new Date(p.participation_date);
 
-      if (pPoints !== lastPoints || pDate.getTime() !== lastDate?.getTime()) {
+      if (pPoints !== lastPoints) {
         lastPosition = i + 1;
         lastPoints = pPoints;
-        lastDate = pDate;
       }
 
       const currentPos = p.position === null || p.position === undefined ? null : Number(p.position);
@@ -124,6 +153,8 @@ async function updatePositionsInDB() {
             .eq('userid', p.userid)
         );
       }
+
+      // добавим совместимое поле для отдачи фронту
       p.position = lastPosition;
     }
 
@@ -141,6 +172,7 @@ async function updatePositionsInDB() {
   }
 }
 
+// === Обновление PP участников ===
 async function updateParticipantsPP() {
   try {
     const { data: participants, error } = await supabase
@@ -256,37 +288,8 @@ async function updateParticipantsPP() {
 }
 
 
-app.get('/api/debug/history-structure', async (req, res) => {
-  try {
-    const { data: ppData } = await supabase
-      .from('history')
-      .select('date, data')
-      .limit(3); 
 
-    const analysis = ppData.map(t => {
-      const sampleParticipant = t.data?.[0];
-      return {
-        date: t.date,
-        participantKeys: sampleParticipant ? Object.keys(sampleParticipant) : [],
-        hasPlaycount: !!sampleParticipant?.playcount,
-        hasStatistics: !!sampleParticipant?.statistics,
-        playcountValue: sampleParticipant?.playcount,
-        statisticsPlaycount: sampleParticipant?.statistics?.play_count
-      };
-    });
-
-    res.json({ 
-      success: true, 
-      analysis,
-      message: 'Структура данных турниров' 
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-
-
+// === Автоматический запуск ===
 fetchOsuAccessToken().then(() => {
   updateParticipantsPP();
   setInterval(updateParticipantsPP, 5 * 60 * 1000); // каждые 5 минут
@@ -295,8 +298,7 @@ fetchOsuAccessToken().then(() => {
   updatePoolPP();
   setInterval(updatePoolPP, 5 * 60 * 1000); // каждые 5 минут
 });
-
-// CRON: сохраняем историю пул капа и очищаем пул
+// CRON: сохраняем историю и очищаем пул
 cron.schedule("0 0 * * 0", async () => {
   try {
     console.log("=== Сохранение истории пула ===");
@@ -347,12 +349,10 @@ cron.schedule("0 0 * * 0", async () => {
         map_url: s.pool_maps?.map_url || null,
         background_url: s.pool_maps?.background_url || null
       }));
-      
       // Вставляем запись в pool_history
       const { error: insertErr } = await supabase.from("pool_history").insert({
         tournament_date: new Date().toISOString().split("T")[0],
         position: index + 1,
-        userid: p.userid, // Добавляем userid
         avatar_url: p.avatar,
         nickname: p.nickname,
         total_pp: p.total_pp,
@@ -372,35 +372,35 @@ cron.schedule("0 0 * * 0", async () => {
     console.log("Пул и карты очищены.");
 
     try {
-      // 1. Забираем все строки из test_pool_maps
-      const { data: rows, error: fetchError } = await supabase
-        .from('test_pool_maps')
-        .select('*');
+    // 1. Забираем все строки из table1
+    const { data: rows, error: fetchError } = await supabase
+      .from('test_pool_maps')
+      .select('*');
 
-      if (fetchError) throw fetchError;
-      if (!rows.length) {
-        console.log('Нет строк для перемещения');
-        return;
-      }
-
-      // 2. Вставляем их в pool_maps
-      const { error: insertError } = await supabase
-        .from('pool_maps')
-        .insert(rows);
-
-      if (insertError) throw insertError;
-     
-      console.log(`✅ Перемещено ${rows.length} строк`);
-    } catch (err) {
-      console.error('Ошибка перемещения:', err.message || err);
+    if (fetchError) throw fetchError;
+    if (!rows.length) {
+      console.log('Нет строк для перемещения');
+      return;
     }
+
+    // 2. Вставляем их в table2
+    const { error: insertError } = await supabase
+      .from('pool_maps')
+      .insert(rows);
+
+    if (insertError) throw insertError;
+   
+
+    console.log(`✅ Перемещено ${rows.length} строк`);
+  } catch (err) {
+    console.error('Ошибка перемещения:', err.message || err);
+  }
 
   } catch (err) {
     console.error("Ошибка в CRON сохранения истории пула:", err.response?.data || err.message || err);
   }
 }, { timezone: "Europe/Moscow" });
-
-// CRON: сохраняем историю пп капа и очищаем таблицу
+// CRON: каждое воскресенье в 00:00 по Москве — сохраняем историю и очищаем таблицу
 cron.schedule("0 0 * * 0", async () => {
   try {
     // Сначала пересчитаем и запишем актуальные позиции в participants
@@ -440,9 +440,9 @@ cron.schedule("0 0 * * 0", async () => {
       console.error('Ошибка очистки participants после сохранения истории:', deleteErr);
       return;
     }
-    const { error: deleteErr1 } = await supabase.from("participant_scores").delete().neq("id", 0);
-    if (deleteErr1) {
-      console.error('Ошибка очистки participant_scores после сохранения истории:', deleteErr1);
+    const { error: deleteErr1 } = await supabase.from("participants_scores").delete().neq("id", 0);
+    if (deleteErr) {
+      console.error('Ошибка очистки participants_scores после сохранения истории:', deleteErr1);
       return;
     }
 
@@ -467,11 +467,10 @@ app.get('/api/history', async (req, res) => {
 app.get("/history", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "history.html"));
 });
-
 app.post('/api/participate', async (req, res) => {
   // Проверка авторизации
   if (!req.session.user) {
-    return res.status(401).json({ error: 'Необходимо авторизоваться!' });
+    return res.status(401).json({ error: 'Not logged in' });
   }
 
   const user = req.session.user;
@@ -485,12 +484,18 @@ app.post('/api/participate', async (req, res) => {
 
   if (checkErr) {
     console.error('Ошибка проверки участия:', checkErr);
-    return res.status(500).json({ error: 'Ошибка базы данных' });
+    return res.status(500).json({ error: 'DB error' });
   }
 
   if (exists) {
-    return res.status(400).json({ error: 'Вы уже участвуете!' });
+    return res.status(400).json({ error: 'User already participating' });
   }
+
+  // Проверка дня недели (только воскресенье)
+  //const moscowTime = new Date(Date.now() + 3 * 60 * 60 * 1000); // UTC+3
+  //if (moscowTime.getDay() !== 0) { // 0 = воскресенье
+  //  return res.status(400).json({ error: 'Участвовать можно только в воскресенье' });
+ // }
 
   try {
     // Получаем токен для osu! API
@@ -533,7 +538,6 @@ app.post('/api/participate', async (req, res) => {
     res.status(500).json({ error: "Ошибка osu! API" });
   }
 });
-
 app.get('/api/participant/:userid/scores', async (req, res) => {
   const userid = req.params.userid;
   try {
@@ -589,9 +593,9 @@ app.get('/api/participant/:userid/scores', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 // ========== pool endpoints (как у тебя было) ==========
 // Участие в пуле карт
+// server.js
 app.get("/api/pool/history", async (req, res) => {
   try {
     // Берём все записи из pool_history
@@ -630,11 +634,9 @@ app.get("/api/pool/history", async (req, res) => {
     res.status(500).json({ error: "Ошибка при получении истории пул капа" });
   }
 });
-
 app.get('/pool', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'pool.html'));
 });
-
 app.get('/api/pool/maps', async (req, res) => {
   try {
     // Берем карты из пула
@@ -677,7 +679,6 @@ app.get('/api/pool/maps', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-
 app.get('/api/scores/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -705,6 +706,7 @@ app.get('/api/scores/:id', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
 async function updatePoolPP() {
   try {
@@ -826,31 +828,16 @@ async function updatePoolPP() {
   }
 }
 
-
-
-cron.schedule("1 0 * * *", async () => {
-  const startDate = new Date("2025-10-19"); // ближайшее воскресенье
-  const today = new Date();
-  const diffDays = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
-
-  // Запускаем задачу только каждые 2 дня
-  if (diffDays % 2 !== 0) return;
-
-  console.log('Начато обновление статистики для игроков');
-  await syncPlayersFromHistories();
-  await updateEloFromHistory();
-  
+cron.schedule("1 0 * * 0", async () => {
   const token = await getOsuAccessToken();
   let count = 0;
-
   const { error: deleteError } = await supabase
-    .from('test_pool_maps')
-    .delete()
-    .neq('id', 0); // удаляем все строки
-  if (deleteError) throw deleteError;
+      .from('test_pool_maps')
+      .delete()
+      .neq('id', 0); // удаляем все строки
 
+    if (deleteError) throw deleteError;
   console.log("Начата генерация пула карт");
-
   while (count < 10) {
     const randomSetId = Math.floor(Math.random() * 2300000) + 1; // до последнего ранкнутого сет-а
     try {
@@ -859,15 +846,19 @@ cron.schedule("1 0 * * *", async () => {
       });
       const set = res.data;
 
-      if (set.status !== "ranked") continue; // проверяем, что сет ранкнутый
+      // проверяем, что сам сет ранкнутый
+      if (set.status !== "ranked") continue;
 
+      // фильтруем карты внутри сета
       const validDiffs = set.beatmaps.filter(
         bm => bm.mode === "osu" && bm.difficulty_rating >= 6 && bm.difficulty_rating <= 8
       );
 
       if (validDiffs.length > 0) {
+        // берём случайную подходящую сложность из сета
         const map = validDiffs[Math.floor(Math.random() * validDiffs.length)];
 
+        // сохраняем сразу в БД
         await supabase.from("test_pool_maps").insert([{
           beatmap_id: set.id,
           difficulty_id: map.id,
@@ -877,6 +868,7 @@ cron.schedule("1 0 * * *", async () => {
         }]);
 
         console.log(`🎵 Добавлена карта: ${set.title} [${map.version}]`);
+
         count++;
       }
     } catch (err) {
@@ -887,7 +879,8 @@ cron.schedule("1 0 * * *", async () => {
   console.log("✅ Новый пул карт сгенерирован.");
 }, { timezone: "Europe/Moscow" });
 
-// === ИСПРАВЛЕННЫЙ РОУТ ДЛЯ ПЕРЕСЧЕТА ПОБЕД ===
+
+
 
 
 // Получение таблицы участников пула
@@ -921,6 +914,7 @@ app.get('/api/pool/participants', async (req, res) => {
     console.error("Ошибка при получении участников:", err);
     res.status(500).json({ error: "Ошибка при получении участников" });
   }
+
 });
 
 // Получение карт и результатов игрока (в пуле)
@@ -1002,22 +996,18 @@ app.get('/api/me', (req, res) => {
 
 // === OAuth: авторизация ===
 app.get('/auth/login', (req, res) => {
-  // Сохраняем текущий URL в сессии
-  req.session.returnTo = req.headers.referer || '/';
-  const authUrl = `https://osu.ppy.sh/oauth/authorize?client_id=${osuClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=public&state=${encodeURIComponent(JSON.stringify({ type: 'main', returnTo: req.session.returnTo }))}`;
+  const authUrl = `https://osu.ppy.sh/oauth/authorize?client_id=${osuClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=public&state=main`;
   res.redirect(authUrl);
 });
 
 app.get('/pool/auth/login', (req, res) => {
-  // Сохраняем текущий URL в сессии
-  req.session.returnTo = req.headers.referer || '/pool';
-  const authUrl = `https://osu.ppy.sh/oauth/authorize?client_id=${osuClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=public&state=${encodeURIComponent(JSON.stringify({ type: 'pool', returnTo: req.session.returnTo }))}`;
+  const authUrl = `https://osu.ppy.sh/oauth/authorize?client_id=${osuClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=public&state=pool`;
   res.redirect(authUrl);
 });
 
 app.get('/auth/callback', async (req, res) => {
   const code = req.query.code;
-  const state = req.query.state ? JSON.parse(decodeURIComponent(req.query.state)) : { type: 'main', returnTo: '/' };
+  const state = req.query.state || 'main'; // определяем откуда пришёл
 
   if (!code) return res.status(400).send('No code provided');
 
@@ -1038,22 +1028,79 @@ app.get('/auth/callback', async (req, res) => {
 
     req.session.user = userResponse.data;
 
-    // Редирект на сохранённый URL или по умолчанию
-    const redirectTo = state.returnTo || (state.type === 'pool' ? '/pool' : '/');
-    res.redirect(redirectTo);
+    // редирект в зависимости от state
+    if (state === 'pool') {
+      return res.redirect('/pool');
+    }
+    return res.redirect('/');
   } catch (error) {
     console.error(error.response?.data || error.message);
     res.status(500).send('Authorization error');
   }
 });
 
+app.post('/api/addMap', async (req, res) => {
+  try {
+    // Проверяем, что пользователь авторизован
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Вы не авторизованы" });
+    }
 
-// Эндпоинт для списка игроков
+    // Разрешаем только игроку LLIaBKa
+    if (req.session.user.username !== 'LLIaBKa') {
+      return res.status(403).json({ error: "Нет доступа к добавлению карт" });
+    }
 
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ error: "No URL provided" });
 
-app.get('/players', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'players.html'));
+    // Парсим ссылку вида https://osu.ppy.sh/beatmapsets/1786810#osu/3660479
+    const setMatch = url.match(/beatmapsets\/(\d+)/);
+    const beatmapMatch = url.match(/#osu\/(\d+)/);
+
+    if (!setMatch) return res.status(400).json({ error: "Invalid URL format" });
+
+    const setId = setMatch[1];
+    const beatmapId = beatmapMatch ? beatmapMatch[1] : null;
+
+    const token = await getOsuAccessToken();
+
+    // Если указан конкретный beatmap, получаем её, иначе берём весь сет
+    let mapData;
+    if (beatmapId) {
+      const mapRes = await axios.get(`https://osu.ppy.sh/api/v2/beatmaps/${beatmapId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      mapData = mapRes.data;
+    } else {
+      const setRes = await axios.get(`https://osu.ppy.sh/api/v2/beatmapsets/${setId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      mapData = setRes.data.beatmaps[0];
+    }
+
+    // Сохраняем в Supabase
+    const { data: inserted, error } = await supabase
+      .from("pool_maps")
+      .insert([{
+        beatmap_id: mapData.beatmapset.id,         // ID сета
+        difficulty_id: mapData.id,                 // ID конкретной difficulty
+        title: `${mapData.beatmapset.title} [${mapData.version}]`,
+        background_url: mapData.beatmapset.covers['cover'],
+        map_url: `https://osu.ppy.sh/beatmaps/${mapData.id}`
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json({ success: true, map: inserted });
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    res.status(500).json({ error: "Ошибка при добавлении карты" });
+  }
 });
+
 
 app.get('/auth/logout', (req, res) => {
   req.session.destroy(err => {
@@ -1061,15 +1108,39 @@ app.get('/auth/logout', (req, res) => {
       console.error(err);
       return res.status(500).send('Ошибка выхода');
     }
-    // Редирект на текущую страницу (referer) или корень, если referer отсутствует
-    const redirectTo = req.headers.referer || '/';
-    res.redirect(redirectTo);
+    res.redirect('/');
   });
+});
+
+// Удаление участника (админ)
+app.delete('/api/participant/:nickname', async (req, res) => {
+  if (!req.session.user || req.session.user.username !== 'LLIaBKa') {
+    return res.status(403).json({ error: 'Not authorized' });
+  }
+
+  const nickname = req.params.nickname;
+
+  const { error } = await supabase.from("participants").delete().eq("nickname", nickname);
+  if (error) return res.status(500).json({ error: error.message });
+
+  res.json({ success: true });
+});
+
+// Очистка таблицы participants (админ)
+app.delete('/api/participants', async (req, res) => {
+  if (!req.session.user || req.session.user.username !== 'LLIaBKa') {
+    return res.status(403).json({ error: 'Not authorized' });
+  }
+
+  const { error } = await supabase.from("participants").delete().neq("id", 0);
+  if (error) return res.status(500).json({ error: error.message });
+
+  res.json({ success: true });
 });
 
 // === Участие основного турнира ===
 app.post('/api/pool/participate', async (req, res) => {
-  if (!req.session.user) return res.status(401).json({ error: 'Необходимо авторизоваться!' });
+  if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
 
   const user = req.session.user;
 
@@ -1132,6 +1203,7 @@ app.post('/api/pool/participate', async (req, res) => {
   }
 });
 
+
 app.post('/api/unparticipate', async (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
   const user = req.session.user;
@@ -1145,390 +1217,7 @@ app.post('/api/unparticipate', async (req, res) => {
   res.json({ success: true });
 });
 
-// === ФУНКЦИИ ELO (оставляем для новых турниров) ===
-async function updateEloFromHistory() {
-  try {
-    // Шаг 1: Загружаем все истории PP Cup (history)
-    const { data: ppHistoryRaw, error: ppErr } = await supabase
-      .from('history')
-      .select('date, data')
-      .order('date', { ascending: true });
-
-    if (ppErr) {
-      console.error('Ошибка загрузки PP history:', ppErr);
-      return;
-    }
-
-    // Шаг 2: Загружаем все истории Pool Cup (pool_history)
-    const { data: poolHistoryRaw, error: poolErr } = await supabase
-      .from('pool_history')
-      .select('*')
-      .order('tournament_date', { ascending: true });
-
-    if (poolErr) {
-      console.error('Ошибка загрузки Pool history:', poolErr);
-      return;
-    }
-
-    // Шаг 3: Загружаем всех игроков из players для текущих ELO/статистики
-    const { data: allPlayers, error: playersErr } = await supabase.from('players').select('*');
-    if (playersErr) {
-      console.error('Ошибка загрузки players:', playersErr);
-      return;
-    }
-    const playerMap = new Map(allPlayers.map(p => [p.userid, p]));
-
-    // Шаг 4: Проверяем, какие турниры уже обработаны (есть elo_after)
-    const processedPPTournaments = new Set();
-    for (const tournament of ppHistoryRaw) {
-      const participants = tournament.data || [];
-      const hasEloData = participants.some(p => p.elo_after !== undefined && p.elo_after !== null);
-      if (hasEloData) {
-        processedPPTournaments.add(tournament.date);
-      }
-    }
-
-    const processedPoolTournaments = new Set();
-    for (const entry of poolHistoryRaw) {
-      if (entry.elo_after !== undefined && entry.elo_after !== null) {
-        processedPoolTournaments.add(entry.tournament_date);
-      }
-    }
-
-    console.log(`Найдено обработанных PP турниров: ${processedPPTournaments.size}`);
-    console.log(`Найдено обработанных Pool турниров: ${processedPoolTournaments.size}`);
-
-    // Шаг 5: Обрабатываем только НЕОБРАБОТАННЫЕ PP Cup турниры по порядку
-    for (const tournament of ppHistoryRaw) {
-      if (processedPPTournaments.has(tournament.date)) {
-        console.log(`PP турнир ${tournament.date} уже обработан, пропускаем`);
-        continue;
-      }
-
-      const participants = tournament.data || [];
-      if (!participants.length) continue;
-
-      console.log(`Обрабатываем PP турнир ${tournament.date}`);
-      const eloMap = await calculateEloForTournament('pp', participants, playerMap);
-
-      // Обновляем elo_after в participants (в data jsonb)
-      participants.forEach(p => {
-        if (p.userid) {
-          p.elo_after = eloMap.get(p.userid);
-        }
-      });
-
-      // Сохраняем обновленный data обратно в history
-      await supabase
-        .from('history')
-        .update({ data: participants })
-        .eq('date', tournament.date);
-
-      await updatePlayersFromTournament('pp', participants, eloMap, playerMap);
-    }
-
-    // Шаг 6: Группируем pool_history по датам и обрабатываем только необработанные
-    const poolTournaments = new Map();
-    for (const entry of poolHistoryRaw) {
-      const date = entry.tournament_date;
-      if (!poolTournaments.has(date)) poolTournaments.set(date, []);
-      poolTournaments.get(date).push(entry);
-    }
-
-    for (const [date, participants] of poolTournaments) {
-      // Проверяем, все ли участники турнира уже имеют elo_after
-      const allProcessed = participants.every(p => p.elo_after !== undefined && p.elo_after !== null);
-      if (allProcessed && processedPoolTournaments.has(date)) {
-        console.log(`Pool турнир ${date} уже полностью обработан, пропускаем`);
-        continue;
-      }
-
-      console.log(`Обрабатываем Pool турнир ${date}`);
-
-      // Добавляем userid если отсутствует
-      for (const p of participants) {
-        if (!p.userid) {
-          const matchingPlayer = allPlayers.find(pl => pl.nickname === p.nickname);
-          if (matchingPlayer) {
-            p.userid = matchingPlayer.userid;
-            // Сохраним обратно в pool_history
-            await supabase.from('pool_history').update({ userid: p.userid }).eq('id', p.id);
-          }
-        }
-      }
-
-      // Фильтруем только с userid
-      const validParticipants = participants.filter(p => p.userid);
-      if (!validParticipants.length) continue;
-
-      // Рассчитываем ELO для этого турнира ('pool')
-      const eloMap = await calculateEloForTournament('pool', validParticipants, playerMap);
-
-      // Обновляем elo_after в pool_history
-      for (const p of validParticipants) {
-        await supabase
-          .from('pool_history')
-          .update({ elo_after: eloMap.get(p.userid) })
-          .eq('id', p.id);
-      }
-
-      // Обновляем players
-      await updatePlayersFromTournament('pool', validParticipants, eloMap, playerMap);
-    }
-
-    // Шаг 7: Финальная проверка и исправление статистик
-    console.log('Пересчитываем статистику для ВСЕХ турниров...');
-    await verifyAndFixPlayerStats(allPlayers.map(p => p.userid));
-
-    console.log('✅ ELO и статистика обновлены из историй (только новые турниры)');
-  } catch (err) {
-    console.error('Ошибка в updateEloFromHistory:', err);
-  }
-}
-
-// Вспомогательная: Расчет ELO для одного турнира
-async function calculateEloForTournament(type, participants, playerMap) {
-  const eloField = type === 'pp' ? 'elo_pp_cup' : 'elo_pool_cup';
-  const K = 320;
-  const newEloMap = new Map();
-
-  for (const playerA of participants) {
-    const currentPlayer = playerMap.get(playerA.userid) || { [eloField]: 1000 };
-    let currentEloA = currentPlayer[eloField] || 1000;
-    let delta = 0;
-
-    for (const playerB of participants) {
-      if (playerA.userid === playerB.userid) continue;
-      const eloB = (playerMap.get(playerB.userid)?.[eloField] || 1000);
-      const E_a = 1 / (1 + Math.pow(10, (eloB - currentEloA) / 400));
-      const scoreA = type === 'pp' ? (playerA.points || 0) : (playerA.total_pp || 0);
-      const scoreB = type === 'pp' ? (playerB.points || 0) : (playerB.total_pp || 0);
-      const S_a = (scoreA > scoreB) ? 1 : (scoreA === scoreB ? 0.5 : 0);
-      delta += K * (S_a - E_a);
-    }
-
-    const newElo = Math.round(currentEloA + (delta / (participants.length - 1 || 1)));
-    newEloMap.set(playerA.userid, newElo);
-  }
-
-  return newEloMap;
-}
-
-// Вспомогательная: Обновление players из турнира
-async function updatePlayersFromTournament(type, participants, eloMap, playerMap) {
-  const eloField = type === 'pp' ? 'elo_pp_cup' : 'elo_pool_cup';
-  const participationsField = type === 'pp' ? 'total_participations_pp' : 'total_participations_pool';
-  const totalScoreField = type === 'pp' ? 'total_points_pp' : 'total_pp_pool';
-  const bestPosField = type === 'pp' ? 'best_position_pp' : 'best_position_pool';
-  const winsField = type === 'pp' ? 'wins_pp' : 'wins_pool';
-
-  for (const playerA of participants) {
-    const currentPlayer = playerMap.get(playerA.userid) || {
-      [participationsField]: 0,
-      [totalScoreField]: 0,
-      [bestPosField]: null,
-      [winsField]: 0,
-      nickname: playerA.nickname,
-      avatar_url: playerA.avatar_url || playerA.avatar
-    };
-
-    const newParticipations = currentPlayer[participationsField] + 1;
-    const score = type === 'pp' ? (playerA.points || 0) : (playerA.total_pp || 0);
-    const newTotalScore = currentPlayer[totalScoreField] + score;
-    const newBestPos = currentPlayer[bestPosField] ? Math.min(currentPlayer[bestPosField], playerA.position || Infinity) : playerA.position;
-    const newWins = currentPlayer[winsField] + (playerA.position === 1 ? 1 : 0);
-    const newElo = eloMap.get(playerA.userid);
-
-    const { error } = await supabase.from('players').upsert({
-      userid: playerA.userid,
-      nickname: currentPlayer.nickname,
-      avatar_url: currentPlayer.avatar_url,
-      [eloField]: newElo,
-      [participationsField]: newParticipations,
-      [totalScoreField]: newTotalScore,
-      [bestPosField]: newBestPos,
-      [winsField]: newWins
-    }, { onConflict: 'userid' });
-
-    if (error) console.error(`Ошибка обновления players для ${playerA.userid}:`, error);
-
-    // Обновляем map для следующего турнира
-    playerMap.set(playerA.userid, { 
-      ...currentPlayer, 
-      [eloField]: newElo, 
-      [participationsField]: newParticipations, 
-      [totalScoreField]: newTotalScore, 
-      [bestPosField]: newBestPos, 
-      [winsField]: newWins 
-    });
-  }
-}
-async function syncPlayersFromHistories() {
-  try {
-    console.log('🔄 Начинаем синхронизацию игроков...');
-
-    // --- 1. Загружаем данные из history (PP капы)
-    const { data: historyRows, error: histErr } = await supabase.from('history').select('data');
-    if (histErr) throw histErr;
-
-    const idsFromHistory = new Set();
-    const nicksFromHistory = new Set();
-
-    (historyRows || []).forEach(row => {
-      const data = row?.data;
-      if (!Array.isArray(data)) return;
-      data.forEach(p => {
-        const id = Number(p.userid || p.user_id || p.id);
-        const nick = (p.nickname || p.username || '').trim();
-        if (id && !Number.isNaN(id)) idsFromHistory.add(id);
-        if (nick) nicksFromHistory.add(nick.toLowerCase());
-      });
-    });
-
-    // --- 2. Загружаем данные из pool_history (Pool капы)
-    const { data: poolRows, error: poolErr } = await supabase
-      .from('pool_history')
-      .select('nickname, avatar_url');
-    if (poolErr) throw poolErr;
-
-    const nicksFromPool = new Map();
-    (poolRows || []).forEach(p => {
-      const nick = (p.nickname || '').trim();
-      if (nick) {
-        nicksFromPool.set(nick.toLowerCase(), p.avatar_url || null);
-      }
-    });
-
-    // --- 3. Загружаем существующих игроков
-    const { data: existingPlayers, error: existErr } = await supabase
-      .from('players')
-      .select('userid, nickname');
-    if (existErr) throw existErr;
-
-    const existingIds = new Set(existingPlayers.map(p => Number(p.userid)));
-    const existingNicks = new Set(
-      existingPlayers.map(p => (p.nickname || '').trim().toLowerCase())
-    );
-
-    // --- 4. Определяем недостающих
-    const missingIds = [...idsFromHistory].filter(id => !existingIds.has(id));
-    const missingNicknames = [
-      ...new Set([...nicksFromHistory, ...nicksFromPool.keys()]),
-    ].filter(n => !existingNicks.has(n));
-
-    console.log(
-      `📊 Найдено ${missingIds.length} отсутствующих по ID и ${missingNicknames.length} по nickname`
-    );
-
-    // --- 5. Создаём игроков для вставки
-    const playersToInsert = [];
-    const token = await getOsuAccessToken();
-
-    // Сначала — по ID (PP кап)
-    for (const id of missingIds) {
-      try {
-        const res = await axios.get(`https://osu.ppy.sh/api/v2/users/${id}/osu`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const u = res.data;
-        playersToInsert.push({
-          userid: Number(u.id),
-          nickname: u.username,
-          avatar_url: u.avatar_url || null,
-          elo_pp_cup: 1000,
-          elo_pool_cup: 1000,
-        });
-      } catch (err) {
-        console.warn(`⚠️ Не удалось получить osu профиль для ID ${id}, создаём по заглушке`);
-        playersToInsert.push({
-          userid: Number(id),
-          nickname: `Player_${id}`,
-          avatar_url: null,
-          elo_pp_cup: 1000,
-          elo_pool_cup: 1000,
-        });
-      }
-    }
-
-    // Теперь — по nickname (Pool кап)
-    for (const nick of missingNicknames) {
-      if (playersToInsert.find(p => p.nickname.toLowerCase() === nick)) continue;
-
-      try {
-        const res = await axios.get(
-          `https://osu.ppy.sh/api/v2/users/${encodeURIComponent(nick)}/osu`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const u = res.data;
-        playersToInsert.push({
-          userid: Number(u.id),
-          nickname: u.username,
-          avatar_url: u.avatar_url || nicksFromPool.get(nick) || null,
-          elo_pp_cup: 1000,
-          elo_pool_cup: 1000,
-        });
-      } catch {
-        // создаём временного игрока без userid
-        const fakeId =
-          Math.abs(nick.split('').reduce((a, b) => a * 31 + b.charCodeAt(0), 7)) +
-          Date.now() % 10000;
-        playersToInsert.push({
-          userid: fakeId,
-          nickname: nick,
-          avatar_url: nicksFromPool.get(nick) || null,
-          elo_pp_cup: 1000,
-          elo_pool_cup: 1000,
-        });
-        console.warn(`⚠️ Игрок "${nick}" не найден в osu API — создан локально (id=${fakeId})`);
-      }
-    }
-
-    // --- 6. Удаляем дубликаты
-    const seen = new Set();
-    const uniquePlayers = playersToInsert.filter(p => {
-      if (seen.has(p.userid)) return false;
-      seen.add(p.userid);
-      return true;
-    });
-
-    // --- 7. Вставляем в БД
-    if (uniquePlayers.length) {
-      const { error: insErr } = await supabase
-        .from('players')
-        .upsert(uniquePlayers, { onConflict: 'userid' });
-      if (insErr) throw insErr;
-
-      console.log(`✅ Добавлено/обновлено игроков: ${uniquePlayers.length}`);
-    } else {
-      console.log('✅ Все игроки уже есть в базе.');
-    }
-
-    return {
-      ok: true,
-      inserted: uniquePlayers.length,
-      missingById: missingIds.length,
-      missingByNickname: missingNicknames.length,
-    };
-  } catch (err) {
-    console.error('❌ Ошибка syncPlayersFromHistories:', err);
-    return { ok: false, error: err.message || err.toString() };
-  }
-}
-
-
-
-app.get('/profile/:userid', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'profile.html'));
-});
-
-
-
 // === Запуск сервера ===
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  // При запуске сервера делаем принудительный пересчет статистики
-  setTimeout(() => {
-    console.log('🚀 Инициализация статистики при запуске...');
-    verifyAndFixPlayerStats();
-  }, 5000);
 });
