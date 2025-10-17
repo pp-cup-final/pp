@@ -966,38 +966,21 @@ async function updatePoolPP() {
 
 
 cron.schedule("1 0 * * *", async () => {
-  const startDate = new Date("2025-10-19");
+  const startDate = new Date("2025-10-20T00:00:00+03:00"); // ближайшее воскресенье в Moscow TZ
   const today = new Date();
+  today.setHours(0, 0, 0, 0); // Сбрасываем время для точного расчета дня
+  
   const diffDays = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
-  if (diffDays % 2 !== 0) return;
-  await supabase.from("pool_maps").delete().neq("id", 0);
 
-    console.log("Пул и карты очищены.");
+  // Запускаем задачу только каждые 2 дня после старта (четные дни: 0, 2, 4...)
+  if (diffDays < 0 || diffDays % 2 !== 0) {
+    console.log(`⏭️ CRON пропущен: ${today.toISOString().split('T')[0]} (diffDays=${diffDays})`);
+    return;
+  }
 
-    try {
-      // 1. Забираем все строки из test_pool_maps
-      const { data: rows, error: fetchError } = await supabase
-        .from('test_pool_maps')
-        .select('*');
+  console.log(`🚀 CRON запущен: день ${diffDays} от 20.10.2025`);
 
-      if (fetchError) throw fetchError;
-      if (!rows.length) {
-        console.log('Нет строк для перемещения');
-        return;
-      }
-
-      // 2. Вставляем их в pool_maps
-      const { error: insertError } = await supabase
-        .from('pool_maps')
-        .insert(rows);
-
-      if (insertError) throw insertError;
-     
-      console.log(`✅ Перемещено ${rows.length} строк`);
-    } catch (err) {
-      console.error('Ошибка перемещения:', err.message || err);
-    }
-try {
+  try {
     console.log("=== Сохранение истории пула ===");
 
     // 1) Получаем всех участников пула
@@ -1051,7 +1034,7 @@ try {
       const { error: insertErr } = await supabase.from("pool_history").insert({
         tournament_date: new Date().toISOString().split("T")[0],
         position: index + 1,
-        userid: p.userid, // Добавляем userid
+         // Добавляем userid
         avatar_url: p.avatar,
         nickname: p.nickname,
         total_pp: p.total_pp,
@@ -1098,162 +1081,104 @@ try {
     console.error("Ошибка в CRON сохранения истории пула:", err.response?.data || err.message || err);
   }
 
-  console.log('🔄 Начато обновление статистики...');
-  
   try {
-    await syncPlayersFromHistories();
-    await updateEloFromHistory();
+    console.log('Начато обновление статистики для игроков');
+    await syncPlayersFromHistories().catch(console.error);
+    await updateEloFromHistory().catch(console.error);
     
     const token = await getOsuAccessToken();
     if (!token) {
-      console.error('❌ Не удалось получить токен для генерации карт');
+      console.error('❌ Не удалось получить osu! токен');
       return;
     }
 
-    // Очистка старых карт
-    const { error: deleteError } = await supabase
+    // Очистка таблицы
+    const { error: deleteError, data: deletedData } = await supabase
       .from('test_pool_maps')
       .delete()
       .neq('id', 0);
-    if (deleteError) throw deleteError;
+    if (deleteError) {
+      console.error('Ошибка очистки таблицы:', deleteError.message);
+      throw deleteError;
+    }
+    console.log(`✅ Очищено ${deletedData.length} записей`);
 
-    console.log("🎲 Начата генерация пула карт (цель: 10 карт 6-8★)");
-
+    console.log("Начата генерация пула карт");
     let count = 0;
     let attempts = 0;
-    const maxAttempts = 1000; // Защита от бесконечного цикла
+    const maxAttempts = 10000;
 
-    while (count < 10 && attempts < maxAttempts) {
+    while (count < 5 && attempts < maxAttempts) {
       attempts++;
       const randomSetId = Math.floor(Math.random() * 2300000) + 1;
-      
       try {
-        const res = await axios.get(
-          `https://osu.ppy.sh/api/v2/beatmapsets/${randomSetId}`, 
-          {
-            headers: { 
-              Authorization: `Bearer ${token}`,
-              'User-Agent': 'OsuTournament/1.0'
-            },
-            timeout: 10000
-          }
-        );
-        
-        const set = res.data;
-        
-        if (set.status !== "ranked") {
+        const resApi = await axios.get(`https://osu.ppy.sh/api/v2/beatmapsets/${randomSetId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 10000
+        });
+        const set = resApi.data;
+
+        if (!set || !set.beatmaps || !Array.isArray(set.beatmaps)) {
+          console.warn(`⚠️ Сет ${randomSetId} не содержит валидных beatmaps, пропускаем`);
           continue;
         }
 
-        // ✅ Улучшенная фильтрация с fallback
-        let validDiffs = set.beatmaps?.filter(bm => 
-          bm.mode === "osu" && 
-          typeof bm.difficulty_rating === 'number' && 
-          !isNaN(bm.difficulty_rating) &&
-          bm.difficulty_rating >= 6 && 
-          bm.difficulty_rating <= 8
-        ) || [];
+        if (set.status !== "ranked") continue;
 
-        // 🆕 Fallback: если нет подходящих — получаем отдельно beatmap
-        if (validDiffs.length === 0 && set.beatmaps?.length > 0) {
-          console.log(`🔍 Beatmapset ${set.id} не имеет подходящих сложностей, проверяем вручную...`);
-          
-          // Берем первую osu! карту и получаем её отдельно
-          const firstOsuMap = set.beatmaps.find(bm => bm.mode === "osu");
-          if (firstOsuMap) {
-            try {
-              const mapDetailRes = await axios.get(
-                `https://osu.ppy.sh/api/v2/beatmaps/${firstOsuMap.id}`,
-                {
-                  headers: { Authorization: `Bearer ${token}` },
-                  timeout: 8000
-                }
-              );
-              
-              const detailedMap = mapDetailRes.data;
-              const stars = detailedMap.difficulty_rating;
-              
-              console.log(`📊 Детали карты ${firstOsuMap.id}: stars=${stars}`);
-              
-              if (typeof stars === 'number' && stars >= 6 && stars <= 8) {
-                validDiffs = [detailedMap];
-                console.log('✅ Найдена подходящая сложность через детальный запрос');
-              }
-            } catch (detailErr) {
-              console.warn(`⚠️ Ошибка получения деталей карты ${firstOsuMap.id}:`, detailErr.message);
-            }
-          }
-        }
+        const validDiffs = set.beatmaps.filter(
+          bm => bm.mode === "osu" && 
+                typeof bm.difficulty_rating === 'number' && 
+                bm.difficulty_rating >= 6 && bm.difficulty_rating <= 8
+        );
 
         if (validDiffs.length > 0) {
           const map = validDiffs[Math.floor(Math.random() * validDiffs.length)];
-          
-          // ✅ Дополнительная валидация перед вставкой
-          if (!map.id || !map.difficulty_rating) {
-            console.warn(`❌ Карта ${map.id} имеет некорректные данные, пропускаем`);
-            continue;
-          }
 
           const insertData = [{
-            beatmap_id: set.id,
-            difficulty_id: map.id,
-            title: `${set.title} [${map.version}] +${map.mods?.join('') || ''}`,
-            background_url: set.covers?.cover || set.covers?._fallback || '',
-            map_url: `https://osu.ppy.sh/beatmaps/${map.id}`,
-            difficulty_rating: map.difficulty_rating, // ✅ Сохраняем stars
-            beatmapset_id: set.id
+            beatmap_id: set.id || null,
+            difficulty_id: map.id || null,
+            title: `${set.title || 'Unnamed'} [${map.version || 'Unknown'}]`,
+            background_url: set.covers?.cover || null,
+            map_url: `https://osu.ppy.sh/beatmaps/${map.id || 0}`
           }];
 
-          const { error: insertError } = await supabase
+          const { error: insertError, data: insertedData } = await supabase
             .from("test_pool_maps")
             .insert(insertData);
 
           if (insertError) {
-            console.error(`❌ Ошибка вставки карты ${map.id}:`, insertError.message);
-          } else {
-            console.log(`🎵 Добавлена карта: ${set.title} [${map.version}] (${map.difficulty_rating}★)`);
+            console.error(`❌ Ошибка вставки карты ${map.id}:`, insertError.message, insertData);
+            continue;
+          }
+
+          if (insertedData && insertedData.length > 0) {
+            console.log(`🎵 Успешно добавлена карта: ${insertData[0].title} (ID: ${insertedData[0].id})`);
             count++;
+          } else {
+            console.warn(`⚠️ Вставка карты ${map.id} не вернула данные, но ошибки нет`);
           }
         }
-
-        // Rate limiting: пауза каждые 50 попыток
-        if (attempts % 50 === 0) {
-          console.log(`⏳ Пауза для rate limit (${attempts} попыток, ${count}/10 карт)`);
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-
       } catch (err) {
+        console.warn(`Пропущен сет ${randomSetId}:`, err.message);
         if (err.response?.status === 429) {
-          console.log('⏳ Rate limit, ждем 5 сек...');
+          console.log('⏳ Rate limit, пауза 5 сек...');
           await new Promise(resolve => setTimeout(resolve, 5000));
-        } else if (err.response?.status >= 500) {
-          console.log('🌐 Ошибка сервера osu!, ждем 3 сек...');
-          await new Promise(resolve => setTimeout(resolve, 3000));
         }
-        // Игнорируем 404 и client ошибки
         continue;
       }
     }
 
-    if (count < 5) {
-      console.warn(`⚠️ Сгенерировано только ${count}/5 карт после ${attempts} попыток`);
-    } else {
-      console.log(`✅ Пул карт сгенерирован: ${count} карт`);
+    const { data: generatedMaps, error: fetchError } = await supabase
+      .from('test_pool_maps')
+      .select('*');
+    if (fetchError) {
+      console.error('Ошибка при получении данных из базы:', fetchError.message);
+      throw fetchError;
     }
 
-    // ✅ Логирование финального пула
-    const { data: generatedMaps } = await supabase
-      .from('test_pool_maps')
-      .select('title, difficulty_rating')
-      .order('id');
-    
-    console.log('📋 Сгенерированные карты:');
-    generatedMaps?.forEach(map => {
-      console.log(`  - ${map.title} (${map.difficulty_rating || 'N/A'}★)`);
-    });
-
-  } catch (error) {
-    console.error('❌ Ошибка генерации пула карт:', error);
+    console.log(`✅ Сгенерировано ${count}/5 карт, в базе: ${generatedMaps.length} записей`);
+  } catch (err) {
+    console.error('❌ Ошибка в CRON задаче:', err.message || err);
   }
 }, { timezone: "Europe/Moscow" });
 
