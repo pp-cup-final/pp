@@ -35,7 +35,7 @@ let osuTokenExpiry = 0;
 
 const osuClientId = process.env.OSU_CLIENT_ID;
 const osuClientSecret = process.env.OSU_CLIENT_SECRET;
-const redirectUri = process.env.REDIRECT_URI || 'http://xn--80aea7bebb7e.xn--p1ai/auth/callback';
+const redirectUri = process.env.REDIRECT_URI || 'https://xn--80aea7bebb7e.xn--p1ai/auth/callback';
 
 async function fetchUserScores(userId, sinceDate, token) {
   const res = await fetch(`https://osu.ppy.sh/api/v2/users/${userId}/scores/recent?limit=100`, {
