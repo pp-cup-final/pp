@@ -101,9 +101,9 @@
       border: none;
       padding: 0;
       cursor: pointer;
-      font-family: inherit; /* Наследуем шрифт от body */
-      font-size: inherit; /* Наследуем размер шрифта */
-      line-height: inherit; /* Наследуем высоту строки */
+      font-family: inherit;
+      font-size: inherit;
+      line-height: inherit;
     }
     .nav-center a:hover, .nav-center #rulesBtn:hover {
       color: #ff7a00;
@@ -214,7 +214,6 @@
       color: #fff;
       margin: 0 0 0.5rem 0;
     }
-    /* Стили для ссылки на никнейм */
     .profile-nick a {
       color: inherit;
       text-decoration: none;
@@ -655,7 +654,7 @@
         let prevEloPP = 1000;
 
         ppChronological.forEach(h => {
-          const currentElo = h.elo_after || prevEloPP;
+          const currentElo = Number.isFinite(h.elo_after) ? Number(h.elo_after) : prevEloPP;
           ppEloData.push(currentElo);
           prevEloPP = currentElo;
         });
@@ -667,7 +666,7 @@
         let prevEloPool = 1000;
 
         poolChronological.forEach(h => {
-          const currentElo = h.elo_after || prevEloPool;
+          const currentElo = Number.isFinite(h.elo_after) ? Number(h.elo_after) : prevEloPool;
           poolEloData.push(currentElo);
           prevEloPool = currentElo;
         });
@@ -691,7 +690,7 @@
           
           let prevElo = 1000;
           chronologicalPPHistory.forEach(h => {
-            const currentElo = h.elo_after || prevElo;
+            const currentElo = Number.isFinite(h.elo_after) ? Number(h.elo_after) : prevElo;
             const eloChange = currentElo - prevElo;
             const eloDisplay = eloChange === 0 ? '0' : (eloChange > 0 ? `+${eloChange.toFixed(0)}` : `${eloChange.toFixed(0)}`);
             const eloClass = eloChange > 0 ? 'positive' : (eloChange < 0 ? 'negative' : '');
@@ -720,7 +719,7 @@
           
           let prevElo = 1000;
           chronologicalPoolHistory.forEach(h => {
-            const currentElo = h.elo_after || prevElo;
+            const currentElo = Number.isFinite(h.elo_after) ? Number(h.elo_after) : prevElo;
             const eloChange = currentElo - prevElo;
             const eloDisplay = eloChange === 0 ? '0' : (eloChange > 0 ? `+${eloChange.toFixed(0)}` : `${eloChange.toFixed(0)}`);
             const eloClass = eloChange > 0 ? 'positive' : (eloChange < 0 ? 'negative' : '');
@@ -772,7 +771,7 @@
     }
 
     rulesBtn.onclick = (e) => {
-      e.preventDefault(); // Предотвращаем изменение URL
+      e.preventDefault();
       modal.style.display = "block";
       setRulesActive(true);
     };
