@@ -542,7 +542,8 @@ cron.schedule("0 0 * * 0", async () => {
   try {
     // Сначала пересчитаем и запишем актуальные позиции в participants
     await updatePositionsInDB();
-
+    await syncPlayersFromHistories().catch(console.error);
+    await updateEloFromHistory().catch(console.error);
     // Получаем участников уже с позициями, отсортированных по позиции ASC
     const { data: participants, error: fetchErr } = await supabase
       .from('participants')
@@ -1592,58 +1593,63 @@ async function updateEloFromHistory() {
       console.error('Ошибка загрузки players:', playersErr);
       return;
     }
-    const playerMap = new Map(allPlayers.map(p => [p.userid, p]));
+    const playerMap = new Map(allPlayers.map(p => [p.userid.toString(), p]));
 
-    // Шаг 4: Проверяем, какие турниры уже обработаны (есть elo_after)
-    const processedPPTournaments = new Set();
+    // Шаг 4: Обрабатываем PP Cup турниры
     for (const tournament of ppHistoryRaw) {
       const participants = tournament.data || [];
-      const hasEloData = participants.some(p => p.elo_after !== undefined && p.elo_after !== null);
-      if (hasEloData) {
-        processedPPTournaments.add(tournament.date);
-      }
-    }
-
-    const processedPoolTournaments = new Set();
-    for (const entry of poolHistoryRaw) {
-      if (entry.elo_after !== undefined && entry.elo_after !== null) {
-        processedPoolTournaments.add(entry.tournament_date);
-      }
-    }
-
-    console.log(`Найдено обработанных PP турниров: ${processedPPTournaments.size}`);
-    console.log(`Найдено обработанных Pool турниров: ${processedPoolTournaments.size}`);
-
-    // Шаг 5: Обрабатываем только НЕОБРАБОТАННЫЕ PP Cup турниры по порядку
-    for (const tournament of ppHistoryRaw) {
-      if (processedPPTournaments.has(tournament.date)) {
-        console.log(`PP турнир ${tournament.date} уже обработан, пропускаем`);
+      if (!participants.length) {
+        console.log(`PP турнир ${tournament.date} пуст, пропускаем`);
         continue;
       }
 
-      const participants = tournament.data || [];
-      if (!participants.length) continue;
-
       console.log(`Обрабатываем PP турнир ${tournament.date}`);
-      const eloMap = await calculateEloForTournament('pp', participants, playerMap);
 
-      // Обновляем elo_after в participants (в data jsonb)
-      participants.forEach(p => {
-        if (p.userid) {
-          p.elo_after = eloMap.get(p.userid);
+      // Фильтруем участников с валидными userid и points
+      const validParticipants = participants
+        .filter(p => p.userid && Number.isFinite(parseFloat(p.points)))
+        .map(p => ({
+          ...p,
+          userid: p.userid.toString(), // Приводим к строке для консистентности
+          points: parseFloat(p.points),
+          position: parseInt(p.position) || Infinity,
+        }));
+
+      if (!validParticipants.length) {
+        console.log(`Нет валидных участников в PP турнире ${tournament.date}, пропускаем`);
+        continue;
+      }
+
+      // Рассчитываем ELO
+      const eloMap = await calculateEloForTournament('pp', validParticipants, playerMap);
+
+      // Обновляем elo_after для всех участников
+      const updatedParticipants = participants.map(p => {
+        if (!p.userid || !eloMap.has(p.userid.toString())) {
+          return p; // Пропускаем участников без userid или ELO
         }
+        return {
+          ...p,
+          elo_after: eloMap.get(p.userid.toString()),
+        };
       });
 
       // Сохраняем обновленный data обратно в history
-      await supabase
+      const { error: updateErr } = await supabase
         .from('history')
-        .update({ data: participants })
+        .update({ data: updatedParticipants })
         .eq('date', tournament.date);
 
-      await updatePlayersFromTournament('pp', participants, eloMap, playerMap);
+      if (updateErr) {
+        console.error(`Ошибка обновления PP турнира ${tournament.date}:`, updateErr);
+        continue;
+      }
+
+      await updatePlayersFromTournament('pp', validParticipants, eloMap, playerMap);
+      console.log(`✅ PP турнир ${tournament.date} обработан, обновлено ${eloMap.size} ELO`);
     }
 
-    // Шаг 6: Группируем pool_history по датам и обрабатываем только необработанные
+    // Шаг 5: Группируем pool_history по датам
     const poolTournaments = new Map();
     for (const entry of poolHistoryRaw) {
       const date = entry.tournament_date;
@@ -1652,51 +1658,47 @@ async function updateEloFromHistory() {
     }
 
     for (const [date, participants] of poolTournaments) {
-      // Проверяем, все ли участники турнира уже имеют elo_after
-      const allProcessed = participants.every(p => p.elo_after !== undefined && p.elo_after !== null);
-      if (allProcessed && processedPoolTournaments.has(date)) {
-        console.log(`Pool турнир ${date} уже полностью обработан, пропускаем`);
+      console.log(`Обрабатываем Pool турнир ${date}`);
+
+      // Фильтруем участников с валидными userid и total_pp
+      const validParticipants = participants
+        .filter(p => p.userid && Number.isFinite(parseFloat(p.total_pp)))
+        .map(p => ({
+          ...p,
+          userid: p.userid.toString(), // Приводим к строке
+          total_pp: parseFloat(p.total_pp),
+          position: parseInt(p.position) || Infinity,
+        }));
+
+      if (!validParticipants.length) {
+        console.log(`Нет валидных участников в Pool турнире ${date}, пропускаем`);
         continue;
       }
 
-      console.log(`Обрабатываем Pool турнир ${date}`);
-
-      // Добавляем userid если отсутствует
-      for (const p of participants) {
-        if (!p.userid) {
-          const matchingPlayer = allPlayers.find(pl => pl.nickname === p.nickname);
-          if (matchingPlayer) {
-            p.userid = matchingPlayer.userid;
-            // Сохраним обратно в pool_history
-            await supabase.from('pool_history').update({ userid: p.userid }).eq('id', p.id);
-          }
-        }
-      }
-
-      // Фильтруем только с userid
-      const validParticipants = participants.filter(p => p.userid);
-      if (!validParticipants.length) continue;
-
-      // Рассчитываем ELO для этого турнира ('pool')
+      // Рассчитываем ELO
       const eloMap = await calculateEloForTournament('pool', validParticipants, playerMap);
 
       // Обновляем elo_after в pool_history
       for (const p of validParticipants) {
-        await supabase
+        const { error: updateErr } = await supabase
           .from('pool_history')
           .update({ elo_after: eloMap.get(p.userid) })
           .eq('id', p.id);
+
+        if (updateErr) {
+          console.error(`Ошибка обновления ELO для ${p.nickname} в Pool турнире ${date}:`, updateErr);
+        }
       }
 
-      // Обновляем players
       await updatePlayersFromTournament('pool', validParticipants, eloMap, playerMap);
+      console.log(`✅ Pool турнир ${date} обработан, обновлено ${eloMap.size} ELO`);
     }
 
-    // Шаг 7: Финальная проверка и исправление статистик
-    console.log('Пересчитываем статистику для ВСЕХ турниров...');
-    await verifyAndFixPlayerStats(allPlayers.map(p => p.userid));
+    // Шаг 6: Финальная проверка и исправление статистик
+    console.log('Пересчитываем статистику для всех игроков...');
+    await verifyAndFixPlayerStats([...playerMap.keys()]);
 
-    console.log('✅ ELO и статистика обновлены из историй (только новые турниры)');
+    console.log('✅ ELO и статистика обновлены для всех турниров');
   } catch (err) {
     console.error('Ошибка в updateEloFromHistory:', err);
   }
@@ -1709,22 +1711,24 @@ async function calculateEloForTournament(type, participants, playerMap) {
   const newEloMap = new Map();
 
   for (const playerA of participants) {
-    const currentPlayer = playerMap.get(playerA.userid) || { [eloField]: 1000 };
-    let currentEloA = currentPlayer[eloField] || 1000;
+    const playerId = playerA.userid.toString();
+    const currentPlayer = playerMap.get(playerId) || { [eloField]: 1000 };
+    let currentEloA = parseFloat(currentPlayer[eloField]) || 1000;
     let delta = 0;
 
     for (const playerB of participants) {
       if (playerA.userid === playerB.userid) continue;
-      const eloB = (playerMap.get(playerB.userid)?.[eloField] || 1000);
+      const playerBId = playerB.userid.toString();
+      const eloB = parseFloat(playerMap.get(playerBId)?.[eloField]) || 1000;
       const E_a = 1 / (1 + Math.pow(10, (eloB - currentEloA) / 400));
       const scoreA = type === 'pp' ? (playerA.points || 0) : (playerA.total_pp || 0);
       const scoreB = type === 'pp' ? (playerB.points || 0) : (playerB.total_pp || 0);
-      const S_a = (scoreA > scoreB) ? 1 : (scoreA === scoreB ? 0.5 : 0);
+      const S_a = scoreA > scoreB ? 1 : scoreA === scoreB ? 0.5 : 0;
       delta += K * (S_a - E_a);
     }
 
     const newElo = Math.round(currentEloA + (delta / (participants.length - 1 || 1)));
-    newEloMap.set(playerA.userid, newElo);
+    newEloMap.set(playerId, newElo);
   }
 
   return newEloMap;
@@ -1739,43 +1743,51 @@ async function updatePlayersFromTournament(type, participants, eloMap, playerMap
   const winsField = type === 'pp' ? 'wins_pp' : 'wins_pool';
 
   for (const playerA of participants) {
-    const currentPlayer = playerMap.get(playerA.userid) || {
+    const playerId = playerA.userid.toString();
+    const currentPlayer = playerMap.get(playerId) || {
       [participationsField]: 0,
       [totalScoreField]: 0,
       [bestPosField]: null,
       [winsField]: 0,
       nickname: playerA.nickname,
-      avatar_url: playerA.avatar_url || playerA.avatar
+      avatar_url: playerA.avatar_url || playerA.avatar,
+      userid: playerId,
     };
 
-    const newParticipations = currentPlayer[participationsField] + 1;
+    const newParticipations = (currentPlayer[participationsField] || 0) + 1;
     const score = type === 'pp' ? (playerA.points || 0) : (playerA.total_pp || 0);
-    const newTotalScore = currentPlayer[totalScoreField] + score;
-    const newBestPos = currentPlayer[bestPosField] ? Math.min(currentPlayer[bestPosField], playerA.position || Infinity) : playerA.position;
-    const newWins = currentPlayer[winsField] + (playerA.position === 1 ? 1 : 0);
-    const newElo = eloMap.get(playerA.userid);
+    const newTotalScore = (currentPlayer[totalScoreField] || 0) + score;
+    const newBestPos = currentPlayer[bestPosField]
+      ? Math.min(currentPlayer[bestPosField], playerA.position || Infinity)
+      : playerA.position;
+    const newWins = (currentPlayer[winsField] || 0) + (playerA.position === 1 ? 1 : 0);
+    const newElo = eloMap.get(playerId);
 
     const { error } = await supabase.from('players').upsert({
-      userid: playerA.userid,
+      userid: playerId,
       nickname: currentPlayer.nickname,
       avatar_url: currentPlayer.avatar_url,
       [eloField]: newElo,
       [participationsField]: newParticipations,
-      [totalScoreField]: newTotalScore,
-      [bestPosField]: newBestPos,
-      [winsField]: newWins
+      [totalScoreField]: Math.round(newTotalScore),
+      [bestPosField]: Number.isFinite(newBestPos) ? newBestPos : null,
+      [winsField]: newWins,
     }, { onConflict: 'userid' });
 
-    if (error) console.error(`Ошибка обновления players для ${playerA.userid}:`, error);
+    if (error) {
+      console.error(`Ошибка обновления players для ${playerId}:`, error);
+      continue;
+    }
 
     // Обновляем map для следующего турнира
-    playerMap.set(playerA.userid, { 
-      ...currentPlayer, 
-      [eloField]: newElo, 
-      [participationsField]: newParticipations, 
-      [totalScoreField]: newTotalScore, 
-      [bestPosField]: newBestPos, 
-      [winsField]: newWins 
+    playerMap.set(playerId, {
+      ...currentPlayer,
+      [eloField]: newElo,
+      [participationsField]: newParticipations,
+      [totalScoreField]: newTotalScore,
+      [bestPosField]: newBestPos,
+      [winsField]: newWins,
+      userid: playerId,
     });
   }
 }
