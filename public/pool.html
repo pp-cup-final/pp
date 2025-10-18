@@ -48,18 +48,28 @@
       display: flex;
       align-items: center;
     }
-    .nav-center a {
+    .nav-center a, .nav-center button {
       color: #fff;
       text-decoration: none;
       margin: 0 0.9rem;
       position: relative;
       transition: color 0.3s;
       font-weight: 500;
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: inherit;
+      line-height: inherit;
     }
-    .nav-center a:hover {
+    .nav-center a:hover, .nav-center button:hover {
       color: #ff7a00;
     }
-    .nav-center a.active::after {
+    .nav-center a.active, .nav-center button.active {
+      color: #ff7a00;
+    }
+    .nav-center a.active::after, .nav-center button.active::after {
       content: "";
       position: absolute;
       left: 0; bottom: -4px;
@@ -82,36 +92,6 @@
       justify-content: center;
       gap: 8px;
     }
-    .nav-center a, .nav-center #rulesBtn {
-      color: #fff;
-      text-decoration: none;
-      margin: 0 0.9rem;
-      position: relative;
-      transition: color 0.3s;
-      font-weight: 500;
-      background: none;
-      border: none;
-      padding: 0;
-      cursor: pointer;
-      font-family: inherit; /* Наследуем шрифт от body */
-      font-size: inherit; /* Наследуем размер шрифта */
-      line-height: inherit; /* Наследуем высоту строки */
-    }
-    .nav-center a:hover, .nav-center #rulesBtn:hover {
-      color: #ff7a00;
-    }
-    .nav-center a.active, .nav-center #rulesBtn.active {
-      color: #ff7a00;
-    }
-    .nav-center a.active::after, .nav-center #rulesBtn.active::after {
-      content: "";
-      position: absolute;
-      left: 0; bottom: -4px;
-      width: 100%; height: 2px;
-      background: #ff7a00;
-      border-radius: 1px;
-      animation: underline 0.3s ease;
-    }
     .nav-right #user {
       color: #ccc;
       white-space: nowrap;
@@ -131,7 +111,7 @@
 
     /* === КОНТЕНТ === */
     main {
-      padding-top: 2%;
+      padding-top: 3%; /* Увеличено для отступа от навбара */
       max-width: 98%;
       margin: 0 auto;
       padding-left: 1rem;
@@ -143,7 +123,7 @@
       background: #1d1d1d;
       border-radius: 12px;
       overflow: hidden;
-      margin: 0rem auto 1.5rem auto;
+      margin: 0 auto 1.5rem auto;
       position: relative;
       box-shadow: 0 0 10px rgba(0,0,0,0.3);
     }
@@ -165,64 +145,26 @@
       text-shadow: 0 0 5px #000;
     }
 
-    #login {
+    #login, #logout, #participate {
       background: #c265b4;
       color: white;
       border: none;
       padding: 10px 12px;
       border-radius: 8px;
       cursor: pointer;
-      transition: background 0.2s ease;
+      transition: background 0.2s ease, color 0.3s;
       text-decoration: none;
-      position: relative;
-      transition: color 0.3s;
       font-weight: 500;
     }
-    #login:hover {
+    #login:hover, #logout:hover, #participate:hover {
       background: #8e077a;
       color: white;
     }
     #participate {
-      background: #c265b4;
-      color: white;
-      border: none;
-      padding: 10px 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.2s ease;
-      text-decoration: none;
       margin-left: 3%;
-      position: relative;
-      transition: color 0.3s;
-      font-weight: 500;
     }
-    #participate:hover {
-      background: #8e077a;
-      color: white;
-    }
-    #logout {
-      background: #c265b4;
-      color: white;
-      border: none;
-      padding: 10px 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 500;
-      transition: background 0.2s ease;
-    }
-    #logout:hover {
-      background: #8e077a;
-      color: white;
-    }
-
     .button-link, .history {
       text-decoration: none;
-    }
-    #user {
-      font-weight: bold;
-      color: #ccc;
-      margin-top: 10px;
-      margin-bottom: 10px;
     }
     .nickname-cell a.nickname { color: #fff; font-weight: bold; text-decoration: none; }
     .nickname-cell a.nickname:hover { text-decoration: underline; color: #ffb86b; }
@@ -247,7 +189,7 @@
     .map-entry a { color: #fff; font-weight: bold; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; pointer-events: none; }
     .map-cover { width: 90px; height: 55px; border-radius: 6px; background-size: cover; background-position: center; flex-shrink: 0; }
     .map-info { display: flex; justify-content: space-between; flex: 1; color: #fff; font-weight: bold; }
-    .nickname-cell { text-align: left;  align-items: center; gap: 10px; }
+    .nickname-cell { text-align: left; display: flex; align-items: center; gap: 10px; }
     .position { width: 80px; text-align: center; }
     .pp { width: 10%; text-align: center; vertical-align: middle; }
     .position-text { width: 80px; text-align: center; font-weight: bold; }
@@ -625,7 +567,6 @@
     const rulesBtn = document.getElementById("rulesBtn");
     const closeBtn = document.getElementById("closeModal");
 
-    // Функция для управления активным состоянием
     function setRulesActive(active) {
       if (active) {
         rulesBtn.classList.add("active");
@@ -635,7 +576,7 @@
     }
 
     rulesBtn.onclick = (e) => {
-      e.preventDefault(); // Предотвращаем изменение URL
+      e.preventDefault();
       modal.style.display = "block";
       setRulesActive(true);
     };
@@ -652,7 +593,6 @@
       }
     };
 
-    // Закрытие модала по Escape
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && modal.style.display === 'block') {
         modal.style.display = "none";
@@ -660,23 +600,23 @@
       }
     });
 
-    function getNextSundayMidnightMSK() {
-      const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
-      const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
-      const nextSunday = new Date(nowMSK);
-      nextSunday.setDate(nowMSK.getDate() + ((7 - nowMSK.getDay()) % 7));
-      nextSunday.setHours(0, 0, 0, 0);
-      return nextSunday;
+    function getNextPoolEndMSK() {
+      const startDate = new Date('2025-10-18T00:00:00+03:00'); // 18 октября 2025, 00:00 MSK
+      const nowMSK = new Date(Date.now() + 3 * 60 * 60 * 1000); // Текущее время в MSK
+      const daysSinceStart = Math.floor((nowMSK - startDate) / (1000 * 60 * 60 * 24));
+      const daysToNext = 2 - (daysSinceStart % 2); // Каждые 2 дня
+      const nextEnd = new Date(nowMSK);
+      nextEnd.setDate(nowMSK.getDate() + daysToNext);
+      nextEnd.setHours(0, 0, 0, 0); // Следующий цикл в полночь
+      return nextEnd;
     }
 
     function updateCountdown() {
-      const target = getNextSundayMidnightMSK();
+      const target = getNextPoolEndMSK();
       const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
       const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
-      const weekStart = new Date(target);
-      weekStart.setDate(target.getDate() - 7);
-      const totalTime = target - weekStart;
-      let diff = target - nowMSK;
+      const cycleDuration = 2 * 24 * 60 * 60 * 1000; // 2 дня в миллисекундах
+      const diff = target - nowMSK;
 
       const bar = document.getElementById("countdown-bar");
       const text = document.getElementById("countdown-text");
@@ -685,10 +625,14 @@
         bar.style.width = "0%";
         bar.style.backgroundColor = "red";
         text.textContent = "Обновление...";
+        setTimeout(() => {
+          loadPool();
+          loadData();
+        }, 1000);
         return;
       }
 
-      const percent = (diff / totalTime) * 100;
+      const percent = (diff / cycleDuration) * 100;
       bar.style.width = percent + "%";
       const r = Math.min(255, Math.floor(255 * (1 - percent / 100)));
       const g = Math.min(255, Math.floor(255 * (percent / 100)));

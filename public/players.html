@@ -192,7 +192,7 @@
       color: white;
     }
     main {
-      padding-top: 3%;
+      padding-top: 2%;
       max-width: 98%;
       margin: 0 auto;
       padding-left: 1rem;
@@ -373,7 +373,7 @@
       <thead>
         <tr>
           <th>Игрок</th>
-          <th>Медали</th>
+          <th data-sort="medals">Медали</th>
           <th data-sort="current_pp" class="sorted">PP</th>
           <th data-sort="elo_pp_cup">ELO PP Cup</th>
           <th data-sort="elo_pool_cup">ELO Pool Cup</th>
@@ -488,9 +488,16 @@
       }
 
       data.sort((a, b) => {
-        let valA = sortBy === 'current_pp' ? (a.current_pp || 0) : (sortBy === 'elo_pp_cup' ? (a.elo_pp_cup || 0) : (a.elo_pool_cup || 0));
-        let valB = sortBy === 'current_pp' ? (b.current_pp || 0) : (sortBy === 'elo_pp_cup' ? (b.elo_pp_cup || 0) : (b.elo_pool_cup || 0));
-        return sortOrder === 'asc' ? valA - valB : valB - valA;
+        if (sortBy === 'medals') {
+          // PP Cup medals are worth more (weighted by 1000 to ensure priority over Pool Cup medals)
+          const medalsA = (a.wins_pp || 0) * 1000 + (a.wins_pool || 0);
+          const medalsB = (b.wins_pp || 0) * 1000 + (b.wins_pool || 0);
+          return sortOrder === 'asc' ? medalsA - medalsB : medalsB - medalsA;
+        } else {
+          let valA = sortBy === 'current_pp' ? (a.current_pp || 0) : (sortBy === 'elo_pp_cup' ? (a.elo_pp_cup || 0) : (a.elo_pool_cup || 0));
+          let valB = sortBy === 'current_pp' ? (b.current_pp || 0) : (sortBy === 'elo_pp_cup' ? (b.elo_pp_cup || 0) : (b.elo_pool_cup || 0));
+          return sortOrder === 'asc' ? valA - valB : valB - valA;
+        }
       });
 
       data.forEach(player => {

@@ -14,120 +14,103 @@ body {
   text-align: center;
 }
 nav {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%;
-      backdrop-filter: blur(10px);
-      background: rgba(18, 18, 18, 0.9);
-      border-bottom: 1px solid #333;
-      z-index: 1000;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.6rem 1.2rem;
-      box-sizing: border-box;
-      height: 7%;
-    }
-    h1{
-      padding-top: 2%;
-    }
-    .nav-left {
-      font-weight: bold;
-      font-size: 1.8rem;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      margin-left: 3%; /* Это выравнивает PP Cup слева */
-    }
-    .nav-center {
-  position: absolute; /* Абсолютное позиционирование */
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%;
+  backdrop-filter: blur(10px);
+  background: rgba(18, 18, 18, 0.9);
+  border-bottom: 1px solid #333;
+  z-index: 1000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 1.2rem;
+  box-sizing: border-box;
+  height: 7%;
+}
+h1 {
+  padding-top: 2%;
+}
+.nav-left {
+  font-weight: bold;
+  font-size: 1.8rem;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-left: 3%;
+}
+.nav-center {
+  position: absolute;
   left: 50%;
-  transform: translateX(-50%); /* Центрируем по горизонтали */
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
 }
-    .nav-center a {
-      color: #fff;
-      text-decoration: none;
-      margin: 0 0.9rem;
-      position: relative;
-      transition: color 0.3s;
-      font-weight: 500;
-    }
-    .nav-center a:hover {
-      color: #ff7a00;
-    }
-    .nav-center a.active::after {
-      content: "";
-      position: absolute;
-      left: 0; bottom: -4px;
-      width: 100%; height: 2px;
-      background: #ff7a00;
-      border-radius: 1px;
-      animation: underline 0.3s ease;
-    }
-    @keyframes underline {
-      from { width: 0; opacity: 0.5; }
-      to { width: 100%; opacity: 1; }
-    }
-    .nav-center a, .nav-center #rulesBtn {
-      color: #fff;
-      text-decoration: none;
-      margin: 0 0.9rem;
-      position: relative;
-      transition: color 0.3s;
-      font-weight: 500;
-      background: none;
-      border: none;
-      padding: 0;
-      cursor: pointer;
-      font-family: inherit; /* Наследуем шрифт от body */
-      font-size: inherit; /* Наследуем размер шрифта */
-      line-height: inherit; /* Наследуем высоту строки */
-    }
-    .nav-center a:hover, .nav-center #rulesBtn:hover {
-      color: #ff7a00;
-    }
-    .nav-center a.active, .nav-center #rulesBtn.active {
-      color: #ff7a00;
-    }
-    .nav-center a.active::after, .nav-center #rulesBtn.active::after {
-      content: "";
-      position: absolute;
-      left: 0; bottom: -4px;
-      width: 100%; height: 2px;
-      background: #ff7a00;
-      border-radius: 1px;
-      animation: underline 0.3s ease;
-    }
-   .nav-right {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      padding-right: 3%;
-      font-weight: bold;
-      color: #fff;
-      justify-content: center;
-      gap: 8px;
-    }
-    .nav-right #user {
-      color: #ccc;
-      white-space: nowrap;
-      position: relative;
-      cursor: pointer;
-    }
-    .nav-right #user:hover {
-      color: #ff7a00;
-    }
-    
-
+.nav-center a, .nav-center button {
+  color: #fff;
+  text-decoration: none;
+  margin: 0 0.9rem;
+  position: relative;
+  transition: color 0.3s;
+  font-weight: 500;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+.nav-center a:hover, .nav-center button:hover {
+  color: #ff7a00;
+}
+.nav-center a.active, .nav-center button.active {
+  color: #ff7a00;
+}
+.nav-center a.active::after, .nav-center button.active::after {
+  content: "";
+  position: absolute;
+  left: 0; bottom: -4px;
+  width: 100%; height: 2px;
+  background: #ff7a00;
+  border-radius: 1px;
+  animation: underline 0.3s ease;
+}
+@keyframes underline {
+  from { width: 0; opacity: 0.5; }
+  to { width: 100%; opacity: 1; }
+}
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-right: 3%;
+  font-weight: bold;
+  color: #fff;
+  justify-content: center;
+  gap: 8px;
+}
+.nav-right #user {
+  color: #ccc;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+}
+.nav-right #user a {
+  color: #ccc;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+.nav-right #user :hover {
+  color: #ff7a00;
+}
 .button-link button:hover {
-      background-color: #ddd;
-      color: #000;
-    }
-/* общий контейнер таблиц */
+  background-color: #ddd;
+  color: #000;
+}
 .table-container {
   margin: 20px auto;
   width: 95%;
@@ -138,56 +121,24 @@ nav {
   box-shadow: 0 4px 10px rgba(0,0,0,0.5);
   padding: 12px;
 }
-#login {
+#login, #logout, #participate {
   background: #c265b4;
   color: white;
   border: none;
   padding: 10px 12px;
   border-radius: 8px;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: background 0.2s ease, color 0.3s;
   text-decoration: none;
-  position: relative;
-  transition: color 0.3s;
   font-weight: 500;
 }
-#login:hover {
- background: #8e077a;
-color: white;
-}
-#participate{
-background: #c265b4;
-  color: white;
-  border: none;
-  padding: 10px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.2s ease;
-  text-decoration: none;
-   margin-left: 3%;
-  position: relative;
-  transition: color 0.3s;
-  font-weight: 500;
-}
-#participate:hover{
-background: #8e077a;
-color: white;
-}
-#logout {
-  background: #c265b4;
-  color: white;
-  border: none;
-  padding: 10px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background 0.2s ease;
-}
-#logout:hover {
+#login:hover, #logout:hover, #participate:hover {
   background: #8e077a;
   color: white;
 }
-/* сводная таблица (неделя / дата начала) */
+#participate {
+  margin-left: 3%;
+}
 .summary-table {
   width: 100%;
   border-collapse: collapse;
@@ -210,9 +161,6 @@ color: white;
 .summary-row:hover {
   background: #242424;
 }
-
-/* подробная таблица (разворачиваемая) */
-
 .detail-row {
   display: none;
   background: transparent;
@@ -221,20 +169,15 @@ color: white;
   padding: 0;
   border: none;
 }
-
-.nested-table tr:hover{
+.nested-table tr:hover, .detail-table tr:hover {
   background: #242424;
 }
-.detail-table tr:hover{
-  background: #242424;
-}
-/* внутренняя таблица участников */
 .detail-table {
   width: 100%;
   border-collapse: collapse;
   margin: 10px 0 16px 0;
 }
-.detail-table a{
+.detail-table a {
   color: white;
   text-decoration: none;
   transition: color 0.2s ease;
@@ -258,11 +201,7 @@ color: white;
   border-radius: 50%;
   vertical-align: middle;
 }
-
-/* ---------- NEW: сузить колонки "Позиция" и "Игрок" ---------- */
-/* Колонка "Позиция" (1-я колонка) — делаем узкой */
-.detail-table th:nth-child(1),
-.detail-table td:nth-child(1) {
+.detail-table th:nth-child(1), .detail-table td:nth-child(1) {
   width: 58px;
   max-width: 80px;
   white-space: nowrap;
@@ -273,20 +212,14 @@ color: white;
   padding-left: 8px;
   padding-right: 8px;
 }
-
-/* Колонка "Аватар" (2-я колонка) — фиксируем размер для иконки */
-.detail-table th:nth-child(2),
-.detail-table td:nth-child(2) {
+.detail-table th:nth-child(2), .detail-table td:nth-child(2) {
   width: 48px;
   max-width: 48px;
   text-align: center;
   padding-left: 6px;
   padding-right: 0px;
 }
-
-/* Колонка "Игрок" (3-я колонка) — сокращаем место, обрезаем длинные ники с троеточием */
-.detail-table th:nth-child(3),
-.detail-table td:nth-child(3) {
+.detail-table th:nth-child(3), .detail-table td:nth-child(3) {
   width: 220px;
   max-width: 220px;
   text-align: left;
@@ -305,7 +238,7 @@ color: white;
   width: 100%;
   height: 100%;
   overflow: auto;
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: rgba(0,0,0,0.6);
   animation: fadeIn 0.2s ease;
 }
 .modal-content {
@@ -317,17 +250,17 @@ color: white;
   width: 90%;
   max-width: 600px;
   animation: slideDown 0.25s ease;
-  color: #222; /* ← добавь этот параметр */
+  color: #222;
 }
 .modal-content h2 {
-  color: #111; /* более контрастный заголовок */
+  color: #111;
   text-align: center;
   margin-bottom: 1rem;
 }
 .modal-content p {
-  color: #333; /* читаемый текст */
+  color: #333;
   line-height: 1.5;
-   text-align: left;
+  text-align: left;
   font-size: 1rem;
 }
 .close {
@@ -347,19 +280,12 @@ color: white;
   from { transform: translateY(-15px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
-/* Для мобильных экранов уменьшаем фиксированные ширины */
 @media (max-width: 700px) {
-  .detail-table th:nth-child(1),
-  .detail-table td:nth-child(1) { width: 48px; max-width:48px; }
-  .detail-table th:nth-child(3),
-  .detail-table td:nth-child(3) { width: 140px; max-width:140px; }
+  .detail-table th:nth-child(1), .detail-table td:nth-child(1) { width: 48px; max-width: 48px; }
+  .detail-table th:nth-child(3), .detail-table td:nth-child(3) { width: 140px; max-width: 140px; }
 }
-
-/* nested rows for pool scores */
 .nested-row { display: none; background: #1a1a1a; }
 .nested-cell { padding: 12px; }
-
-/* nested table for player's scores */
 .nested-table {
   width: 100%;
   border-collapse: collapse;
@@ -377,24 +303,18 @@ color: white;
   text-align: left;
   padding-left: 8px;
 }
-/* top-3 styling */
-.first { background: linear-gradient(90deg, #ffd70033, #ffd70011); font-weight:bold; }
+.first { background: linear-gradient(90deg, #ffd70033, #ffd70011); font-weight: bold; }
 .first td { color: #ffd700; }
-.second { background: linear-gradient(90deg, #c0c0c033, #c0c0c011); font-weight:bold; }
+.second { background: linear-gradient(90deg, #c0c0c033, #c0c0c011); font-weight: bold; }
 .second td { color: #c0c0c0; }
-.third { background: linear-gradient(90deg, #cd7f3233, #cd7f3211); font-weight:bold; }
+.third { background: linear-gradient(90deg, #cd7f3233, #cd7f3211); font-weight: bold; }
 .third td { color: #cd7f32; }
-
-/* small helper */
 .small-muted { color: #bdbdbd; font-size: 13px; }
-
 a {
   color: #4da6ff;
   text-decoration: none;
 }
 a:hover { text-decoration: underline; color: #80c0ff; }
-
-
 .button-link button {
   background-color: #ffffff;
   color: #000;
@@ -404,26 +324,22 @@ a:hover { text-decoration: underline; color: #80c0ff; }
   border-radius: 8px;
   cursor: pointer;
 }
-
 </style>
 </head>
 <body>
 <nav>
-  <div class="nav-left"><img  src="https://upload.wikimedia.org/wikipedia/commons/e/e7/Twemoji12_1f913.svg" width="28" height="28" 
-    style="border-radius:50%;  
-      "></img><b style="margin-bottom: 5px;">History</b></div>
+  <div class="nav-left"><img src="https://upload.wikimedia.org/wikipedia/commons/e/e7/Twemoji12_1f913.svg" width="28" height="28" style="border-radius:50%;"><b style="margin-bottom: 5px;">History</b></div>
   <div class="nav-center">
-    <a href="/" >ПП кап</a>
-    <a href="/pool"  >Пул кап</a>
+    <a href="/">ПП кап</a>
+    <a href="/pool">Пул кап</a>
     <a href="/history" class="active">История</a>
     <a href="/players" class="players">Участники</a>
     <button id="rulesBtn">Правила</button>
-    
     <a href="https://discord.com/invite/4M5jDGDX96" target="_blank">Discord</a>
   </div>
   <div class="nav-right">
     <div id="user"></div>
-    <button id="participate" >Участвовать</button>
+    <button id="participate">Участвовать</button>
     <button id="login">Войти</button>
     <button id="logout" style="display:none;">Выйти</button>
   </div>
@@ -433,7 +349,7 @@ a:hover { text-decoration: underline; color: #80c0ff; }
     <span id="closeModal" class="close">&times;</span>
     <h2>Правила ПП капа</h2>
     <p><b>1.</b> Для участия необходимо авторизоваться при помощи osu! аккаунта и нажать на кнопку участвовать.</p>
-    <p><b>2.</b> Разрешается участвовать в ПП капе тем, кто присутствует на Дискорд сервере <a href="https://discord.com/invite/4M5jDGDX96" >Шавоново</a>, имеет 4k pp и 30k плейкаунта.</p>
+    <p><b>2.</b> Разрешается участвовать в ПП капе тем, кто присутствует на Дискорд сервере <a href="https://discord.com/invite/4M5jDGDX96">Шавоново</a>, имеет 4k pp и 30k плейкаунта.</p>
     <p><b>3.</b> Чтобы посмотреть на каких картах игрок получил ПП — кликните на него в таблице (раскроется список карт, которые дали игроку пп на этой неделе).</p>
     <p><b>4.</b> Очки высчитываются следующим образом — чистые пп умножаются на число, равное количеству тысяч пп, на которых эти чистые были получены.</p>
     <hr>
@@ -473,15 +389,15 @@ function formatDate(dateString) {
   return d.toLocaleDateString('ru-RU', { year: 'numeric', month: '2-digit', day: '2-digit' });
 }
 
-// возвращает "7 февраля – 14 февраля"
-function formatWeekRange(startIso) {
-  if (!startIso) return '';
-  const start = new Date(startIso);
-  const end = new Date(start);
-  end.setDate(end.getDate() - 7);
+function formatCycleRange(endIso, cycleDuration) {
+  if (!endIso) return '';
+  const end = new Date(endIso);
+  const start = new Date(end);
+  start.setDate(end.getDate() - cycleDuration);
   const fmt = (date) => date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
-  return `${fmt(end)} – ${fmt(start)}`;
+  return `${fmt(start)} – ${fmt(end)}`;
 }
+
 async function fetchUser() {
   try {
     const res = await fetch("/api/me");
@@ -494,13 +410,11 @@ async function fetchUser() {
 
     if (user) {
       userBox.innerHTML = `
-  <img 
-    src="${user.avatar_url || user.avatar}" 
-    width="28" height="28" 
-    style="border-radius:50%; vertical-align:middle; margin-right:8px;"
-    alt="avatar"
-  ><b style="text-align:bottom;">${user.username}</b>
-`;
+        <a href="/profile/${user.id}" style="text-decoration: none; color: #ccc; display: flex; align-items: center;">
+          <img src="${user.avatar_url || user.avatar}" width="28" height="28" style="border-radius:50%; vertical-align:middle; margin-right:8px;" alt="avatar">
+          <b style="text-align:bottom;">${user.username}</b>
+        </a>
+      `;
       loginBtn.style.display = "none";
       logoutBtn.style.display = "inline-block";
     } else {
@@ -512,11 +426,12 @@ async function fetchUser() {
     console.error("Ошибка /api/me:", err);
   }
 }
-function buildSummaryTable(weeks, onCreateDetailRow) {
+
+function buildSummaryTable(weeks, onCreateDetailRow, isPool = false) {
   const table = document.createElement('table');
   table.className = 'summary-table';
   const thead = document.createElement('thead');
-  thead.innerHTML = `<tr><th>Неделя</th><th>Дата начала</th></tr>`;
+  thead.innerHTML = `<tr><th>Цикл</th><th>Дата начала</th></tr>`;
   table.appendChild(thead);
   const tbody = document.createElement('tbody');
 
@@ -525,17 +440,16 @@ function buildSummaryTable(weeks, onCreateDetailRow) {
     tr.className = 'summary-row';
     tr.dataset.weekIndex = idx;
 
-    const weekEnd = new Date(week.date ?? week.tournament_date); // дата конца недели
-const weekStart = new Date(weekEnd);                          // копируем объект
-weekStart.setDate(weekEnd.getDate() - 7);                     // отнимаем 7 дней
+    const weekEnd = new Date(week.date ?? week.tournament_date);
+    const cycleDuration = isPool && weekEnd >= new Date('2025-10-17T00:00:00+03:00') ? 2 : 7;
+    const weekStart = new Date(weekEnd);
+    weekStart.setDate(weekEnd.getDate() - cycleDuration);
+    const weekRange = formatCycleRange(weekEnd, cycleDuration);
+    const startDate = formatDate(weekStart);
 
-const weekRange = formatWeekRange(weekEnd);                  // диапазон недели, например "1 – 8 октября"
-const startDate = formatDate(weekStart);                     // дата начала недели
-
-tr.innerHTML = `<td>${escapeHtml(weekRange)}</td><td class="small-muted">${escapeHtml(startDate)}</td>`;
+    tr.innerHTML = `<td>${escapeHtml(weekRange)}</td><td class="small-muted">${escapeHtml(startDate)}</td>`;
     tbody.appendChild(tr);
 
-    // detail row
     const detailTr = document.createElement('tr');
     detailTr.className = 'detail-row';
     const detailTd = document.createElement('td');
@@ -558,7 +472,6 @@ tr.innerHTML = `<td>${escapeHtml(weekRange)}</td><td class="small-muted">${escap
   return table;
 }
 
-/** Загрузка истории ПП капа */
 async function loadHistory() {
   try {
     const res = await fetch('/api/history');
@@ -570,18 +483,15 @@ async function loadHistory() {
     const container = document.getElementById('history');
     container.innerHTML = '';
 
-    // build summary table; for each week create detailed participants table
     const summary = buildSummaryTable(history, (week) => {
-      // подробный блок: participants list
       const participants = Array.isArray(week.data) ? week.data.slice() : [];
-      // сортируем по points desc / position asc
-      participants.sort((a,b) => {
+      participants.sort((a, b) => {
         const pa = Number(a.points || 0);
         const pb = Number(b.points || 0);
         if (pb !== pa) return pb - pa;
         return (a.position || 0) - (b.position || 0);
       });
-      participants.forEach((p,i) => p.position = p.position ?? (i+1));
+      participants.forEach((p, i) => p.position = p.position ?? (i + 1));
 
       const table = document.createElement('table');
       table.className = 'detail-table';
@@ -589,8 +499,8 @@ async function loadHistory() {
         <thead>
           <tr>
             <th>Позиция</th>
-            <th>Игрок</th>
             <th></th>
+            <th>Игрок</th>
             <th>PPstart</th>
             <th>PPend</th>
             <th>PPclear</th>
@@ -638,7 +548,6 @@ async function loadHistory() {
   }
 }
 
-/** Загрузка истории Пул капа */
 async function loadPoolHistory() {
   try {
     const res = await fetch('/api/pool/history');
@@ -650,18 +559,17 @@ async function loadPoolHistory() {
     const container = document.getElementById('pool-history');
     container.innerHTML = '';
 
-    // build summary; detail content will contain players & nested scores
     const summary = buildSummaryTable(history, (week) => {
       const players = Array.isArray(week.data) ? week.data.slice() : [];
-      players.sort((a,b) => (a.position || 0) - (b.position || 0));
+      players.sort((a, b) => (a.position || 0) - (b.position || 0));
       const table = document.createElement('table');
       table.className = 'detail-table';
       table.innerHTML = `
         <thead>
           <tr>
             <th>Позиция</th>
-            <th>Игрок</th>
             <th></th>
+            <th>Игрок</th>
             <th>Всего PP</th>
           </tr>
         </thead>
@@ -670,13 +578,18 @@ async function loadPoolHistory() {
 
       players.forEach(player => {
         if (Array.isArray(player.scores)) {
-          player.scores.sort((a,b) => (Number(b.pp || 0) - Number(a.pp || 0)));
+          player.scores.sort((a, b) => (Number(b.pp || 0) - Number(a.pp || 0)));
         }
         if (player.avatar_url) {
-    player.user_id = player.avatar_url.match(/\/(\d+)\?/)[1];
-  }
+          player.user_id = player.avatar_url.match(/\/(\d+)\?/)?.[1];
+        }
         const tr = document.createElement('tr');
         const profileUrl = (player.userid || player.user_id) ? `https://osu.ppy.sh/users/${encodeURIComponent(player.userid || player.user_id)}` : '#';
+        let rowClass = '';
+        if (player.position === 1) rowClass = 'first';
+        else if (player.position === 2) rowClass = 'second';
+        else if (player.position === 3) rowClass = 'third';
+        tr.className = rowClass;
         tr.innerHTML = `
           <td>${escapeHtml(String(player.position ?? ''))}</td>
           <td><img src="${escapeHtml(player.avatar_url || '')}" width="36" height="36" alt=""></td>
@@ -697,7 +610,7 @@ async function loadPoolHistory() {
           nestedTable.innerHTML = `
             <thead>
               <tr>
-                <th >Карта</th>
+                <th>Карта</th>
                 <th style="width:110px;text-align:right; padding-right: 6px">PP</th>
               </tr>
             </thead>
@@ -707,7 +620,6 @@ async function loadPoolHistory() {
           player.scores.forEach(s => {
             const title = s.title || s.beatmap_title || (`Map ${s.beatmap_id || ''}`);
             const beatmapId = s.beatmap_id || s.beatmap?.id || '';
-            console.log(s);
             const scoreLink = s.score_id ? `https://osu.ppy.sh/scores/osu/${encodeURIComponent(s.score_id)}` : (beatmapId ? `https://osu.ppy.sh/beatmapsets/${encodeURIComponent(beatmapId)}` : '#');
             const ppVal = Math.round(Number(s.pp ?? s.score_pp ?? 0));
             const row = document.createElement('tr');
@@ -723,20 +635,17 @@ async function loadPoolHistory() {
           nestedTr.appendChild(td);
           tbody.appendChild(nestedTr);
 
-          // кликаем на строку, но игнорируем клики по ссылкам
           tr.style.cursor = 'pointer';
-tr.addEventListener('click', (e) => {
-  // если клик на ссылке — ничего не делаем
-  if (e.target.closest('a')) return;
-
-  nestedTr.style.display = (nestedTr.style.display === 'table-row') ? 'none' : 'table-row';
-});
+          tr.addEventListener('click', (e) => {
+            if (e.target.closest('a')) return;
+            nestedTr.style.display = (nestedTr.style.display === 'table-row') ? 'none' : 'table-row';
+          });
         }
       });
 
       table.appendChild(tbody);
       return table;
-    });
+    }, true);
 
     container.appendChild(summary);
   } catch (err) {
@@ -744,51 +653,53 @@ tr.addEventListener('click', (e) => {
     document.getElementById('pool-history').innerHTML = '<div class="small-muted">Ошибка загрузки истории Пул капа</div>';
   }
 }
+
 const modal = document.getElementById("rulesModal");
-    const rulesBtn = document.getElementById("rulesBtn");
-    const closeBtn = document.getElementById("closeModal");
+const rulesBtn = document.getElementById("rulesBtn");
+const closeBtn = document.getElementById("closeModal");
 
-    // Функция для управления активным состоянием
-    function setRulesActive(active) {
-      if (active) {
-        rulesBtn.classList.add("active");
-      } else {
-        rulesBtn.classList.remove("active");
-      }
-    }
+function setRulesActive(active) {
+  if (active) {
+    rulesBtn.classList.add("active");
+  } else {
+    rulesBtn.classList.remove("active");
+  }
+}
 
-    rulesBtn.onclick = (e) => {
-      e.preventDefault(); // Предотвращаем изменение URL
-      modal.style.display = "block";
-      setRulesActive(true);
-    };
+rulesBtn.onclick = (e) => {
+  e.preventDefault();
+  modal.style.display = "block";
+  setRulesActive(true);
+};
 
-    closeBtn.onclick = () => {
-      modal.style.display = "none";
-      setRulesActive(false);
-    };
+closeBtn.onclick = () => {
+  modal.style.display = "none";
+  setRulesActive(false);
+};
 
-    window.onclick = (e) => {
-      if (e.target === modal) {
-        modal.style.display = "none";
-        setRulesActive(false);
-      }
-    };
+window.onclick = (e) => {
+  if (e.target === modal) {
+    modal.style.display = "none";
+    setRulesActive(false);
+  }
+};
 
-    // Закрытие модала по Escape
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && modal.style.display === 'block') {
-        modal.style.display = "none";
-        setRulesActive(false);
-      }
-    });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && modal.style.display === 'block') {
+    modal.style.display = "none";
+    setRulesActive(false);
+  }
+});
+
 document.getElementById('login').onclick = () => window.location.href = '/auth/login';
 document.getElementById('logout').onclick = () => window.location.href = '/auth/logout';
-document.getElementById('participate').onclick =()=> alert("Функция участия доступна только на странице турнира!");
+document.getElementById('participate').onclick = () => alert("Функция участия доступна только на странице турнира!");
+
 (async () => {
   await fetchUser();
   await loadHistory();
-  await loadPoolHistory();})();
+  await loadPoolHistory();
+})();
 </script>
 </body>
 </html>
