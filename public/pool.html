@@ -601,7 +601,7 @@
     });
 
     function getNextPoolEndMSK() {
-      const startDate = new Date('2025-10-19T00:00:00+00:00'); // 18 октября 2025, 00:00 MSK
+      const startDate = new Date('2025-10-19T00:00:00+03:00'); // 18 октября 2025, 00:00 MSK
       const nowMSK = new Date(Date.now() + 3 * 60 * 60 * 1000); // Текущее время в MSK
       const daysSinceStart = Math.floor((nowMSK - startDate) / (1000 * 60 * 60 * 24));
       const daysToNext = 2 - (daysSinceStart % 2); // Каждые 2 дня
