@@ -601,21 +601,28 @@
     });
 
     function getNextPoolEndMSK() {
-      const startDate = new Date('2025-10-19T00:00:00+03:00'); // 18 октября 2025, 00:00 MSK
+      const startDate = new Date('2025-10-19T00:00:00+03:00'); // Начало: 19 октября 2025, 00:00 MSK
       const nowMSK = new Date(Date.now() + 3 * 60 * 60 * 1000); // Текущее время в MSK
-      const daysSinceStart = Math.floor((nowMSK - startDate) / (1000 * 60 * 60 * 24));
-      const daysToNext = 2 - (daysSinceStart % 2); // Каждые 2 дня
-      const nextEnd = new Date(nowMSK);
-      nextEnd.setDate(nowMSK.getDate() + daysToNext);
-      nextEnd.setHours(0, 0, 0, 0); // Следующий цикл в полночь
+      const msPerDay = 24 * 60 * 60 * 1000;
+      const daysSinceStart = Math.floor((nowMSK - startDate) / msPerDay);
+      const nextCycleDay = daysSinceStart + (daysSinceStart % 2 === 0 ? 0 : 1); // Ближайший четный день
+      const nextEnd = new Date(startDate.getTime());
+      nextEnd.setDate(startDate.getDate() + nextCycleDay);
+      nextEnd.setHours(0, 0, 0, 0); // Полночь MSK следующего цикла
+      console.log({
+        nowMSK: nowMSK.toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' }),
+        daysSinceStart,
+        nextCycleDay,
+        nextEnd: nextEnd.toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })
+      });
       return nextEnd;
     }
 
     function updateCountdown() {
       const target = getNextPoolEndMSK();
       const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
-      const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
-      const cycleDuration = 2 * 24 * 60 * 60 * 1000; // 2 дня в миллисекундах
+      const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000); // Текущее время в MSK
+      const cycleDuration = 2 * 24 * 60 * 60 * 1000; // 2 дня
       const diff = target - nowMSK;
 
       const bar = document.getElementById("countdown-bar");
@@ -628,11 +635,12 @@
         setTimeout(() => {
           loadPool();
           loadData();
+          updateCountdown(); // Перезапускаем таймер сразу
         }, 1000);
         return;
       }
 
-      const percent = (diff / cycleDuration) * 100;
+      const percent = Math.max(0, Math.min(100, (diff / cycleDuration) * 100));
       bar.style.width = percent + "%";
       const r = Math.min(255, Math.floor(255 * (1 - percent / 100)));
       const g = Math.min(255, Math.floor(255 * (percent / 100)));
@@ -645,9 +653,9 @@
 
       let timeString = "";
       if (days > 0) timeString += `${days} дня `;
-      if (hours > 0 || days > 0) timeString += `${hours} ч `;
-      if (minutes > 0 || hours > 0 || days > 0) timeString += `${minutes} мин `;
-      timeString += `${seconds} сек`;
+      timeString += `${hours.toString().padStart(2, '0')} ч `;
+      timeString += `${minutes.toString().padStart(2, '0')} мин `;
+      timeString += `${seconds.toString().padStart(2, '0')} сек`;
 
       text.textContent = `До обновления: ${timeString.trim()}`;
     }
