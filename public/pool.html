@@ -600,68 +600,80 @@
       }
     });
 
-    function getNextPoolEndMSK() {
-      const startDate = new Date('2025-10-19T00:00:00+03:00'); // Начало: 19 октября 2025, 00:00 MSK
-      const nowMSK = new Date(Date.now() + 3 * 60 * 60 * 1000); // Текущее время в MSK
-      const msPerDay = 24 * 60 * 60 * 1000;
-      const daysSinceStart = Math.floor((nowMSK - startDate) / msPerDay);
-      const nextCycleDay = daysSinceStart + (daysSinceStart % 2 === 0 ? 0 : 1); // Ближайший четный день
-      const nextEnd = new Date(startDate.getTime());
-      nextEnd.setDate(startDate.getDate() + nextCycleDay);
-      nextEnd.setHours(0, 0, 0, 0); // Полночь MSK следующего цикла
-      console.log({
-        nowMSK: nowMSK.toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' }),
-        daysSinceStart,
-        nextCycleDay,
-        nextEnd: nextEnd.toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })
-      });
-      return nextEnd;
-    }
-
-    function updateCountdown() {
-      const target = getNextPoolEndMSK();
+    function getNextResetTimeMSK() {
       const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
-      const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000); // Текущее время в MSK
-      const cycleDuration = 2 * 24 * 60 * 60 * 1000; // 2 дня
-      const diff = target - nowMSK;
-
-      const bar = document.getElementById("countdown-bar");
-      const text = document.getElementById("countdown-text");
-
-      if (diff <= 0) {
-        bar.style.width = "0%";
-        bar.style.backgroundColor = "red";
-        text.textContent = "Обновление...";
-        setTimeout(() => {
-          loadPool();
-          loadData();
-          updateCountdown(); // Перезапускаем таймер сразу
-        }, 1000);
-        return;
+      const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
+      const resetInterval = 2 * 24 * 60 * 60 * 1000; // 2 days in milliseconds
+      const resetHour = 0; // Midnight MSK
+      const lastReset = new Date(nowMSK);
+      lastReset.setHours(resetHour, 0, 0, 0);
+      while (lastReset <= nowMSK) {
+        lastReset.setTime(lastReset.getTime() + resetInterval);
       }
-
-      const percent = Math.max(0, Math.min(100, (diff / cycleDuration) * 100));
-      bar.style.width = percent + "%";
-      const r = Math.min(255, Math.floor(255 * (1 - percent / 100)));
-      const g = Math.min(255, Math.floor(255 * (percent / 100)));
-      bar.style.backgroundColor = `rgb(${r}, ${g}, 0)`;
-
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-      const minutes = Math.floor((diff / (1000 * 60)) % 60);
-      const seconds = Math.floor((diff / 1000) % 60);
-
-      let timeString = "";
-      if (days > 0) timeString += `${days} дня `;
-      timeString += `${hours.toString().padStart(2, '0')} ч `;
-      timeString += `${minutes.toString().padStart(2, '0')} мин `;
-      timeString += `${seconds.toString().padStart(2, '0')} сек`;
-
-      text.textContent = `До обновления: ${timeString.trim()}`;
+      return lastReset;
     }
 
-    setInterval(updateCountdown, 1000);
-    updateCountdown();
+    let countdownInterval = null;
+
+    function startCountdown() {
+      clearInterval(countdownInterval);
+
+      countdownInterval = setInterval(async () => {
+        const target = getNextResetTimeMSK();
+        const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
+        const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
+
+        const periodLength = 2 * 24 * 60 * 60 * 1000; // 2 days
+        const periodStart = new Date(target - periodLength);
+        const totalTime = target - periodStart;
+        let diff = target - nowMSK;
+
+        const bar = document.getElementById("countdown-bar");
+        const text = document.getElementById("countdown-text");
+
+        if (diff <= 0) {
+          clearInterval(countdownInterval);
+          bar.style.width = "0%";
+          bar.style.backgroundColor = "red";
+          text.textContent = "Обновление данных...";
+
+          try {
+            await loadData();
+            text.textContent = "Данные обновлены!";
+            bar.style.backgroundColor = "limegreen";
+            bar.style.width = "100%";
+          } catch (err) {
+            text.textContent = "Ошибка обновления!";
+            console.error(err);
+          }
+
+          setTimeout(() => startCountdown(), 10000);
+          return;
+        }
+
+        const percent = (diff / totalTime) * 100;
+        bar.style.width = percent + "%";
+
+        const r = Math.min(255, Math.floor(255 * (1 - percent / 100)));
+        const g = Math.min(255, Math.floor(255 * (percent / 100)));
+        bar.style.backgroundColor = `rgb(${r}, ${g}, 0)`;
+
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((diff / (1000 * 60)) % 60);
+        const seconds = Math.floor((diff / 1000) % 60);
+
+        let timeString = "";
+        if (days > 0) timeString += `${days} д `;
+        if (hours > 0 || days > 0) timeString += `${hours} ч `;
+        if (minutes > 0 || hours > 0 || days > 0) timeString += `${minutes} мин `;
+        timeString += `${seconds} сек`;
+
+        text.textContent = `До обновления: ${timeString.trim()}`;
+      }, 1000);
+    }
+
+    startCountdown();
 
     document.getElementById('login').onclick = () => window.location.href = '/auth/login';
     document.getElementById('logout').onclick = () => window.location.href = '/auth/logout';
@@ -681,6 +693,7 @@
       await fetchUser();
       await loadPool();
       await loadData();
+      startCountdown();
     })();
   </script>
 </body>
