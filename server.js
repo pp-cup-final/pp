@@ -1754,28 +1754,43 @@ async function updateEloFromHistory() {
 // Вспомогательная: Расчет ELO для одного турнира
 async function calculateEloForTournament(type, participants, playerMap) {
   const eloField = type === 'pp' ? 'elo_pp_cup' : 'elo_pool_cup';
-  const K = 320;
+  const K = 32; // Уменьшаем K для более плавных изменений рейтинга
   const newEloMap = new Map();
 
-  for (const playerA of participants) {
+  // Сортируем участников по очкам или позиции для определения относительных результатов
+  const sortedParticipants = [...participants].sort((a, b) => {
+    const scoreA = type === 'pp' ? a.points : a.total_pp;
+    const scoreB = type === 'pp' ? b.points : b.total_pp;
+    return scoreB - scoreA || a.position - b.position; // Сначала по очкам, потом по позиции
+  });
+
+  for (let i = 0; i < sortedParticipants.length; i++) {
+    const playerA = sortedParticipants[i];
     const playerId = playerA.userid.toString();
     const currentPlayer = playerMap.get(playerId) || { [eloField]: 1000 };
     let currentEloA = parseFloat(currentPlayer[eloField]) || 1000;
     let delta = 0;
 
-    for (const playerB of participants) {
-      if (playerA.userid === playerB.userid) continue;
+    for (let j = 0; j < sortedParticipants.length; j++) {
+      if (i === j) continue;
+      const playerB = sortedParticipants[j];
       const playerBId = playerB.userid.toString();
       const eloB = parseFloat(playerMap.get(playerBId)?.[eloField]) || 1000;
+
+      // Ожидаемая вероятность победы
       const E_a = 1 / (1 + Math.pow(10, (eloB - currentEloA) / 400));
+
+      // Реальный результат: 1 (победа), 0.5 (ничья), 0 (поражение)
       const scoreA = type === 'pp' ? (playerA.points || 0) : (playerA.total_pp || 0);
       const scoreB = type === 'pp' ? (playerB.points || 0) : (playerB.total_pp || 0);
       const S_a = scoreA > scoreB ? 1 : scoreA === scoreB ? 0.5 : 0;
+
       delta += K * (S_a - E_a);
     }
 
-    const newElo = Math.round(currentEloA + (delta / (participants.length - 1 || 1)));
-    newEloMap.set(playerId, newElo);
+    // Усредняем изменение рейтинга
+    const newElo = Math.round(currentEloA + delta / Math.max(1, sortedParticipants.length - 1));
+    newEloMap.set(playerId, Math.max(100, newElo)); // Ограничиваем минимальный ELO
   }
 
   return newEloMap;
@@ -1789,20 +1804,20 @@ async function updatePlayersFromTournament(type, participants, eloMap, playerMap
   const bestPosField = type === 'pp' ? 'best_position_pp' : 'best_position_pool';
   const winsField = type === 'pp' ? 'wins_pp' : 'wins_pool';
 
-  for (const playerA of participants) {
+  const updates = participants.map(playerA => {
     const playerId = playerA.userid.toString();
     const currentPlayer = playerMap.get(playerId) || {
       [participationsField]: 0,
       [totalScoreField]: 0,
       [bestPosField]: null,
       [winsField]: 0,
-      nickname: playerA.nickname,
-      avatar_url: playerA.avatar_url || playerA.avatar,
+      nickname: playerA.nickname || 'Unknown',
+      avatar_url: playerA.avatar_url || playerA.avatar || null,
       userid: playerId,
     };
 
-    const newParticipations = (currentPlayer[participationsField] || 0) + 1;
     const score = type === 'pp' ? (playerA.points || 0) : (playerA.total_pp || 0);
+    const newParticipations = (currentPlayer[participationsField] || 0) + 1;
     const newTotalScore = (currentPlayer[totalScoreField] || 0) + score;
     const newBestPos = currentPlayer[bestPosField]
       ? Math.min(currentPlayer[bestPosField], playerA.position || Infinity)
@@ -1810,33 +1825,27 @@ async function updatePlayersFromTournament(type, participants, eloMap, playerMap
     const newWins = (currentPlayer[winsField] || 0) + (playerA.position === 1 ? 1 : 0);
     const newElo = eloMap.get(playerId);
 
-    const { error } = await supabase.from('players').upsert({
+    return {
       userid: playerId,
       nickname: currentPlayer.nickname,
       avatar_url: currentPlayer.avatar_url,
       [eloField]: newElo,
       [participationsField]: newParticipations,
-      [totalScoreField]: Math.round(newTotalScore),
+      [totalScoreField]: type === 'pp' ? Math.round(newTotalScore) : newTotalScore, // Не округляем для Pool
       [bestPosField]: Number.isFinite(newBestPos) ? newBestPos : null,
       [winsField]: newWins,
-    }, { onConflict: 'userid' });
+    };
+  });
 
-    if (error) {
-      console.error(`Ошибка обновления players для ${playerId}:`, error);
-      continue;
-    }
-
-    // Обновляем map для следующего турнира
-    playerMap.set(playerId, {
-      ...currentPlayer,
-      [eloField]: newElo,
-      [participationsField]: newParticipations,
-      [totalScoreField]: newTotalScore,
-      [bestPosField]: newBestPos,
-      [winsField]: newWins,
-      userid: playerId,
-    });
+  const { error } = await supabase.from('players').upsert(updates, { onConflict: 'userid' });
+  if (error) {
+    console.error(`Ошибка массового обновления players для ${type}:`, error);
   }
+
+  // Обновляем playerMap
+  updates.forEach(update => {
+    playerMap.set(update.userid, update);
+  });
 }
 async function syncPlayersFromHistories() {
   try {
