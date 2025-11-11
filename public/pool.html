@@ -600,54 +600,61 @@
       }
     });
 
-    function getNextResetMidnightMSK() {
-  const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
-  const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000); // UTC → MSK
+    let countdownInterval = null;
 
-  const todayMidnight = new Date(nowMSK);
-  todayMidnight.setHours(0, 0, 0, 0);
+// === Следующий сброс: через 1 или 2 дня от текущей полуночи MSK ===
+function getNextResetMidnightMSK() {
+  // 1. Текущее время в UTC
+  const nowUTC = Date.now();
 
-  // Определяем, сколько дней прошло с начала текущего 2-дневного цикла
-  const daysSinceEpoch = Math.floor(todayMidnight.getTime() / (24 * 60 * 60 * 1000));
-  const cycleDay = daysSinceEpoch % 2; // 0 или 1
+  // 2. Текущее время в MSK
+  const nowMSK = nowUTC + 3 * 3600000;
 
+  // 3. Полуночь сегодня в MSK (в миллисекундах)
+  const todayMidnightMSK = nowMSK - (nowMSK % (24 * 3600000));
+
+  // 4. День с эпохи
+  const daysSinceEpoch = Math.floor(todayMidnightMSK / (24 * 3600000));
+  const cycleDay = daysSinceEpoch % 2; // 0 = первый день цикла, 1 = второй
+
+  // 5. Следующий сброс:
   let daysToAdd;
-  if (nowMSK.getHours() >= 0 && cycleDay === 0) {
-    // Уже начался 0-й день цикла → следующий через 1 день
-    daysToAdd = 1;
-  } else if (cycleDay === 1) {
-    // 1-й день → следующий через 1 день
-    daysToAdd = 1;
+  if (cycleDay === 0) {
+    // Первый день цикла → сброс через 2 дня
+    daysToAdd = 2;
   } else {
-    // Вне цикла или ошибка — на всякий случай +1 день
+    // Второй день цикла → сброс через 1 день
     daysToAdd = 1;
   }
 
-  const nextReset = new Date(todayMidnight);
-  nextReset.setDate(todayMidnight.getDate() + daysToAdd);
-  nextReset.setHours(0, 0, 0, 0);
+  const nextResetMSK = todayMidnightMSK + daysToAdd * 24 * 3600000;
 
-  return nextReset;
+  // 6. Возвращаем как Date (в UTC)
+  return new Date(nextResetMSK - 3 * 3600000);
 }
 
-let countdownInterval = null;
+// === Начало текущего 2-дневного цикла (в UTC) ===
+function getCycleStartUTC() {
+  const nextResetUTC = getNextResetMidnightMSK();
+  const cycleStartMSK = nextResetUTC.getTime() - 48 * 3600000; // -48 часов
+  return new Date(cycleStartMSK - 3 * 3600000); // MSK → UTC
+}
 
 function startCountdown() {
   clearInterval(countdownInterval);
 
   countdownInterval = setInterval(async () => {
-    const target = getNextResetMidnightMSK();
-    const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
-    const nowMSK = new Date(nowUTC + 3 * 60 * 60 * 1000);
-
-    const periodStart = new Date(target);
-    periodStart.setDate(target.getDate() - 2); // Начало 2-дневного периода
-    const totalTime = target - periodStart;
-    let diff = target - nowMSK;
+    const targetUTC = getNextResetMidnightMSK();
+    const nowUTC = Date.now();
+    const diff = targetUTC.getTime() - nowUTC;
+    const totalTime = 48 * 3600000; // 48 часов
 
     const bar = document.getElementById("countdown-bar");
     const text = document.getElementById("countdown-text");
 
+    if (!bar || !text) return;
+
+    // === Таймер истёк ===
     if (diff <= 0) {
       clearInterval(countdownInterval);
       bar.style.width = "0%";
@@ -656,7 +663,7 @@ function startCountdown() {
 
       try {
         await loadData();
-        await loadPool(); // если нужно обновить и пул карт
+        await loadPool();
         text.textContent = "Данные обновлены!";
         bar.style.backgroundColor = "limegreen";
         bar.style.width = "100%";
@@ -665,17 +672,19 @@ function startCountdown() {
         console.error(err);
       }
 
-      setTimeout(() => startCountdown(), 10000);
+      setTimeout(startCountdown, 10000);
       return;
     }
 
-    const percent = (diff / totalTime) * 100;
-    bar.style.width = percent + "%";
+    // === Прогресс ===
+    const percent = Math.max(0, Math.min(100, (diff / totalTime) * 100));
+    bar.style.width = `${percent}%`;
 
-    const r = Math.min(255, Math.floor(255 * (1 - percent / 100)));
-    const g = Math.min(255, Math.floor(255 * (percent / 100)));
+    const r = Math.floor(255 * (1 - percent / 100));
+    const g = Math.floor(255 * (percent / 100));
     bar.style.backgroundColor = `rgb(${r}, ${g}, 0)`;
 
+    // === Форматирование времени ===
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
     const minutes = Math.floor((diff / (1000 * 60)) % 60);
@@ -691,7 +700,8 @@ function startCountdown() {
   }, 1000);
 }
 
-startCountdown();
+// Запуск
+document.addEventListener('DOMContentLoaded', startCountdown);
 
     document.getElementById('login').onclick = () => window.location.href = '/auth/login';
     document.getElementById('logout').onclick = () => window.location.href = '/auth/logout';
