@@ -95,7 +95,7 @@ app.get('/api/recommend', async (req, res) => {
     if (targetRank < 1) targetRank = 1;
 
     // Получаем страницу рейтинга около targetRank
-    const pageSize = 50;
+    const pageSize = 25;
     const page = Math.floor((targetRank - 1) / pageSize) + 1;
     const rankingsRes = await axios.get(`https://osu.ppy.sh/api/v2/rankings/osu/performance?page=${page}`, {
       headers: { Authorization: `Bearer ${token}` }
