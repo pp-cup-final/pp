@@ -49,6 +49,24 @@ async function fetchOsuAccessToken() {
     console.error('Ошибка получения токена:', error.response?.data || error.message);
   }
 }
+async function getPlayerByRank(rank) {
+  try {
+    const res = await axios.get(`https://score.respektive.pw/rank/${rank}?mode=osu`, {
+      timeout: 5000
+    });
+    if (res.data && res.data.user_id) {
+      return {
+        id: res.data.user_id,
+        username: res.data.username
+      };
+    }
+    return null;
+  } catch (err) {
+    console.warn(`Respektive API error for rank ${rank}:`, err.message);
+    return null;
+  }
+}
+
 app.get('/api/recommend', async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: 'Необходимо авторизоваться' });
@@ -97,18 +115,9 @@ app.get('/api/recommend', async (req, res) => {
     // Генерируем 4 рекомендации
     for (let i = 0; i < 4; i++) {
       // Выбираем направление: с вероятностью 70% ищем игроков сильнее (ранг меньше), иначе слабее
-      const direction = Math.random() < 0.7 ? -1 : 1; // -1: сильнее (меньший ранг), +1: слабее
-      let targetRank = rank + direction * Math.floor(Math.random() * delta + 1);
+      const direction = Math.random() < 0.7 ? -1 : 1;
+      let targetRank = rank + direction * (Math.floor(Math.random() * delta) + 1);
       if (targetRank < 1) targetRank = 1;
-
-      // Получаем страницу рейтинга около targetRank
-      const pageSize = 50;
-      const page = Math.floor((targetRank - 1) / pageSize) + 1;
-      const rankingsRes = await axios.get(`https://osu.ppy.sh/api/v2/rankings/osu/performance?page=${page}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const ranking = rankingsRes.data.ranking;
-      if (!ranking || ranking.length === 0) continue;
 
       // Пытаемся найти игрока со скорами (до 5 попыток)
       let targetPlayer = null;
@@ -117,9 +126,27 @@ app.get('/api/recommend', async (req, res) => {
       const maxAttempts = 5;
 
       while (attempts < maxAttempts && !score) {
-        const randomIndex = Math.floor(Math.random() * ranking.length);
-        targetPlayer = ranking[randomIndex].user;
+        // Сначала пытаемся получить игрока через Respektive API
+        targetPlayer = await getPlayerByRank(targetRank);
+        
+        // Если Respektive не сработал, используем старый метод через rankings API
+        if (!targetPlayer) {
+          const pageSize = 50;
+          const page = Math.floor((targetRank - 1) / pageSize) + 1;
+          // Ограничим page, чтобы не выйти за пределы (если targetRank > 10000, page может быть большим, но rankings вернёт пустоту)
+          const rankingsRes = await axios.get(`https://osu.ppy.sh/api/v2/rankings/osu/performance?page=${page}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const ranking = rankingsRes.data.ranking;
+          if (!ranking || ranking.length === 0) {
+            attempts++;
+            continue;
+          }
+          const randomIndex = Math.floor(Math.random() * ranking.length);
+          targetPlayer = ranking[randomIndex].user;
+        }
 
+        // Получаем скоры игрока
         const scoresRes = await axios.get(
           `https://osu.ppy.sh/api/v2/users/${targetPlayer.id}/scores/best?mode=osu&limit=100&offset=0`,
           { headers: { Authorization: `Bearer ${token}` } }
