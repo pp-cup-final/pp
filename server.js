@@ -95,7 +95,7 @@ app.get('/api/recommend', async (req, res) => {
     if (targetRank < 1) targetRank = 1;
 
     // Получаем страницу рейтинга около targetRank
-    const pageSize = 25;
+    const pageSize = 50;
     const page = Math.floor((targetRank - 1) / pageSize) + 1;
     const rankingsRes = await axios.get(`https://osu.ppy.sh/api/v2/rankings/osu/performance?page=${page}`, {
       headers: { Authorization: `Bearer ${token}` }
@@ -119,7 +119,7 @@ app.get('/api/recommend', async (req, res) => {
     }
 
     // Выбираем случайный скор из первых 50
-    const maxScoreIndex = Math.min(50, scores.length) - 1;
+    const maxScoreIndex = Math.min(25, scores.length) - 1;
     const scoreIndex = Math.floor(Math.random() * (maxScoreIndex + 1));
     const score = scores[scoreIndex];
 
