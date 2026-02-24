@@ -330,6 +330,10 @@
       background-color: rgba(0, 0, 0, 0.6);
       animation: fadeIn 0.2s ease;
     }
+    .recommendation-card a:hover {
+  color: #ff7a00 !important;
+  text-decoration: underline !important;
+}
     .invalid-badge {
       display: inline-block;
       width: 10px;
@@ -533,7 +537,7 @@ async function fetchRecommendation() {
 
 function displayRecommendations(recommendations) {
   const grid = document.getElementById('recommendation-grid');
-  grid.innerHTML = ''; // очищаем
+  grid.innerHTML = '';
 
   recommendations.forEach(data => {
     const modsStr = data.mods && data.mods.length ? data.mods.join('') : 'NM';
@@ -550,10 +554,11 @@ function displayRecommendations(recommendations) {
           <a href="${beatmapUrl}" target="_blank" class="recommendation-title" style="color:#fff; text-decoration:none; font-weight:600; font-size:0.9rem; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
             ${data.title} [${data.version}]
           </a>
-          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; font-size:0.75rem;">
+          <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; font-size:0.75rem; align-items: center;">
             <span style="background:#1e1e1e; padding:2px 6px; border-radius:12px;">★ ${data.star_rating.toFixed(2)}</span>
             <span style="background:#1e1e1e; padding:2px 6px; border-radius:12px;">🎧 ${modsStr}</span>
             <span style="background:#1e1e1e; padding:2px 6px; border-radius:12px;">➕ ${Math.round(data.pp)} pp</span>
+            <a href="${data.score_url}" target="_blank" style="margin-left: auto; color:#aaa; text-decoration:none; font-size:0.7rem;" onmouseover="this.style.color='#ff7a00'" onmouseout="this.style.color='#aaa'">🔗 Скор</a>
           </div>
         </div>
       </div>
