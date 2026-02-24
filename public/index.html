@@ -38,6 +38,10 @@
       gap: 8px;
       margin-left: 3%;
     }
+    .recommendation-title:hover {
+  color: #ff7a00 !important;
+  text-decoration: underline !important;
+}
     .nav-center a {
       color: #fff;
       text-decoration: none;
@@ -238,6 +242,15 @@
       text-align: center;
       border-bottom: 1px solid #333;
     }
+    #recommendation-grid img {
+  border-radius: 0; /* или 4px, если нужны чуть скруглённые углы */
+  object-fit: cover;
+}
+
+/* Если у карточек есть класс .recommendation-card, можно использовать его */
+.recommendation-card img {
+  border-radius: 4px; /* аккуратные скруглённые углы (по желанию) */
+}
     th {
       background-color: #2a2a2a;
       color: #fff;
@@ -343,12 +356,11 @@
       pointer-events: none;
       z-index: 10;
     }
-    #recommendation-content a:hover {
-  text-decoration: underline;
-  color: #ff7a00;
-}
-#recommendation-content img:hover {
+    #recommendation-content img:hover {
   border-color: #ff7a00;
+}
+#recommendation-content a:hover {
+  color: #ff7a00;
 }
 #next-recommend:disabled {
   opacity: 0.5;
@@ -453,12 +465,10 @@
       <div id="countdown-bar"></div>
       <div id="countdown-text"></div>
     </div>
-    <div id="recommendation-container" style="display: none; margin-bottom: 20px; background: #1e1e1e; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
-  <h3 style="margin-top:0; margin-bottom:15px; color:#ff7a00;">🎯 Рекомендация</h3>
-  <div id="recommendation-content" style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
-    <!-- заполняется динамически -->
-  </div>
-  <button id="next-recommend" class="rules-btn" style="margin-top:20px; width:100%; padding:12px; font-size:16px;">➡️ Эта карта мне не подходит</button>
+    <div id="recommendation-container" style="display: none; margin-bottom: 20px; background: #1e1e1e; border-radius: 12px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+  <h4 style="margin:0 0 12px 0; color:#ff7a00; font-size:1.1rem;">🎯 Рекомендованные карты</h4>
+  <div id="recommendation-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;"></div>
+  <button id="next-recommend" class="rules-btn" style="margin-top:15px; width:100%; padding:8px; font-size:14px;">➡️ Другие карты</button>
 </div>
     <table>
       <thead>
@@ -499,15 +509,16 @@ async function fetchRecommendation() {
   if (!canRequestRecommendation) return;
   canRequestRecommendation = false;
   nextBtn.disabled = true;
+  nextBtn.textContent = '⏳ Подождите 5 сек...';
   try {
     const res = await fetch('/api/recommend');
     if (!res.ok) {
       const err = await res.json();
-      alert(err.error || 'Ошибка получения рекомендации');
+      alert(err.error || 'Ошибка получения рекомендаций');
       return;
     }
-    const data = await res.json();
-    displayRecommendation(data);
+    const data = await res.json(); // теперь это массив
+    displayRecommendations(data);
   } catch (err) {
     console.error(err);
     alert('Ошибка сети');
@@ -515,31 +526,40 @@ async function fetchRecommendation() {
     setTimeout(() => {
       canRequestRecommendation = true;
       nextBtn.disabled = false;
+      nextBtn.textContent = '➡️ Другие карты';
     }, 5000);
   }
 }
 
-function displayRecommendation(data) {
-  const modsStr = data.mods && data.mods.length ? data.mods.join('') : 'NM';
-  const beatmapUrl = `https://osu.ppy.sh/beatmaps/${data.beatmap_id}`;
-  
-  recommendationContent.innerHTML = `
-    <a href="${beatmapUrl}" target="_blank" style="flex-shrink:0;">
-      <img src="${data.background_url}" alt="bg" style="width: 160px; height: 90px; border-radius: 8px; object-fit: cover; border: 2px solid #333; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-    </a>
-    <div style="flex-grow:1;">
-      <a href="${beatmapUrl}" target="_blank" style="color:#fff; text-decoration:none; font-size:1.2rem; font-weight:bold; display:block; margin-bottom:8px;">
-        ${data.title} [${data.version}]
-      </a>
-      <div style="display:flex; gap:15px; flex-wrap:wrap; margin-bottom:8px;">
-        <span style="background:#2a2a2a; padding:4px 10px; border-radius:20px;">★ ${data.star_rating.toFixed(2)}</span>
-        <span style="background:#2a2a2a; padding:4px 10px; border-radius:20px;">🎧 ${modsStr}</span>
-        <span style="background:#2a2a2a; padding:4px 10px; border-radius:20px;">➕ ${Math.round(data.pp)} pp</span>
+function displayRecommendations(recommendations) {
+  const grid = document.getElementById('recommendation-grid');
+  grid.innerHTML = ''; // очищаем
+
+  recommendations.forEach(data => {
+    const modsStr = data.mods && data.mods.length ? data.mods.join('') : 'NM';
+    const beatmapUrl = `https://osu.ppy.sh/beatmaps/${data.beatmap_id}`;
+    
+    const card = document.createElement('div');
+    card.className = 'recommendation-card';
+    card.innerHTML = `
+      <div style="display: flex; flex-direction: column; background: #2a2a2a; border-radius: 8px; overflow: hidden;">
+        <a href="${beatmapUrl}" target="_blank" style="display: block;">
+          <img src="${data.background_url}" alt="bg" style="width: 100%; height: 90px; object-fit: cover; border-bottom: 1px solid #444;">
+        </a>
+        <div style="padding: 8px;">
+          <a href="${beatmapUrl}" target="_blank" class="recommendation-title" style="color:#fff; text-decoration:none; font-weight:600; font-size:0.9rem; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+            ${data.title} [${data.version}]
+          </a>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; font-size:0.75rem;">
+            <span style="background:#1e1e1e; padding:2px 6px; border-radius:12px;">★ ${data.star_rating.toFixed(2)}</span>
+            <span style="background:#1e1e1e; padding:2px 6px; border-radius:12px;">🎧 ${modsStr}</span>
+            <span style="background:#1e1e1e; padding:2px 6px; border-radius:12px;">➕ ${Math.round(data.pp)} pp</span>
+          </div>
+        </div>
       </div>
-      <p style="color:#aaa; font-size:0.9rem; margin:0;">
-      </p>
-    </div>
-  `;
+    `;
+    grid.appendChild(card);
+  });
 }
 
 // После авторизации показываем блок и загружаем первую рекомендацию
