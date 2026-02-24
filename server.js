@@ -78,7 +78,7 @@ app.get('/api/recommend', async (req, res) => {
       return res.status(500).json({ error: 'Ошибка получения токена osu' });
     }
 
-    // Получаем ранг текущего пользователя (один раз)
+    // Получаем ранг текущего пользователя
     const userOsuRes = await axios.get(`https://osu.ppy.sh/api/v2/users/${userId}/osu`, {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -88,14 +88,17 @@ app.get('/api/recommend', async (req, res) => {
     }
 
     const recommendations = [];
-    const maxOffset = Math.max(1, Math.floor(rank * 0.1));
+    
+    // Рассчитываем диапазон поиска: 2-5% от ранга, но не меньше 50 и не больше 300
+    let deltaPercent = 0.03 + (Math.random() * 0.02); // случайно от 3% до 5%
+    let delta = Math.floor(rank * deltaPercent);
+    delta = Math.max(50, Math.min(delta, 300)); // ограничиваем абсолютное отклонение
 
-    // Генерируем 4 рекомендации последовательно
+    // Генерируем 4 рекомендации
     for (let i = 0; i < 4; i++) {
-      // Вычисляем целевой ранг с погрешностью 10%
-      const offset = Math.floor(Math.random() * maxOffset) + 1;
-      const sign = Math.random() < 0.5 ? -1 : 1;
-      let targetRank = rank + sign * offset;
+      // Выбираем направление: с вероятностью 70% ищем игроков сильнее (ранг меньше), иначе слабее
+      const direction = Math.random() < 0.7 ? -1 : 1; // -1: сильнее (меньший ранг), +1: слабее
+      let targetRank = rank + direction * Math.floor(Math.random() * delta + 1);
       if (targetRank < 1) targetRank = 1;
 
       // Получаем страницу рейтинга около targetRank
@@ -107,11 +110,11 @@ app.get('/api/recommend', async (req, res) => {
       const ranking = rankingsRes.data.ranking;
       if (!ranking || ranking.length === 0) continue;
 
-      // Пытаемся найти игрока со скорами (до 3 попыток)
+      // Пытаемся найти игрока со скорами (до 5 попыток)
       let targetPlayer = null;
       let score = null;
       let attempts = 0;
-      const maxAttempts = 3;
+      const maxAttempts = 5;
 
       while (attempts < maxAttempts && !score) {
         const randomIndex = Math.floor(Math.random() * ranking.length);
@@ -148,7 +151,6 @@ app.get('/api/recommend', async (req, res) => {
         background_url: beatmapset.covers?.['cover@2x'] || beatmapset.covers?.cover || '',
       };
 
-      // Сохраняем в БД (можно сохранять все 4, но для упрощения сохраняем каждую)
       await supabase.from('recommendations').insert([recommendation]);
 
       recommendations.push({
@@ -164,7 +166,7 @@ app.get('/api/recommend', async (req, res) => {
         score_url: `https://osu.ppy.sh/scores/osu/${score.id}`
       });
 
-      // Небольшая пауза между запросами, чтобы снизить нагрузку на API
+      // Небольшая пауза между запросами
       await new Promise(resolve => setTimeout(resolve, 200));
     }
 
