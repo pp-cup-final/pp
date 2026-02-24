@@ -56,7 +56,7 @@ app.get('/api/recommend', async (req, res) => {
   const userId = req.session.user.id;
 
   try {
-    // Проверяем последнюю рекомендацию (не чаще 1 раза в 5 секунд)
+    // Проверка на частоту запросов (не чаще 1 раза в 5 секунд)
     const { data: lastRec, error: lastErr } = await supabase
       .from('recommendations')
       .select('created_at')
@@ -73,95 +73,106 @@ app.get('/api/recommend', async (req, res) => {
       }
     }
 
-    // Получаем ранг текущего пользователя из osu API
     const token = await getOsuAccessToken();
     if (!token) {
       return res.status(500).json({ error: 'Ошибка получения токена osu' });
     }
 
+    // Получаем ранг текущего пользователя (один раз)
     const userOsuRes = await axios.get(`https://osu.ppy.sh/api/v2/users/${userId}/osu`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     const rank = userOsuRes.data.statistics?.global_rank;
     if (!rank) {
-      return res.status(400).json({ error: 'Не удалось определить ранг игрока' });
+      return res.status(400).json({ error: 'Не удалось определить ранг игрока (возможно, игрок не ранкед)' });
     }
 
-    // Вычисляем целевой ранг
+    const recommendations = [];
     const maxOffset = Math.max(1, Math.floor(rank * 0.1));
-    const offset = Math.floor(Math.random() * maxOffset) + 1;
-    const sign = Math.random() < 0.5 ? -1 : 1;
-    let targetRank = rank + sign * offset;
-    if (targetRank < 1) targetRank = 1;
 
-    // Получаем страницу рейтинга около targetRank
-    const pageSize = 50;
-    const page = Math.floor((targetRank - 1) / pageSize) + 1;
-    const rankingsRes = await axios.get(`https://osu.ppy.sh/api/v2/rankings/osu/performance?page=${page}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const ranking = rankingsRes.data.ranking;
-    if (!ranking || ranking.length === 0) {
-      return res.status(500).json({ error: 'Не удалось получить список игроков' });
+    // Генерируем 4 рекомендации последовательно
+    for (let i = 0; i < 4; i++) {
+      // Вычисляем целевой ранг с погрешностью 10%
+      const offset = Math.floor(Math.random() * maxOffset) + 1;
+      const sign = Math.random() < 0.5 ? -1 : 1;
+      let targetRank = rank + sign * offset;
+      if (targetRank < 1) targetRank = 1;
+
+      // Получаем страницу рейтинга около targetRank
+      const pageSize = 50;
+      const page = Math.floor((targetRank - 1) / pageSize) + 1;
+      const rankingsRes = await axios.get(`https://osu.ppy.sh/api/v2/rankings/osu/performance?page=${page}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const ranking = rankingsRes.data.ranking;
+      if (!ranking || ranking.length === 0) continue;
+
+      // Пытаемся найти игрока со скорами (до 3 попыток)
+      let targetPlayer = null;
+      let score = null;
+      let attempts = 0;
+      const maxAttempts = 3;
+
+      while (attempts < maxAttempts && !score) {
+        const randomIndex = Math.floor(Math.random() * ranking.length);
+        targetPlayer = ranking[randomIndex].user;
+
+        const scoresRes = await axios.get(
+          `https://osu.ppy.sh/api/v2/users/${targetPlayer.id}/scores/best?mode=osu&limit=100&offset=0`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const scores = scoresRes.data;
+        if (scores && scores.length > 0) {
+          const maxScoreIndex = Math.min(50, scores.length) - 1;
+          const scoreIndex = Math.floor(Math.random() * (maxScoreIndex + 1));
+          score = scores[scoreIndex];
+        }
+        attempts++;
+      }
+
+      if (!score) continue;
+
+      // Формируем данные рекомендации
+      const beatmap = score.beatmap;
+      const beatmapset = score.beatmapset;
+      const recommendation = {
+        user_id: userId,
+        target_user_id: targetPlayer.id,
+        beatmap_id: beatmap.id,
+        score_id: score.id,
+        mods: score.mods || [],
+        pp: score.pp,
+        star_rating: beatmap.difficulty_rating,
+        beatmap_title: beatmapset.title,
+        beatmap_version: beatmap.version,
+        background_url: beatmapset.covers?.['cover@2x'] || beatmapset.covers?.cover || '',
+      };
+
+      // Сохраняем в БД (можно сохранять все 4, но для упрощения сохраняем каждую)
+      await supabase.from('recommendations').insert([recommendation]);
+
+      recommendations.push({
+        beatmap_id: beatmap.id,
+        title: beatmapset.title,
+        version: beatmap.version,
+        star_rating: beatmap.difficulty_rating,
+        mods: score.mods || [],
+        pp: score.pp,
+        background_url: recommendation.background_url,
+        target_nickname: targetPlayer.username,
+        target_user_id: targetPlayer.id,
+        score_url: `https://osu.ppy.sh/scores/osu/${score.id}`
+      });
+
+      // Небольшая пауза между запросами, чтобы снизить нагрузку на API
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
 
-    // Выбираем случайного игрока из этой страницы
-    const randomIndex = Math.floor(Math.random() * ranking.length);
-    const targetPlayer = ranking[randomIndex].user;
-
-    // Получаем топ-100 скоров этого игрока
-    const scoresRes = await axios.get(`https://osu.ppy.sh/api/v2/users/${targetPlayer.id}/scores/best?mode=osu&limit=100&offset=0`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const scores = scoresRes.data;
-    if (!scores || scores.length === 0) {
-      return res.status(500).json({ error: 'У выбранного игрока нет скоров' });
+    if (recommendations.length === 0) {
+      return res.status(500).json({ error: 'Не удалось получить рекомендации' });
     }
 
-    // Выбираем случайный скор из первых 50
-    const maxScoreIndex = Math.min(25, scores.length) - 1;
-    const scoreIndex = Math.floor(Math.random() * (maxScoreIndex + 1));
-    const score = scores[scoreIndex];
-
-    // Формируем данные для ответа и сохранения
-    const beatmap = score.beatmap;
-    const beatmapset = score.beatmapset;
-    const recommendation = {
-      user_id: userId,
-      target_user_id: targetPlayer.id,
-      beatmap_id: beatmap.id,
-      score_id: score.id,
-      mods: score.mods || [],
-      pp: score.pp,
-      star_rating: beatmap.difficulty_rating,
-      beatmap_title: beatmapset.title,
-      beatmap_version: beatmap.version,
-      background_url: beatmapset.covers?.['cover@2x'] || beatmapset.covers?.cover || '',
-    };
-
-    // Сохраняем в БД
-    const { error: insertErr } = await supabase
-      .from('recommendations')
-      .insert([recommendation]);
-
-    if (insertErr) {
-      console.error('Ошибка сохранения рекомендации:', insertErr);
-      // но всё равно вернём данные клиенту
-    }
-
-    // Отправляем ответ клиенту
-    res.json({
-      beatmap_id: beatmap.id,
-      title: beatmapset.title,
-      version: beatmap.version,
-      star_rating: beatmap.difficulty_rating,
-      mods: score.mods || [],
-      pp: score.pp,
-      background_url: recommendation.background_url,
-      target_nickname: targetPlayer.username,
-      score_url: `https://osu.ppy.sh/scores/osu/${score.id}`
-    });
-
+    res.json(recommendations);
   } catch (err) {
     console.error('Ошибка в /api/recommend:', err.response?.data || err.message);
     res.status(500).json({ error: 'Внутренняя ошибка сервера' });
