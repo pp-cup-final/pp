@@ -343,6 +343,18 @@
       pointer-events: none;
       z-index: 10;
     }
+    #recommendation-content a:hover {
+  text-decoration: underline;
+  color: #ff7a00;
+}
+#recommendation-content img:hover {
+  border-color: #ff7a00;
+}
+#next-recommend:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #555 !important; /* перебивает стандартный фон */
+}
     .rules-btn {
       background: #0078ff;
       color: white;
@@ -441,6 +453,13 @@
       <div id="countdown-bar"></div>
       <div id="countdown-text"></div>
     </div>
+    <div id="recommendation-container" style="display: none; margin-bottom: 20px; background: #1e1e1e; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+  <h3 style="margin-top:0; margin-bottom:15px; color:#ff7a00;">🎯 Рекомендация</h3>
+  <div id="recommendation-content" style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+    <!-- заполняется динамически -->
+  </div>
+  <button id="next-recommend" class="rules-btn" style="margin-top:20px; width:100%; padding:12px; font-size:16px;">➡️ Эта карта мне не подходит</button>
+</div>
     <table>
       <thead>
         <tr>
@@ -471,36 +490,96 @@
       const participateBtn = document.getElementById("participate");
       if (!participateBtn) return;
     }
+let recommendationBlock = document.getElementById('recommendation-container');
+let recommendationContent = document.getElementById('recommendation-content');
+let nextBtn = document.getElementById('next-recommend');
+let canRequestRecommendation = true;
 
-    async function fetchUser() {
-      try {
-        const res = await fetch("/api/me");
-        const user = res.ok ? await res.json() : null;
-        currentUser = user;
-
-        const userBox = document.getElementById("user");
-        const loginBtn = document.getElementById("login");
-        const logoutBtn = document.getElementById("logout");
-
-        if (user) {
-          userBox.innerHTML = `
-            <a href="/profile/${user.id}" style="text-decoration: none; color: #ccc; display: flex; align-items: center;">
-              <img src="${user.avatar_url || user.avatar}" width="28" height="28" style="border-radius:50%; vertical-align:middle; margin-right:8px;" alt="avatar">
-              <b style="text-align:bottom;">${user.username}</b>
-            </a>
-          `;
-          loginBtn.style.display = "none";
-          logoutBtn.style.display = "inline-block";
-        } else {
-          userBox.textContent = "";
-          loginBtn.style.display = "inline-block";
-          logoutBtn.style.display = "none";
-        }
-      } catch (err) {
-        console.error("Ошибка /api/me:", err);
-      }
+async function fetchRecommendation() {
+  if (!canRequestRecommendation) return;
+  canRequestRecommendation = false;
+  nextBtn.disabled = true;
+  try {
+    const res = await fetch('/api/recommend');
+    if (!res.ok) {
+      const err = await res.json();
+      alert(err.error || 'Ошибка получения рекомендации');
+      return;
     }
+    const data = await res.json();
+    displayRecommendation(data);
+  } catch (err) {
+    console.error(err);
+    alert('Ошибка сети');
+  } finally {
+    setTimeout(() => {
+      canRequestRecommendation = true;
+      nextBtn.disabled = false;
+    }, 5000);
+  }
+}
 
+function displayRecommendation(data) {
+  const modsStr = data.mods && data.mods.length ? data.mods.join('') : 'NM';
+  const beatmapUrl = `https://osu.ppy.sh/beatmaps/${data.beatmap_id}`;
+  
+  recommendationContent.innerHTML = `
+    <a href="${beatmapUrl}" target="_blank" style="flex-shrink:0;">
+      <img src="${data.background_url}" alt="bg" style="width: 160px; height: 90px; border-radius: 8px; object-fit: cover; border: 2px solid #333; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+    </a>
+    <div style="flex-grow:1;">
+      <a href="${beatmapUrl}" target="_blank" style="color:#fff; text-decoration:none; font-size:1.2rem; font-weight:bold; display:block; margin-bottom:8px;">
+        ${data.title} [${data.version}]
+      </a>
+      <div style="display:flex; gap:15px; flex-wrap:wrap; margin-bottom:8px;">
+        <span style="background:#2a2a2a; padding:4px 10px; border-radius:20px;">★ ${data.star_rating.toFixed(2)}</span>
+        <span style="background:#2a2a2a; padding:4px 10px; border-radius:20px;">🎧 ${modsStr}</span>
+        <span style="background:#2a2a2a; padding:4px 10px; border-radius:20px;">➕ ${Math.round(data.pp)} pp</span>
+      </div>
+      <p style="color:#aaa; font-size:0.9rem; margin:0;">
+      </p>
+    </div>
+  `;
+}
+
+// После авторизации показываем блок и загружаем первую рекомендацию
+async function afterLogin() {
+  recommendationBlock.style.display = 'block';
+  await fetchRecommendation();
+}
+    async function fetchUser() {
+  try {
+    const res = await fetch("/api/me");
+    const user = res.ok ? await res.json() : null;
+    currentUser = user;
+
+    const userBox = document.getElementById("user");
+    const loginBtn = document.getElementById("login");
+    const logoutBtn = document.getElementById("logout");
+
+    if (user) {
+      userBox.innerHTML = `
+        <a href="/profile/${user.id}" style="text-decoration: none; color: #ccc; display: flex; align-items: center;">
+          <img src="${user.avatar_url || user.avatar}" width="28" height="28" style="border-radius:50%; vertical-align:middle; margin-right:8px;" alt="avatar">
+          <b style="text-align:bottom;">${user.username}</b>
+        </a>
+      `;
+      loginBtn.style.display = "none";
+      logoutBtn.style.display = "inline-block";
+      // Показываем блок рекомендаций
+      recommendationBlock.style.display = 'block';
+      await fetchRecommendation();
+    } else {
+      userBox.textContent = "";
+      loginBtn.style.display = "inline-block";
+      logoutBtn.style.display = "none";
+      recommendationBlock.style.display = 'none';
+    }
+  } catch (err) {
+    console.error("Ошибка /api/me:", err);
+  }
+}
+nextBtn.addEventListener('click', fetchRecommendation);
     function extractArrayFromJson(json) {
       if (Array.isArray(json)) return json;
       if (!json || typeof json !== 'object') return [];

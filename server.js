@@ -49,7 +49,124 @@ async function fetchOsuAccessToken() {
     console.error('Ошибка получения токена:', error.response?.data || error.message);
   }
 }
+app.get('/api/recommend', async (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ error: 'Необходимо авторизоваться' });
+  }
+  const userId = req.session.user.id;
 
+  try {
+    // Проверяем последнюю рекомендацию (не чаще 1 раза в 5 секунд)
+    const { data: lastRec, error: lastErr } = await supabase
+      .from('recommendations')
+      .select('created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!lastErr && lastRec) {
+      const lastTime = new Date(lastRec.created_at).getTime();
+      const now = Date.now();
+      if (now - lastTime < 5000) {
+        return res.status(429).json({ error: 'Слишком частые запросы. Подождите 5 секунд.' });
+      }
+    }
+
+    // Получаем ранг текущего пользователя из osu API
+    const token = await getOsuAccessToken();
+    if (!token) {
+      return res.status(500).json({ error: 'Ошибка получения токена osu' });
+    }
+
+    const userOsuRes = await axios.get(`https://osu.ppy.sh/api/v2/users/${userId}/osu`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const rank = userOsuRes.data.statistics?.global_rank;
+    if (!rank) {
+      return res.status(400).json({ error: 'Не удалось определить ранг игрока' });
+    }
+
+    // Вычисляем целевой ранг
+    const maxOffset = Math.max(1, Math.floor(rank * 0.1));
+    const offset = Math.floor(Math.random() * maxOffset) + 1;
+    const sign = Math.random() < 0.5 ? -1 : 1;
+    let targetRank = rank + sign * offset;
+    if (targetRank < 1) targetRank = 1;
+
+    // Получаем страницу рейтинга около targetRank
+    const pageSize = 50;
+    const page = Math.floor((targetRank - 1) / pageSize) + 1;
+    const rankingsRes = await axios.get(`https://osu.ppy.sh/api/v2/rankings/osu/performance?page=${page}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const ranking = rankingsRes.data.ranking;
+    if (!ranking || ranking.length === 0) {
+      return res.status(500).json({ error: 'Не удалось получить список игроков' });
+    }
+
+    // Выбираем случайного игрока из этой страницы
+    const randomIndex = Math.floor(Math.random() * ranking.length);
+    const targetPlayer = ranking[randomIndex].user;
+
+    // Получаем топ-100 скоров этого игрока
+    const scoresRes = await axios.get(`https://osu.ppy.sh/api/v2/users/${targetPlayer.id}/scores/best?mode=osu&limit=100&offset=0`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const scores = scoresRes.data;
+    if (!scores || scores.length === 0) {
+      return res.status(500).json({ error: 'У выбранного игрока нет скоров' });
+    }
+
+    // Выбираем случайный скор из первых 50
+    const maxScoreIndex = Math.min(50, scores.length) - 1;
+    const scoreIndex = Math.floor(Math.random() * (maxScoreIndex + 1));
+    const score = scores[scoreIndex];
+
+    // Формируем данные для ответа и сохранения
+    const beatmap = score.beatmap;
+    const beatmapset = score.beatmapset;
+    const recommendation = {
+      user_id: userId,
+      target_user_id: targetPlayer.id,
+      beatmap_id: beatmap.id,
+      score_id: score.id,
+      mods: score.mods || [],
+      pp: score.pp,
+      star_rating: beatmap.difficulty_rating,
+      beatmap_title: beatmapset.title,
+      beatmap_version: beatmap.version,
+      background_url: beatmapset.covers?.['cover@2x'] || beatmapset.covers?.cover || '',
+    };
+
+    // Сохраняем в БД
+    const { error: insertErr } = await supabase
+      .from('recommendations')
+      .insert([recommendation]);
+
+    if (insertErr) {
+      console.error('Ошибка сохранения рекомендации:', insertErr);
+      // но всё равно вернём данные клиенту
+    }
+
+    // Отправляем ответ клиенту
+    res.json({
+      beatmap_id: beatmap.id,
+      title: beatmapset.title,
+      version: beatmap.version,
+      star_rating: beatmap.difficulty_rating,
+      mods: score.mods || [],
+      pp: score.pp,
+      background_url: recommendation.background_url,
+      target_nickname: targetPlayer.username,
+      score_url: `https://osu.ppy.sh/scores/osu/${score.id}`
+    });
+
+  } catch (err) {
+    console.error('Ошибка в /api/recommend:', err.response?.data || err.message);
+    res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+  }
+});
 async function getOsuAccessToken() {
   if (!osuAccessToken || Date.now() > osuTokenExpiry - 60000) { // обновляем за минуту до истечения
     await fetchOsuAccessToken();
@@ -1229,7 +1346,164 @@ cron.schedule("1 0 * * *", async () => {
 
 }, { timezone: "Europe/Moscow" });
 
+app.get("/run-cron-manual", async (req, res) => {
+  console.log("🚀 Ручной запуск CRON...");
 
+  const startDate = new Date("2025-10-20T00:00:00+03:00");
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const diffDays = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+
+  console.log(`📅 diffDays=${diffDays}`);
+
+  let token = null;
+
+  try {
+    // =========================
+    // 1) Сохранение истории пула
+    // =========================
+    const { data: participants, error: pErr } = await supabase
+      .from("pool_participants")
+      .select("*")
+      .order("total_pp", { ascending: false });
+
+    if (pErr) throw pErr;
+
+    if (participants && participants.length > 0) {
+      const { data: allMaps, error: mapsErr } = await supabase
+        .from("player_scores")
+        .select(`
+          id,
+          score_id,
+          participant_id,
+          map_id,
+          pp,
+          pool_maps (
+            difficulty_id,
+            beatmap_id,
+            title,
+            map_url,
+            background_url
+          )
+        `);
+
+      if (mapsErr) throw mapsErr;
+
+      for (const [index, p] of participants.entries()) {
+        const scores = (allMaps || []).filter(s => s.participant_id === p.id);
+
+        const formattedScores = scores.map(s => ({
+          pp: Number(s.pp) || 0,
+          map_id: s.map_id,
+          score_id: s.score_id || null,
+          difficulty_id: s.pool_maps?.difficulty_id || null,
+          beatmap_id: s.pool_maps?.beatmap_id || null,
+          title: s.pool_maps?.title || null,
+          map_url: s.pool_maps?.map_url || null,
+          background_url: s.pool_maps?.background_url || null
+        }));
+
+        await supabase.from("pool_history").insert({
+          tournament_date: today.toISOString().split("T")[0],
+          position: index + 1,
+          avatar_url: p.avatar || null,
+          nickname: p.nickname || p.username || null,
+          total_pp: p.total_pp || 0,
+          scores: formattedScores
+        });
+      }
+    }
+
+    // =========================
+    // 2) Очистка таблиц
+    // =========================
+    await supabase.from("pool_participants").delete().neq("id", 0);
+    await supabase.from("player_scores").delete().neq("id", 0);
+    await supabase.from("pool_maps").delete().neq("id", 0);
+
+    // =========================
+    // 3) Перенос test_pool_maps -> pool_maps
+    // =========================
+    const { data: rows } = await supabase
+      .from("test_pool_maps")
+      .select("*");
+
+    if (rows && rows.length > 0) {
+      await supabase.from("pool_maps").insert(rows);
+    }
+
+    // =========================
+    // 4) Обновление статистики
+    // =========================
+    await syncPlayersFromHistories();
+    await updateEloFromHistory();
+
+    // =========================
+    // 5) Генерация нового пула
+    // =========================
+    token = await getOsuAccessToken();
+    if (!token) throw new Error("Не удалось получить osu токен");
+
+    await supabase.from("test_pool_maps").delete().neq("id", 0);
+
+    let count = 0;
+    let attempts = 0;
+
+    while (count < 5 && attempts < 10000) {
+      attempts++;
+      const randomSetId = Math.floor(Math.random() * 2300000) + 1;
+
+      try {
+        const resApi = await axios.get(
+          `https://osu.ppy.sh/api/v2/beatmapsets/${randomSetId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const set = resApi.data;
+        if (!set?.beatmaps || set.status !== "ranked") continue;
+
+        const validDiffs = set.beatmaps.filter(
+          bm => bm.mode === "osu" &&
+                bm.difficulty_rating >= 6 &&
+                bm.difficulty_rating <= 8
+        );
+
+        if (!validDiffs.length) continue;
+
+        const map = validDiffs[Math.floor(Math.random() * validDiffs.length)];
+
+        await supabase.from("test_pool_maps").insert({
+          beatmap_id: set.id,
+          difficulty_id: map.id,
+          title: `${set.title} [${map.version}]`,
+          background_url: set.covers?.cover || null,
+          map_url: `https://osu.ppy.sh/beatmaps/${map.id}`
+        });
+
+        count++;
+
+      } catch (err) {
+        if (err.response?.status === 429) {
+          await new Promise(r => setTimeout(r, 5000));
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      message: "CRON выполнен вручную",
+      generated_maps: count
+    });
+
+  } catch (err) {
+    console.error("Ошибка ручного CRON:", err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
 // === ИСПРАВЛЕННЫЙ РОУТ ДЛЯ ПЕРЕСЧЕТА ПОБЕД ===
 
 
@@ -1481,42 +1755,158 @@ app.get('/api/profile/:userid', async (req, res) => {
 });
 
 // Эндпоинт для списка игроков
-app.get('/api/players', async (req, res) => {
+async function getOsuUser(userId, token) {
+  const res = await fetch(`https://osu.ppy.sh/api/v2/users/${userId}/osu`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+const pLimit = require('p-limit');
+// ========== Обновление current_pp всех игроков (с логированием и повторами) ==========
+async function updateAllPlayersPP() {
+  console.log('🔄 Запуск обновления current_pp для всех игроков...');
+  
   try {
-    const cacheKey = 'all_players';
-    const cached = cache.get(cacheKey);
-    if (cached) {
-      return res.json(cached);
+    // Получаем всех игроков из БД
+    const { data: players, error } = await supabase.from('players').select('userid');
+    if (error) throw error;
+    if (!players || players.length === 0) {
+      console.log('❌ Нет игроков для обновления.');
+      return;
+    }
+    console.log(`👥 Найдено игроков: ${players.length}`);
+
+    const token = await getOsuAccessToken();
+    if (!token) {
+      console.error('❌ Не удалось получить токен osu! API');
+      return;
     }
 
-    const { data: players, error: playersErr } = await supabase.from('players').select('*');
-    if (playersErr) throw playersErr;
+    const CONCURRENT = 5; // не более 5 одновременных запросов
+    let updated = 0;
+    let failed = 0;
 
-    // Параллельно загружаем PP из osu! API
-    const token = await getOsuAccessToken();
-    const updatedPlayers = await Promise.all(players.map(async (player) => {
-      try {
-        const osuRes = await axios.get(`https://osu.ppy.sh/api/v2/users/${player.userid}/osu`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const currentPP = osuRes.data.statistics?.pp || 0; // Безопасный доступ
-        return { ...player, current_pp: currentPP };
-      } catch (err) {
-        console.warn(`Osu API error for user ${player.userid}:`, err.message);
-        return { ...player, current_pp: 0 }; // Fallback на 0, если ошибка
-      }
-    }));
+    // Разбиваем на пачки по CONCURRENT
+    for (let i = 0; i < players.length; i += CONCURRENT) {
+      const batch = players.slice(i, i + CONCURRENT);
+      
+      await Promise.allSettled(batch.map(async (player) => {
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          try {
+            console.log(`🔄 [попытка ${attempt}] Запрос для ${player.userid}...`);
+            
+            const osuRes = await axios.get(`https://osu.ppy.sh/api/v2/users/${player.userid}/osu`, {
+              headers: { Authorization: `Bearer ${token}` },
+              timeout: 8000
+            });
 
-    cache.set(cacheKey, updatedPlayers, 600); // Кэш на 10 минут
-    res.json(updatedPlayers);
+            // Логируем первые 200 символов ответа
+            console.log(`📦 Ответ для ${player.userid}:`, JSON.stringify(osuRes.data).substring(0, 200) + '...');
+
+            const currentPP = osuRes.data.statistics?.pp;
+            if (currentPP === undefined || currentPP === null) {
+              console.warn(`⚠️ У игрока ${player.userid} нет поля statistics.pp в ответе`);
+              failed++;
+              return;
+            }
+
+            console.log(`📊 PP для ${player.userid}: ${currentPP}`);
+
+            // Обновляем в БД и сразу получаем обновлённую запись
+            const { data, error: updateError } = await supabase
+              .from('players')
+              .update({ current_pp: currentPP })
+              .eq('userid', player.userid)
+              .select('userid, current_pp');
+
+            if (updateError) {
+              console.error(`❌ Ошибка БД для ${player.userid}:`, updateError);
+              failed++;
+              return;
+            }
+
+            if (data && data.length > 0) {
+              console.log(`✅ Игрок ${player.userid} обновлён: current_pp = ${data[0].current_pp}`);
+              updated++;
+            } else {
+              console.warn(`⚠️ Игрок ${player.userid} не найден или не обновлён`);
+              failed++;
+            }
+
+            return; // успешно – выходим
+
+          } catch (err) {
+            console.warn(`⚠️ Ошибка загрузки профиля для ${player.userid} (попытка ${attempt}):`, err.message);
+            if (attempt === 2) {
+              failed++;
+            } else {
+              await new Promise(resolve => setTimeout(resolve, 1000)); // пауза перед повтором
+            }
+          }
+        }
+      }));
+
+      // Небольшая пауза между пачками, чтобы снизить нагрузку
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    console.log(`✅ Обновление завершено: успешно ${updated}, ошибок ${failed}`);
+  } catch (err) {
+    console.error('❌ Ошибка в updateAllPlayersPP:', err);
+  }
+}
+
+// Запускаем каждый час в 0 минут (можно изменить интервал)
+cron.schedule('0 * * * *', () => {
+  updateAllPlayersPP();
+}, { timezone: 'Europe/Moscow' });
+
+// Также можно запустить сразу при старте (но с задержкой)
+setTimeout(() => {
+  updateAllPlayersPP();
+}, 10 * 1000);
+app.get('/api/players', async (req, res) => {
+  try {
+    const all = req.query.all === 'true';
+    let query = supabase.from('players').select('*', { count: 'exact' });
+
+    if (!all) {
+      const page = parseInt(req.query.page) || 1;
+      const limitRows = 8;
+      const from = (page - 1) * limitRows;
+      const to = from + limitRows - 1;
+      query = query.range(from, to);
+    }
+
+    const { data: players, error, count } = await query;
+    if (error) throw error;
+
+    if (all) {
+      res.json(players);
+    } else {
+      res.json({
+        players,
+        currentPage: page,
+        totalPages: Math.ceil((count || 0) / limitRows),
+        totalPlayers: count || 0
+      });
+    }
   } catch (err) {
     console.error('Ошибка загрузки игроков:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+app.get('/api/update-pp', async (req, res) => {
+  await updateAllPlayersPP();
+  res.json({ message: 'Update triggered' });
+});
 
+    
 app.get('/players', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'players.html'));
+  
 });
 
 app.get('/auth/logout', (req, res) => {

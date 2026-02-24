@@ -381,6 +381,11 @@
       </thead>
       <tbody id="players-body"></tbody>
     </table>
+    <div id="pagination" style="margin-top:20px; text-align:center;">
+  <button id="prevPage">← Назад</button>
+  <span id="pageInfo" style="margin:0 15px;"></span>
+  <button id="nextPage">Вперёд →</button>
+</div>
   </main>
   <script>
     async function fetchUser() {
@@ -455,156 +460,180 @@
       return badgesContainer;
     }
 
-    let playersData = [];
-    let currentSort = { key: 'medals', order: 'desc' };
+    let allPlayers = [];            // все игроки с сервера
+let filteredSortedPlayers = []; // отфильтрованные и отсортированные (для пагинации)
+let currentPage = 1;
+const pageSize = 8;             // сколько игроков на одной странице
+let sortKey = 'medals';         // текущее поле сортировки
+let sortOrder = 'desc';         // направление ('asc' или 'desc')
+let searchTerm = '';            // текущий поисковый запрос
 
-    async function loadPlayers() {
-      try {
-        const res = await fetch('/api/players', { credentials: 'include' });
-        if (!res.ok) {
-          document.body.innerHTML = '<h1>Ошибка загрузки данных</h1>';
-          return;
-        }
-        playersData = await res.json();
-        renderTable(playersData, currentSort.key, currentSort.order);
-      } catch (err) {
-        console.error('Ошибка загрузки игроков:', err);
-        document.body.innerHTML = '<h1>Ошибка загрузки данных</h1>';
-      }
+// Загрузка всех игроков (с кешированием на сервере)
+async function loadAllPlayers() {
+  try {
+    const res = await fetch('/api/players?all=true', { credentials: 'include' });
+    if (!res.ok) throw new Error('Ошибка загрузки');
+    allPlayers = await res.json();
+    updateDisplay(); // первое отображение
+  } catch (err) {
+    console.error('Ошибка загрузки игроков:', err);
+    document.body.innerHTML = '<h1>Ошибка загрузки данных</h1>';
+  }
+}
+
+// Основная функция: фильтрация, сортировка, пагинация и отрисовка
+function updateDisplay() {
+  // 1. Фильтрация по поисковому запросу
+  let filtered = allPlayers.filter(p =>
+    (p.nickname || '').toLowerCase().includes(searchTerm)
+  );
+
+  // 2. Сортировка
+  filtered.sort((a, b) => {
+    if (sortKey === 'medals') {
+      // Медали: PP Cup (вес 1000) + Pool Cup
+      const medalsA = (a.wins_pp || 0) * 1000 + (a.wins_pool || 0);
+      const medalsB = (b.wins_pp || 0) * 1000 + (b.wins_pool || 0);
+      return sortOrder === 'asc' ? medalsA - medalsB : medalsB - medalsA;
+    } else {
+      // Числовые поля (current_pp, elo_pp_cup, elo_pool_cup)
+      let valA = a[sortKey] || 0;
+      let valB = b[sortKey] || 0;
+      return sortOrder === 'asc' ? valA - valB : valB - valA;
     }
+  });
 
-    function renderTable(data, sortBy, sortOrder = 'desc') {
-      const tbody = document.getElementById('players-body');
-      tbody.innerHTML = '';
+  filteredSortedPlayers = filtered;
 
-      currentSort = { key: sortBy, order: sortOrder };
+  // 3. Пагинация: берём только текущую страницу
+  const start = (currentPage - 1) * pageSize;
+  const end = start + pageSize;
+  const pagePlayers = filteredSortedPlayers.slice(start, end);
 
-      document.querySelectorAll('th').forEach(th => th.classList.remove('sorted', 'asc'));
+  // 4. Отрисовка таблицы
+  renderTable(pagePlayers);
 
-      const sortedHeader = document.querySelector(`th[data-sort="${sortBy}"]`);
-      if (sortedHeader) {
-        sortedHeader.classList.add('sorted');
-        if (sortOrder === 'asc') sortedHeader.classList.add('asc');
-      }
+  // 5. Обновление информации о страницах и подсветка сортировки
+  updatePaginationInfo();
+  highlightSortHeader();
+}
 
-      data.sort((a, b) => {
-        if (sortBy === 'medals') {
-          // PP Cup medals are worth more (weighted by 1000 to ensure priority over Pool Cup medals)
-          const medalsA = (a.wins_pp || 0) * 1000 + (a.wins_pool || 0);
-          const medalsB = (b.wins_pp || 0) * 1000 + (b.wins_pool || 0);
-          return sortOrder === 'asc' ? medalsA - medalsB : medalsB - medalsA;
-        } else {
-          let valA = sortBy === 'current_pp' ? (a.current_pp || 0) : (sortBy === 'elo_pp_cup' ? (a.elo_pp_cup || 0) : (a.elo_pool_cup || 0));
-          let valB = sortBy === 'current_pp' ? (b.current_pp || 0) : (sortBy === 'elo_pp_cup' ? (b.elo_pp_cup || 0) : (b.elo_pool_cup || 0));
-          return sortOrder === 'asc' ? valA - valB : valB - valA;
-        }
-      });
+// Отрисовка строк таблицы (принимает массив игроков для текущей страницы)
+function renderTable(players) {
+  const tbody = document.getElementById('players-body');
+  tbody.innerHTML = '';
 
-      data.forEach(player => {
-        const tr = document.createElement('tr');
-        
-        // Столбец с игроком (аватар + ник)
-        const playerTd = document.createElement('td');
-        const playerLink = document.createElement('a');
-        playerLink.href = `/profile/${player.userid}`;
-        
-        const avatar = document.createElement('img');
-        avatar.src = player.avatar_url || '';
-        avatar.alt = 'avatar';
-        avatar.className = 'player-avatar';
-        
-        const nickname = document.createElement('span');
-        nickname.textContent = player.nickname || 'Unknown';
-        nickname.className = 'player-nickname';
-        
-        playerLink.appendChild(avatar);
-        playerLink.appendChild(nickname);
-        playerTd.appendChild(playerLink);
-        
-        // Столбец с бейджами
-        const badgesTd = document.createElement('td');
-        badgesTd.appendChild(createBadgesElement(player));
-        
-        // Остальные столбцы
-        const ppTd = document.createElement('td');
-        ppTd.textContent = player.current_pp ? player.current_pp.toFixed(2) : 'N/A';
-        
-        const eloPpTd = document.createElement('td');
-        eloPpTd.textContent = player.elo_pp_cup ? player.elo_pp_cup.toFixed(0) : '1000';
-        
-        const eloPoolTd = document.createElement('td');
-        eloPoolTd.textContent = player.elo_pool_cup ? player.elo_pool_cup.toFixed(0) : '1000';
-        
-        tr.appendChild(playerTd);
-        tr.appendChild(badgesTd);
-        tr.appendChild(ppTd);
-        tr.appendChild(eloPpTd);
-        tr.appendChild(eloPoolTd);
-        
-        tbody.appendChild(tr);
-      });
-    }
+  players.forEach(player => {
+    const tr = document.createElement('tr');
 
-    // Обработка модального окна "Правила"
-    const modal = document.getElementById("rulesModal");
-    const rulesBtn = document.getElementById("rulesBtn");
-    const closeBtn = document.getElementById("closeModal");
+    // Столбец с игроком (аватар + ник)
+    const playerTd = document.createElement('td');
+    const playerLink = document.createElement('a');
+    playerLink.href = `/profile/${player.userid}`;
 
-    function setRulesActive(active) {
-      if (active) {
-        rulesBtn.classList.add("active");
-      } else {
-        rulesBtn.classList.remove("active");
-      }
-    }
+    const avatar = document.createElement('img');
+    avatar.src = player.avatar_url || '';
+    avatar.alt = 'avatar';
+    avatar.className = 'player-avatar';
 
-    rulesBtn.onclick = (e) => {
-      e.preventDefault();
-      modal.style.display = "block";
-      setRulesActive(true);
-    };
+    const nickname = document.createElement('span');
+    nickname.textContent = player.nickname || 'Unknown';
+    nickname.className = 'player-nickname';
 
-    closeBtn.onclick = () => {
-      modal.style.display = "none";
-      setRulesActive(false);
-    };
+    playerLink.appendChild(avatar);
+    playerLink.appendChild(nickname);
+    playerTd.appendChild(playerLink);
 
-    window.onclick = (e) => {
-      if (e.target === modal) {
-        modal.style.display = "none";
-        setRulesActive(false);
-      }
-    };
+    // Столбец с бейджами
+    const badgesTd = document.createElement('td');
+    badgesTd.appendChild(createBadgesElement(player));
 
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && modal.style.display === 'block') {
-        modal.style.display = "none";
-        setRulesActive(false);
-      }
-    });
+    // Остальные столбцы
+    const ppTd = document.createElement('td');
+    let ppValue = parseFloat(player.current_pp);
+    ppTd.textContent = !isNaN(ppValue) ? ppValue.toFixed(2) : '0.00';
 
-    const headers = document.querySelectorAll('th[data-sort]');
-    headers.forEach(header => {
-      header.addEventListener('click', () => {
-        const sortBy = header.dataset.sort;
-        let sortOrder = currentSort.key === sortBy && currentSort.order === 'desc' ? 'asc' : 'desc';
-        renderTable(playersData, sortBy, sortOrder);
-      });
-    });
+    const eloPpTd = document.createElement('td');
+    eloPpTd.textContent = player.elo_pp_cup ? player.elo_pp_cup.toFixed(0) : '1000';
 
-    const searchInput = document.getElementById('search');
-    searchInput.addEventListener('input', () => {
-      const filter = searchInput.value.toLowerCase();
-      const filteredData = playersData.filter(player => (player.nickname || '').toLowerCase().includes(filter));
-      renderTable(filteredData, currentSort.key, currentSort.order);
-    });
+    const eloPoolTd = document.createElement('td');
+    eloPoolTd.textContent = player.elo_pool_cup ? player.elo_pool_cup.toFixed(0) : '1000';
 
-    document.getElementById('login').onclick = () => window.location.href = '/auth/login';
-    document.getElementById('logout').onclick = () => window.location.href = '/auth/logout';
-    document.getElementById('participate').onclick = () => alert('Функция участия доступна только на странице турнира!');
+    tr.appendChild(playerTd);
+    tr.appendChild(badgesTd);
+    tr.appendChild(ppTd);
+    tr.appendChild(eloPpTd);
+    tr.appendChild(eloPoolTd);
 
-    fetchUser();
-    loadPlayers();
+    tbody.appendChild(tr);
+  });
+}
+
+// Обновление информации о пагинации
+function updatePaginationInfo() {
+  const totalPages = Math.ceil(filteredSortedPlayers.length / pageSize);
+  document.getElementById('pageInfo').textContent =
+    `Страница ${currentPage} из ${totalPages}`;
+  document.getElementById('prevPage').disabled = currentPage <= 1;
+  document.getElementById('nextPage').disabled = currentPage >= totalPages;
+}
+
+// Подсветка заголовка, по которому идёт сортировка
+function highlightSortHeader() {
+  document.querySelectorAll('th').forEach(th => th.classList.remove('sorted', 'asc'));
+  const sortedHeader = document.querySelector(`th[data-sort="${sortKey}"]`);
+  if (sortedHeader) {
+    sortedHeader.classList.add('sorted');
+    if (sortOrder === 'asc') sortedHeader.classList.add('asc');
+  }
+}
+
+// ===== Обработчики событий =====
+
+// Сортировка по клику на заголовок
+document.querySelectorAll('th[data-sort]').forEach(header => {
+  header.addEventListener('click', () => {
+    const newKey = header.dataset.sort;
+    // Меняем направление, если кликнули по тому же полю, иначе сбрасываем на desc
+    sortOrder = (sortKey === newKey && sortOrder === 'desc') ? 'asc' : 'desc';
+    sortKey = newKey;
+    currentPage = 1; // при смене сортировки сбрасываем на первую страницу
+    updateDisplay();
+  });
+});
+
+// Поиск по нику
+document.getElementById('search').addEventListener('input', (e) => {
+  searchTerm = e.target.value.toLowerCase();
+  currentPage = 1; // сбрасываем на первую страницу
+  updateDisplay();
+});
+
+// Пагинация: предыдущая страница
+document.getElementById('prevPage').onclick = () => {
+  if (currentPage > 1) {
+    currentPage--;
+    updateDisplay();
+  }
+};
+
+// Пагинация: следующая страница
+document.getElementById('nextPage').onclick = () => {
+  const totalPages = Math.ceil(filteredSortedPlayers.length / pageSize);
+  if (currentPage < totalPages) {
+    currentPage++;
+    updateDisplay();
+  }
+};
+
+// Кнопки входа/выхода остаются без изменений
+document.getElementById('login').onclick = () => window.location.href = '/auth/login';
+document.getElementById('logout').onclick = () => window.location.href = '/auth/logout';
+document.getElementById('participate').onclick = () => alert('Функция участия доступна только на странице турнира!');
+
+// Запускаем загрузку данных и проверку авторизации
+fetchUser();
+loadAllPlayers();
   </script>
 </body>
 </html>
