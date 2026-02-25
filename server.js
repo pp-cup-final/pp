@@ -344,7 +344,7 @@ async function updateParticipantsPP() {
         let allScores = [];
         for (let offset of [0, 100]) {
           const scoresRes = await axios.get(
-            `https://osu.ppy.sh/api/v2/users/${participant.userid}/scores/best?mode=osu&limit=100&offset=${offset}`,
+            `https://osu.ppy.sh/api/v2/users/${participant.userid}/scores/best?mode=osu&limit=25&offset=${offset}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           allScores = allScores.concat(scoresRes.data);
