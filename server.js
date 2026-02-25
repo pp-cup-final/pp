@@ -115,7 +115,7 @@ app.get('/api/recommend', async (req, res) => {
     // Генерируем 4 рекомендации
     for (let i = 0; i < 4; i++) {
       // Выбираем направление: с вероятностью 70% ищем игроков сильнее (ранг меньше), иначе слабее
-      const direction = Math.random() < 0.7 ? -1 : 1;
+      const direction = Math.random() < 0.5 ? -1 : 1;
       let targetRank = rank + direction * (Math.floor(Math.random() * delta) + 1);
       if (targetRank < 1) targetRank = 1;
 
