@@ -593,7 +593,7 @@ async function afterLogin() {
       logoutBtn.style.display = "inline-block";
       // Показываем блок рекомендаций
       recommendationBlock.style.display = 'block';
-      await fetchRecommendation();
+      fetchRecommendation();
     } else {
       userBox.textContent = "";
       loginBtn.style.display = "inline-block";
