@@ -167,7 +167,7 @@
       text-decoration: none;
     }
     .nickname-cell a.nickname { color: #fff; font-weight: bold; text-decoration: none; }
-    .nickname-cell a.nickname:hover { text-decoration: underline; color: #ffb86b; }
+    .nickname-cell a.nickname:hover { text-decoration: underline; color: #ffb86b;overflow: visible; }
     table { width: 100%; border-collapse: collapse; background-color: #1e1e1e; border-radius: 12px; overflow: hidden; box-shadow: 0 0 10px rgba(255,255,255,0.05); margin-bottom: 1rem; }
     thead th { padding: 14px; text-align: center; border-bottom: 1px solid #333; background-color: #2a2a2a; color: #fff; font-weight: bold; }
     tbody td { padding: 12px; text-align: center; border-bottom: 1px solid #333; vertical-align: middle; }
@@ -189,7 +189,16 @@
     .map-entry a { color: #fff; font-weight: bold; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; pointer-events: none; }
     .map-cover { width: 90px; height: 55px; border-radius: 6px; background-size: cover; background-position: center; flex-shrink: 0; }
     .map-info { display: flex; justify-content: space-between; flex: 1; color: #fff; font-weight: bold; }
-    .nickname-cell { text-align: left; display: flex; align-items: center; gap: 10px; }
+    .nickname-cell {
+  text-align: left;
+  vertical-align: middle;
+}
+
+.nickname-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
     .position { width: 80px; text-align: center; }
     .pp { width: 10%; text-align: center; vertical-align: middle; }
     .position-text { width: 80px; text-align: center; font-weight: bold; }
@@ -198,6 +207,7 @@
       display: grid;
       grid-template-columns: repeat(5, 1fr);
       grid-template-rows: repeat(2, auto);
+      overflow: visible;
       gap: 16px;
       margin-bottom: 2rem;
     }
