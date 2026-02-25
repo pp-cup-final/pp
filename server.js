@@ -108,7 +108,7 @@ app.get('/api/recommend', async (req, res) => {
     const recommendations = [];
     
     // Рассчитываем диапазон поиска: 2-5% от ранга, но не меньше 50 и не больше 300
-    let deltaPercent = 0.03 + (Math.random() * 0.17); // случайно от 3% до 5%
+    let deltaPercent = 0.03 + (Math.random() * 0.37); // случайно от 3% до 5%
     let delta = Math.floor(rank * deltaPercent);
     delta = Math.max(50, Math.min(delta, 300)); // ограничиваем абсолютное отклонение
 
