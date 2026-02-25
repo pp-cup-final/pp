@@ -179,7 +179,9 @@ app.get('/api/recommend', async (req, res) => {
       };
 
       await supabase.from('recommendations').insert([recommendation]);
-
+const scoreUrl = score.legacy_score_id
+  ? `https://osu.ppy.sh/scores/osu/${score.legacy_score_id}`
+  : `https://osu.ppy.sh/scores/${score.id}`;
       recommendations.push({
         beatmap_id: beatmap.id,
         title: beatmapset.title,
@@ -190,7 +192,7 @@ app.get('/api/recommend', async (req, res) => {
         background_url: recommendation.background_url,
         target_nickname: targetPlayer.username,
         target_user_id: targetPlayer.id,
-        score_url: `https://osu.ppy.sh/scores/osu/${score.id}`
+        score_url: scoreUrl
       });
 
       // Небольшая пауза между запросами
