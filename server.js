@@ -192,7 +192,7 @@ const scoreUrl = score.legacy_score_id
         background_url: recommendation.background_url,
         target_nickname: targetPlayer.username,
         target_user_id: targetPlayer.id,
-        score_url: score.url
+        score_url: score
       });
 
       // Небольшая пауза между запросами
