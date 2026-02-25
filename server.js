@@ -192,7 +192,7 @@ const scoreUrl = score.legacy_score_id
         background_url: recommendation.background_url,
         target_nickname: targetPlayer.username,
         target_user_id: targetPlayer.id,
-        score_url: score
+        score_url: `https://osu.ppy.sh/scores/osu/${score.id}`
       });
 
       // Небольшая пауза между запросами
