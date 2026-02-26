@@ -1916,7 +1916,7 @@ app.get('/api/players', async (req, res) => {
 
     if (!all) {
       const page = parseInt(req.query.page) || 1;
-      const limitRows = 8;
+      const limitRows = 10;
       const from = (page - 1) * limitRows;
       const to = from + limitRows - 1;
       query = query.range(from, to);

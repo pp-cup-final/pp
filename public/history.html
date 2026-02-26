@@ -78,6 +78,9 @@ h1 {
   border-radius: 1px;
   animation: underline 0.3s ease;
 }
+.nav-center a:hover {
+  text-decoration: none;
+}
 @keyframes underline {
   from { width: 0; opacity: 0.5; }
   to { width: 100%; opacity: 1; }
@@ -112,7 +115,7 @@ h1 {
   color: #000;
 }
 .table-container {
-  margin: 20px auto;
+  margin: 10px auto;
   width: 95%;
   max-width: 1200px;
   background: #1e1e1e;
@@ -173,9 +176,9 @@ h1 {
   background: #242424;
 }
 .detail-table {
+  border-radius: 12px;
+  table-layout: fixed;
   width: 100%;
-  border-collapse: collapse;
-  margin: 10px 0 16px 0;
 }
 .detail-table a {
   color: white;
@@ -201,33 +204,43 @@ h1 {
   border-radius: 50%;
   vertical-align: middle;
 }
-.detail-table th:nth-child(1), .detail-table td:nth-child(1) {
-  width: 58px;
-  max-width: 80px;
+.detail-table th:first-child,
+.detail-table td:first-child {
+  width: 70px;
+  text-align: right;
+  padding-right: 10px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-weight: 700;
-  text-align: center;
-  padding-left: 8px;
-  padding-right: 8px;
 }
-.detail-table th:nth-child(2), .detail-table td:nth-child(2) {
-  width: 48px;
-  max-width: 48px;
-  text-align: center;
-  padding-left: 6px;
-  padding-right: 0px;
-}
-.detail-table th:nth-child(3), .detail-table td:nth-child(3) {
-  width: 220px;
-  max-width: 220px;
+.detail-table th:nth-child(2),
+.detail-table td:nth-child(2) {
+  width: 50px;
   text-align: left;
+  padding-left: 0;
+}
+
+/* Третий столбец (игрок) */
+.detail-table th:nth-child(3),
+.detail-table td:nth-child(3) {
+  width: 180px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding-left: 2px;
-  padding-right: 0px;
+  text-align: left;
+}
+
+/* Остальные столбцы (PPstart, PPend, PPclear, Points) */
+.detail-table th:nth-child(4),
+.detail-table td:nth-child(4),
+.detail-table th:nth-child(5),
+.detail-table td:nth-child(5),
+.detail-table th:nth-child(6),
+.detail-table td:nth-child(6),
+.detail-table th:nth-child(7),
+.detail-table td:nth-child(7) {
+  width: 80px;
+  text-align: center;
 }
 .modal {
   display: none;
@@ -262,6 +275,117 @@ h1 {
   line-height: 1.5;
   text-align: left;
   font-size: 1rem;
+}
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-bottom: 0;
+}
+.second-title{
+padding-top: 0;
+}
+.pagination button {
+  background: #2a2a2a;
+  color: #fff;
+  border: 1px solid #444;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.pagination button:hover:not(:disabled) {
+  background: #ff7a00;
+  border-color: #ff7a00;
+}
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.detail-table {
+  table-layout: fixed;
+  width: 100%;
+  
+}
+
+.detail-table th:nth-child(1),
+.detail-table td:nth-child(1) {
+  width: 70px; /* Позиция */
+}
+
+.detail-table th:nth-child(2),
+.detail-table td:nth-child(2) {
+  width: 50px; /* Аватар */
+}
+
+.detail-table th:nth-child(3),
+.detail-table td:nth-child(3) {
+  width: 180px; /* Игрок */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.detail-table th:nth-child(4),
+.detail-table td:nth-child(4),
+.detail-table th:nth-child(5),
+.detail-table td:nth-child(5),
+.detail-table th:nth-child(6),
+.detail-table td:nth-child(6),
+.detail-table th:nth-child(7),
+.detail-table td:nth-child(7) {
+  width: 80px; /* PPstart, PPend, PPclear, Points */
+  text-align: center;
+}
+
+/* Фиксированная ширина для таблицы деталей Пул капа */
+.detail-table.pool-table {
+  table-layout: fixed;
+}
+
+.detail-table.pool-table th:nth-child(1),
+.detail-table.pool-table td:nth-child(1) {
+  width: 70px;
+}
+
+.detail-table.pool-table th:nth-child(2),
+.detail-table.pool-table td:nth-child(2) {
+  width: 50px;
+}
+
+.detail-table.pool-table th:nth-child(3),
+.detail-table.pool-table td:nth-child(3) {
+  width: 250px; /* Игрок */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.detail-table.pool-table th:nth-child(4),
+.detail-table.pool-table td:nth-child(4) {
+  width: 100px; /* Всего PP */
+  text-align: center;
+}
+
+/* Вложенная таблица (скоры) */
+.nested-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.nested-table th:nth-child(1),
+.nested-table td:nth-child(1) {
+  width: calc(100% - 120px); /* Название карты занимает оставшееся место */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nested-table th:nth-child(2),
+.nested-table td:nth-child(2) {
+  width: 110px; /* PP */
+  text-align: right;
+  padding-right: 6px;
 }
 .close {
   color: #aaa;
@@ -324,6 +448,105 @@ a:hover { text-decoration: underline; color: #80c0ff; }
   border-radius: 8px;
   cursor: pointer;
 }
+.detail-table th:nth-child(1),
+.detail-table td:nth-child(1) {
+  width: 70px;
+  padding-left: 8px;
+  padding-right: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+  
+}
+
+.detail-table th:nth-child(2),
+.detail-table td:nth-child(2) {
+  width: 50px;
+  padding-left: 4px;
+  padding-right: 4px;
+  text-align: center;
+}
+
+.detail-table th:nth-child(3),
+.detail-table td:nth-child(3) {
+  width: 180px;
+  padding-left: 4px;
+  padding-right: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.detail-table th:nth-child(4),
+.detail-table td:nth-child(4),
+.detail-table th:nth-child(5),
+.detail-table td:nth-child(5),
+.detail-table th:nth-child(6),
+.detail-table td:nth-child(6),
+.detail-table th:nth-child(7),
+.detail-table td:nth-child(7) {
+  width: 80px;
+  padding-left: 4px;
+  padding-right: 4px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Для пул-капа */
+.detail-table.pool-table th:nth-child(1),
+.detail-table.pool-table td:nth-child(1) {
+  width: 70px;
+  padding-left: 8px;
+  padding-right: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.detail-table.pool-table th:nth-child(2),
+.detail-table.pool-table td:nth-child(2) {
+  width: 50px;
+  padding-left: 4px;
+  padding-right: 4px;
+  text-align: center;
+}
+
+.detail-table.pool-table th:nth-child(3),
+.detail-table.pool-table td:nth-child(3) {
+  width: 250px;
+  padding-left: 4px;
+  padding-right: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.detail-table.pool-table th:nth-child(4),
+.detail-table.pool-table td:nth-child(4) {
+  width: 100px;
+  padding-left: 4px;
+  padding-right: 4px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  
+}
+.detail-table th,
+.detail-table td {
+  border: none;
+  border-bottom: 1px solid #2b2b2b;
+}
+.detail-table {
+  border-collapse: collapse;
+  
+}
 </style>
 </head>
 <body>
@@ -367,11 +590,17 @@ a:hover { text-decoration: underline; color: #80c0ff; }
 
 <h1>История ПП Капа</h1>
 <div id="history" class="table-container"></div>
+<div id="pp-pagination" class="pagination"></div>
 
-<h1>История Пул Капа</h1>
+<h1 class="second-title">История Пул Капа</h1>
 <div id="pool-history" class="table-container"></div>
-
+<div id="pool-pagination" class="pagination"></div>
 <script>
+let ppHistoryData = [];
+let poolHistoryData = [];
+let ppCurrentPage = 1;
+let poolCurrentPage = 1;
+const ITEMS_PER_PAGE = 6;
 /** Утилиты */
 function escapeHtml(str) {
   if (str === null || str === undefined) return '';
@@ -429,7 +658,7 @@ async function fetchUser() {
 
 function buildSummaryTable(weeks, onCreateDetailRow, isPool = false) {
   const table = document.createElement('table');
-  table.className = 'summary-table';
+table.className = 'detail-table pool-table';
   const thead = document.createElement('thead');
   thead.innerHTML = `<tr><th>Цикл</th><th>Дата начала</th></tr>`;
   table.appendChild(thead);
@@ -479,11 +708,44 @@ async function loadHistory() {
       document.getElementById('history').innerHTML = '<div class="small-muted">Ошибка загрузки истории ПП капа</div>';
       return;
     }
-    const history = await res.json();
-    const container = document.getElementById('history');
-    container.innerHTML = '';
+    ppHistoryData = await res.json();
+    renderPPHistoryPage(1);
+  } catch (err) {
+    console.error('loadHistory error', err);
+    document.getElementById('history').innerHTML = '<div class="small-muted">Ошибка загрузки истории ПП капа</div>';
+  }
+}
+async function loadPoolHistory() {
+  try {
+    const res = await fetch('/api/pool/history');
+    if (!res.ok) {
+      document.getElementById('pool-history').innerHTML = '<div class="small-muted">Ошибка загрузки истории Пул капа</div>';
+      return;
+    }
+    poolHistoryData = await res.json();
+    renderPoolHistoryPage(1);
+  } catch (err) {
 
-    const summary = buildSummaryTable(history, (week) => {
+    console.error('loadPoolHistory error', err);
+document.getElementById('pool-history').innerHTML = '<div class="small-muted">Ошибка загрузки истории Пул капа</div>';
+  }
+}
+function renderPPHistoryPage(page) {
+  const container = document.getElementById('history');
+  container.innerHTML = '';
+
+  const totalPages = Math.ceil(ppHistoryData.length / ITEMS_PER_PAGE);
+  page = Math.max(1, Math.min(page, totalPages));
+  ppCurrentPage = page;
+
+  const start = (page - 1) * ITEMS_PER_PAGE;
+  const end = start + ITEMS_PER_PAGE;
+  const pageData = ppHistoryData.slice(start, end);
+
+  if (pageData.length === 0) {
+    container.innerHTML = '<div class="small-muted">Нет данных</div>';
+  } else {
+    const summary = buildSummaryTable(pageData, (week) => {
       const participants = Array.isArray(week.data) ? week.data.slice() : [];
       participants.sort((a, b) => {
         const pa = Number(a.points || 0);
@@ -499,8 +761,8 @@ async function loadHistory() {
         <thead>
           <tr>
             <th>Позиция</th>
-            <th></th>
             <th>Игрок</th>
+            <th></th>
             <th>PPstart</th>
             <th>PPend</th>
             <th>PPclear</th>
@@ -509,13 +771,13 @@ async function loadHistory() {
         </thead>
       `;
       const tbody = document.createElement('tbody');
-
+      
+      // Сначала добавляем реальные строки
       participants.forEach((p) => {
         let rowClass = '';
         if (p.position === 1) rowClass = 'first';
         else if (p.position === 2) rowClass = 'second';
         else if (p.position === 3) rowClass = 'third';
-
         const tr = document.createElement('tr');
         tr.className = rowClass;
         const profileUrl = (p.userid || p.user_id) ? `https://osu.ppy.sh/users/${encodeURIComponent(p.userid || p.user_id)}` : '#';
@@ -537,29 +799,64 @@ async function loadHistory() {
         tbody.appendChild(tr);
       });
 
+      // Добиваем до ITEMS_PER_PAGE пустыми строками
+      const emptyRowsNeeded = ITEMS_PER_PAGE - participants.length;
+      for (let i = 0; i < emptyRowsNeeded; i++) {
+        const emptyTr = document.createElement('tr');
+        emptyTr.innerHTML = `
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+        `;
+        tbody.appendChild(emptyTr);
+      }
+
       table.appendChild(tbody);
       return table;
     });
-
     container.appendChild(summary);
-  } catch (err) {
-    console.error('loadHistory error', err);
-    document.getElementById('history').innerHTML = '<div class="small-muted">Ошибка загрузки истории ПП капа</div>';
+    const summaryTbody = summary.querySelector('tbody');
+const realCycles = summary.querySelectorAll('.summary-row').length;
+const emptyCycles = ITEMS_PER_PAGE - realCycles;
+for (let i = 0; i < emptyCycles; i++) {
+  // Пустая основная строка (без класса, чтобы не реагировала на клик)
+  const emptyMain = document.createElement('tr');
+  emptyMain.innerHTML = '<td>&nbsp;</td><td>&nbsp;</td>';
+  summaryTbody.appendChild(emptyMain);
+  // Пустая детальная строка (занимает место, но без содержимого)
+  const emptyDetail = document.createElement('tr');
+  emptyDetail.className = 'detail-row'; // оставляем класс, чтобы скрывать/показывать, но она всегда пустая
+  const emptyDetailTd = document.createElement('td');
+  emptyDetailTd.colSpan = 2;
+  emptyDetailTd.innerHTML = '&nbsp;';
+  emptyDetail.appendChild(emptyDetailTd);
+  summaryTbody.appendChild(emptyDetail);
+}
   }
+
+  updatePagination('pp', totalPages);
 }
 
-async function loadPoolHistory() {
-  try {
-    const res = await fetch('/api/pool/history');
-    if (!res.ok) {
-      document.getElementById('pool-history').innerHTML = '<div class="small-muted">Ошибка загрузки истории Пул капа</div>';
-      return;
-    }
-    const history = await res.json();
-    const container = document.getElementById('pool-history');
-    container.innerHTML = '';
+function renderPoolHistoryPage(page) {
+  const container = document.getElementById('pool-history');
+  container.innerHTML = '';
 
-    const summary = buildSummaryTable(history, (week) => {
+  const totalPages = Math.ceil(poolHistoryData.length / ITEMS_PER_PAGE);
+  page = Math.max(1, Math.min(page, totalPages));
+  poolCurrentPage = page;
+
+  const start = (page - 1) * ITEMS_PER_PAGE;
+  const end = start + ITEMS_PER_PAGE;
+  const pageData = poolHistoryData.slice(start, end);
+
+  if (pageData.length === 0) {
+    container.innerHTML = '<div class="small-muted">Нет данных</div>';
+  } else {
+    const summary = buildSummaryTable(pageData, (week) => {
       const players = Array.isArray(week.data) ? week.data.slice() : [];
       players.sort((a, b) => (a.position || 0) - (b.position || 0));
       const table = document.createElement('table');
@@ -568,8 +865,8 @@ async function loadPoolHistory() {
         <thead>
           <tr>
             <th>Позиция</th>
-            <th></th>
             <th>Игрок</th>
+            <th></th>
             <th>Всего PP</th>
           </tr>
         </thead>
@@ -580,8 +877,9 @@ async function loadPoolHistory() {
         if (Array.isArray(player.scores)) {
           player.scores.sort((a, b) => (Number(b.pp || 0) - Number(a.pp || 0)));
         }
-        if (player.avatar_url) {
-          player.user_id = player.avatar_url.match(/\/(\d+)\?/)?.[1];
+        if (!player.userid && player.avatar_url) {
+          const match = player.avatar_url.match(/\/(\d+)\?/);
+          if (match) player.userid = match[1];
         }
         const tr = document.createElement('tr');
         const profileUrl = (player.userid || player.user_id) ? `https://osu.ppy.sh/users/${encodeURIComponent(player.userid || player.user_id)}` : '#';
@@ -643,15 +941,61 @@ async function loadPoolHistory() {
         }
       });
 
+      // Добиваем до ITEMS_PER_PAGE пустыми строками
+      const emptyRowsNeeded = ITEMS_PER_PAGE - players.length;
+      for (let i = 0; i < emptyRowsNeeded; i++) {
+        const emptyTr = document.createElement('tr');
+        emptyTr.innerHTML = `
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+        `;
+        tbody.appendChild(emptyTr);
+      }
+
       table.appendChild(tbody);
       return table;
     }, true);
-
     container.appendChild(summary);
-  } catch (err) {
-    console.error('loadPoolHistory error', err);
-    document.getElementById('pool-history').innerHTML = '<div class="small-muted">Ошибка загрузки истории Пул капа</div>';
+    const summaryTbody = summary.querySelector('tbody');
+const realCycles = summary.querySelectorAll('.summary-row').length;
+const emptyCycles = ITEMS_PER_PAGE - realCycles;
+for (let i = 0; i < emptyCycles; i++) {
+  const emptyMain = document.createElement('tr');
+  emptyMain.innerHTML = '<td>&nbsp;</td><td>&nbsp;</td>';
+  summaryTbody.appendChild(emptyMain);
+  const emptyDetail = document.createElement('tr');
+  emptyDetail.className = 'detail-row';
+  const emptyDetailTd = document.createElement('td');
+  emptyDetailTd.colSpan = 2;
+  emptyDetailTd.innerHTML = '&nbsp;';
+  emptyDetail.appendChild(emptyDetailTd);
+  summaryTbody.appendChild(emptyDetail);
+}
   }
+
+  updatePagination('pool', totalPages);
+}
+
+function updatePagination(type, totalPages) {
+  const paginationDiv = document.getElementById(type === 'pp' ? 'pp-pagination' : 'pool-pagination');
+  const currentPage = type === 'pp' ? ppCurrentPage : poolCurrentPage;
+  paginationDiv.innerHTML = `
+    <button id="${type}-prev" ${currentPage <= 1 ? 'disabled' : ''}>← Назад</button>
+    <span style="margin:0 15px;">Страница ${currentPage} из ${totalPages}</span>
+    <button id="${type}-next" ${currentPage >= totalPages ? 'disabled' : ''}>Вперёд →</button>
+  `;
+
+  document.getElementById(`${type}-prev`)?.addEventListener('click', () => {
+    if (type === 'pp') renderPPHistoryPage(currentPage - 1);
+    else renderPoolHistoryPage(currentPage - 1);
+  });
+
+  document.getElementById(`${type}-next`)?.addEventListener('click', () => {
+    if (type === 'pp') renderPPHistoryPage(currentPage + 1);
+    else renderPoolHistoryPage(currentPage + 1);
+  });
 }
 
 const modal = document.getElementById("rulesModal");

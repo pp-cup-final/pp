@@ -463,7 +463,7 @@
     let allPlayers = [];            // все игроки с сервера
 let filteredSortedPlayers = []; // отфильтрованные и отсортированные (для пагинации)
 let currentPage = 1;
-const pageSize = 8;             // сколько игроков на одной странице
+const pageSize = 10;             // сколько игроков на одной странице
 let sortKey = 'medals';         // текущее поле сортировки
 let sortOrder = 'desc';         // направление ('asc' или 'desc')
 let searchTerm = '';            // текущий поисковый запрос
@@ -625,7 +625,42 @@ document.getElementById('nextPage').onclick = () => {
     updateDisplay();
   }
 };
+const modal = document.getElementById("rulesModal");
+const rulesBtn = document.getElementById("rulesBtn");
+const closeBtn = document.getElementById("closeModal");
 
+function setRulesActive(active) {
+  if (active) {
+    rulesBtn.classList.add("active");
+  } else {
+    rulesBtn.classList.remove("active");
+  }
+}
+
+rulesBtn.onclick = (e) => {
+  e.preventDefault();
+  modal.style.display = "block";
+  setRulesActive(true);
+};
+
+closeBtn.onclick = () => {
+  modal.style.display = "none";
+  setRulesActive(false);
+};
+
+window.onclick = (e) => {
+  if (e.target === modal) {
+    modal.style.display = "none";
+    setRulesActive(false);
+  }
+};
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && modal.style.display === 'block') {
+    modal.style.display = "none";
+    setRulesActive(false);
+  }
+});
 // Кнопки входа/выхода остаются без изменений
 document.getElementById('login').onclick = () => window.location.href = '/auth/login';
 document.getElementById('logout').onclick = () => window.location.href = '/auth/logout';
