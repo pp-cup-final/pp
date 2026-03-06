@@ -326,6 +326,7 @@
       border-color: #ff7a00;
       outline: none;
     }
+    
   </style>
 </head>
 <body>
@@ -336,7 +337,7 @@
       <a href="/pool">Пул кап</a>
       <a href="/history" class="history">История</a>
       <a href="/players" class="active">Участники</a>
-      <button id="rulesBtn">Правила</button>
+      <a href="/rules">Правила</a>
       <a href="https://discord.com/invite/4M5jDGDX96" target="_blank">Discord</a>
     </div>
     <div class="nav-right">
@@ -625,42 +626,7 @@ document.getElementById('nextPage').onclick = () => {
     updateDisplay();
   }
 };
-const modal = document.getElementById("rulesModal");
-const rulesBtn = document.getElementById("rulesBtn");
-const closeBtn = document.getElementById("closeModal");
 
-function setRulesActive(active) {
-  if (active) {
-    rulesBtn.classList.add("active");
-  } else {
-    rulesBtn.classList.remove("active");
-  }
-}
-
-rulesBtn.onclick = (e) => {
-  e.preventDefault();
-  modal.style.display = "block";
-  setRulesActive(true);
-};
-
-closeBtn.onclick = () => {
-  modal.style.display = "none";
-  setRulesActive(false);
-};
-
-window.onclick = (e) => {
-  if (e.target === modal) {
-    modal.style.display = "none";
-    setRulesActive(false);
-  }
-};
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && modal.style.display === 'block') {
-    modal.style.display = "none";
-    setRulesActive(false);
-  }
-});
 // Кнопки входа/выхода остаются без изменений
 document.getElementById('login').onclick = () => window.location.href = '/auth/login';
 document.getElementById('logout').onclick = () => window.location.href = '/auth/logout';

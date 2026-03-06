@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/e/e7/Twemoji12_1f913.svg" type="image/svg+xml">
+  <title>Правила турниров</title>
+  <style>
+body {
+  font-family: "Segoe UI", sans-serif;
+  background: #121212;
+  margin: 0;
+  padding: 2rem;
+  color: #eee;
+  overflow-x: hidden;
+}
+
+nav {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%;
+  backdrop-filter: blur(10px);
+  background: rgba(18, 18, 18, 0.9);
+  border-bottom: 1px solid #333;
+  z-index: 1000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 1.2rem;
+  box-sizing: border-box;
+  height: 7%;
+}
+
+.nav-left {
+  font-weight: bold;
+  font-size: 1.8rem;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-left: 3%;
+}
+
+.nav-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+}
+
+.nav-center a, .nav-center button {
+  color: #fff;
+  text-decoration: none;
+  margin: 0 0.9rem;
+  position: relative;
+  transition: color 0.3s;
+  font-weight: 500;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.nav-center a:hover, .nav-center button:hover {
+  color: #ff7a00;
+}
+
+.nav-center a.active, .nav-center button.active {
+  color: #ff7a00;
+}
+
+.nav-center a.active::after, .nav-center button.active::after {
+  content: "";
+  position: absolute;
+  left: 0; bottom: -4px;
+  width: 100%; height: 2px;
+  background: #ff7a00;
+  border-radius: 1px;
+  animation: underline 0.3s ease;
+}
+
+@keyframes underline {
+  from { width: 0; opacity: 0.5; }
+  to { width: 100%; opacity: 1; }
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-right: 3%;
+  font-weight: bold;
+  color: #fff;
+  justify-content: center;
+  gap: 8px;
+}
+
+.nav-right #user {
+  color: #ccc;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.nav-right #user a {
+  color: #ccc;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
+.nav-right #user :hover {
+  color: #ff7a00;
+}
+
+#login, #logout {
+  background: #c265b4;
+  color: white;
+  border: none;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.3s;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+#login:hover, #logout:hover {
+  background: #8e077a;
+  color: white;
+}
+
+#participate {
+  background: #c265b4;
+  color: white;
+  border: none;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  text-decoration: none;
+  margin-left: 3%;
+  font-weight: 500;
+}
+
+#participate:hover {
+  background: #8e077a;
+  color: white;
+}
+
+/* Основной контент */
+main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  max-width: 90%;
+  margin: 1% auto;
+  padding: 2% 1rem 0;
+}
+
+main > h1 {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: #ff7a00;
+  margin: 0 0 1% 0;
+  font-size: 2.2rem;
+}
+
+/* Блоки правил */
+.rules-section {
+  background: #1e1e1e;
+  border-radius: 16px;
+  padding: 1rem 1.5rem; /* фиксированные отступы */
+  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+  border: 1px solid #333;
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Все текстовые элементы внутри блоков (кроме заголовков) */
+.rules-section p,
+.rules-section li,
+.rules-section ul,
+.rules-section ol,
+.rules-section div:not(.prize) {
+  font-size: 0.93rem;
+  line-height: 1.5;
+}
+
+/* Заголовки */
+.rules-section h2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #ff7a00;
+  font-size: 1.5rem;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #333;
+  padding-bottom: 0.5rem;
+}
+
+.rules-section h2 .prize {
+  font-size: 1rem;
+  color: gold;
+  white-space: nowrap;
+}
+
+.rules-section h3 {
+  color: #ffb86b;
+  font-size: 1.1rem;
+  margin: 1rem 0 0.3rem;
+}
+
+.rules-section ul, .rules-section ol {
+  padding-left: 1.5rem;
+}
+
+.rules-section li {
+  margin: 0.5rem 0;
+}
+
+.rules-section hr {
+  border: none;
+  border-top: 1px solid #333;
+  margin: 1.5rem 0;
+}
+
+/* Нижняя заметка */
+.note {
+  grid-column: 1 / -1;
+  color: #aaa;
+  font-style: italic;
+  margin-top: 1rem;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+a {
+  color: #4da6ff;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* Адаптация */
+@media (max-width: 800px) {
+  main {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+}
+
+@media (max-width: 500px) {
+  .rules-section {
+    padding: 1rem;
+    font-size: 0.9rem;
+  }
+}
+</style>
+</head>
+<body>
+  <nav>
+    <div class="nav-left"><img src="https://upload.wikimedia.org/wikipedia/commons/e/e7/Twemoji12_1f913.svg" width="28" height="28" style="border-radius:50%;"><b style="margin-bottom: 5px;">Rules</b></div>
+    <div class="nav-center">
+      <a href="/">ПП кап</a>
+      <a href="/pool">Пул кап</a>
+      <a href="/history">История</a>
+      <a href="/players">Участники</a>
+      <a href="/rules" class="active">Правила</a>
+      <a href="https://discord.com/invite/4M5jDGDX96" target="_blank">Discord</a>
+    </div>
+    <div class="nav-right">
+      <div id="user"></div>
+      <button id="participate">Участвовать</button>
+      <button id="login">Войти</button>
+      <button id="logout" style="display:none;">Выйти</button>
+    </div>
+  </nav>
+
+  <main>
+    
+
+    <div class="rules-section">
+      <h2>
+  <span>🏆 ПП кап</span>
+  <span class="prize">🏆 Приз: 500₽</span>
+</h2>
+      <p><strong>Условия участия:</strong></p>
+      <ul>
+        <li>Авторизуйтесь через osu! аккаунт и нажмите кнопку <strong>«Участвовать»</strong>.</li>
+        <li>Вы должны быть участником Discord-сервера <a href="https://discord.com/invite/4M5jDGDX96" target="_blank">«Шавоново»</a>.</li>
+        <li>Требуется не менее <strong>4000 PP</strong> и <strong>30 000 playcount</strong>.</li>
+        <li>Если вы победили на предыдущей неделе пп капа, то приз на текущей неделе, даже если займёте 1 место, вы не получите.
+        Это так называемая защита от выгорания </li>
+      </ul>
+      <p><strong>Как это работает:</strong></p>
+      <ul>
+        <li>Каждую неделю (с воскресенья до воскресенья 00:00 по МСК (utc-3)) учитывается прирост PP.</li>
+        <li>Очки рассчитываются по формуле: <em>чистые PP × (тысячи PP, на которых они получены)</em>.</li>
+        <li>Например, если вы набрали 100 PP на рубеже 5000 PP, очки = 100 × 5 = 500.</li>
+        <li>Чтобы посмотреть, на каких картах получен прирост, кликните на строку участника в таблице — раскроется список скоров, на которых и были
+            зафармлены чистые пп на текущей неделе после нажатия на кнопку "Участвовать".</li>
+        <li>Также спешу сообщить, что мною, без объяснения причины, может произойти исключение игрока (больше относится ко всем видам абуза).</li>
+        <li>Блок рекомендованных для фарма карт - это необязательные карты. Фармить можно всё что угодно, но скоры в клиенте Osu! Lazer запрещены.
+        При обнаружении у победителя хотя бы одного скора в клиенте Osu! Lazer - игрок не будет определён как победитель.
+        </li>
+        <li>Я (LLIaBKa), как организатор, тоже участвую в данных турнирах, но даже если займу 1 место - всё равно выплачу приз следующему месту, проходящему по всем условиям.</li>
+      </ul>
+      <p><strong>Обновление данных:</strong> каждые 5 минут автоматически.</p>
+    </div>
+
+    <div class="rules-section">
+      <h2>
+  <span>🎯 Пул кап</span>
+  <span class="prize">🏆 Приз: 500₽</span>
+</h2>
+      <p><strong>Условия участия:</strong></p>
+      <ul>
+        <li>Авторизуйтесь через osu! аккаунт и нажмите кнопку <strong>«Участвовать»</strong>.</li>
+        <li>Вы должны быть участником Discord-сервера <a href="https://discord.com/invite/4M5jDGDX96" target="_blank">«Шавоново»</a>.</li>
+        <li>Достаточно просто быть на Discord-сервере (требования по PP/плейкаунту отсутствуют).</li>
+      </ul>
+      <p><strong>Как это работает:</strong></p>
+      <ul>
+        <li>Каждую неделю генерируется новый пул из <strong>10 карт</strong>.</li>
+        <li>Победитель определяется по <strong>случайному критерию</strong>, который выбирается в начале недели.<br> Это может быть:
+          <ul style="margin-top:0.3rem;">
+            <li>сумма PP;</li>
+            <li>сумма максимального комбо;</li>
+            <li>сумма мисскаунта;</li>
+            <li>средняя аккураси;</li>
+            <li>сумма очков (score).</li>
+          </ul>
+        </li>
+        <li>Если игрок с лучшим результатом по текущему критерию (1 место) не сыграл все карты из пула - то и приз он не получит. Сыграть все карты пула для победы - обязательно!</li>
+        <li>Для каждой карты учитывается <strong>лучший результат</strong> по текущему критерию (сыгранный после регистрации).</li>
+        <li>Если карта имеет <strong>AR ≤ 9</strong>, то скоры с модами HR, DT, NC <strong>не учитываются</strong> — на карточке отображается предупреждающий значок ⚠️.</li>
+      <li>Кликните на игрока в таблице — увидете его результаты на каждой карте (метрика по критерию недели).</li>
+        <li>Я (LLIaBKa), как организатор, тоже участвую в данных турнирах, но даже если займу 1 место - всё равно выплачу приз следующему месту, проходящему по всем условиям.</li>
+        
+      </ul>
+      <p><strong>Обновление данных:</strong> каждые 5 минут автоматически.</p>
+    </div>
+
+    <div class="note">
+      ⏱️ Время на таймере всегда указано до ближайшего воскресенья 00:00 по Москве.<br>
+    </div>
+  </main>
+
+  <script>
+    async function fetchUser() {
+      try {
+        const res = await fetch('/api/me', {
+          method: 'GET',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('user').innerHTML = `
+            <a href="/profile/${data.id}" style="text-decoration: none; color: #ccc; display: flex; align-items: center;">
+              <img src="${data.avatar_url || data.avatar}" width="28" height="28" style="border-radius:50%; vertical-align:middle; margin-right:8px;" alt="avatar">
+              <b style="text-align:bottom;">${data.username}</b>
+            </a>
+          `;
+          document.getElementById('login').style.display = 'none';
+          document.getElementById('logout').style.display = 'inline-block';
+          document.getElementById('participate').style.display = 'inline-block';
+        } else {
+          document.getElementById('user').textContent = '';
+          document.getElementById('login').style.display = 'inline-block';
+          document.getElementById('logout').style.display = 'none';
+          document.getElementById('participate').style.display = 'inline-block';
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки пользователя:', err);
+        document.getElementById('user').textContent = '';
+        document.getElementById('login').style.display = 'inline-block';
+        document.getElementById('logout').style.display = 'none';
+        document.getElementById('participate').style.display = 'inline-block';
+      }
+    }
+
+    document.getElementById('login').onclick = () => window.location.href = '/auth/login';
+    document.getElementById('logout').onclick = () => window.location.href = '/auth/logout';
+    document.getElementById('participate').onclick = () => alert('Функция участия доступна только на странице турнира!');
+
+    fetchUser();
+  </script>
+</body>
+</html>

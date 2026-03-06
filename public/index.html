@@ -430,6 +430,35 @@
       from { transform: translateY(-15px); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
     }
+    .mods-toggle {
+  display: flex;
+  background: #2a2a2a;
+  border-radius: 30px;
+  padding: 4px;
+  width: fit-content;
+  margin: 0 auto 15px auto;
+  border: 1px solid #444;
+}
+.segment {
+  padding: 6px 16px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #aaa;
+  background: transparent;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.segment.active {
+  background: #ff7a00;
+  color: white;
+  box-shadow: 0 2px 8px rgba(255,122,0,0.3);
+}
+.segment:hover:not(.active) {
+  color: #fff;
+  background: #3a3a3a;
+}
   </style>
 </head>
 <body>
@@ -440,7 +469,7 @@
       <a href="/pool">Пул кап</a>
       <a href="/history" class="history">История</a>
       <a href="/players" class="players">Участники</a>
-      <button id="rulesBtn">Правила</button>
+      <a href="/rules">Правила</a>
       <a href="https://discord.com/invite/4M5jDGDX96" target="_blank">Discord</a>
     </div>
     <div class="nav-right">
@@ -469,10 +498,15 @@
       <div id="countdown-bar"></div>
       <div id="countdown-text"></div>
     </div>
-    <div id="recommendation-container" style="display: none; margin-bottom: 20px; background: #1e1e1e; border-radius: 12px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
-  <h4 style="margin:0 0 12px 0; color:#ff7a00; font-size:1.1rem;">🎯 Рекомендованные карты</h4>
-  <div id="recommendation-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;"></div>
-  <button id="next-recommend" class="rules-btn" style="margin-top:15px; width:100%; padding:8px; font-size:14px;">➡️ Другие карты</button>
+    <div id="recommendation-container" style="margin-bottom: 20px; background: #1e1e1e; border-radius: 12px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+  <h4 style="margin:0 0 1% 0; color:#ff7a00; font-size:1.1rem; text-align: center;">🎯 Рекомендованные карты</h4>
+  <div class="mods-toggle" style="margin-bottom: 15px;">
+  <span class="segment" data-mode="all">Любые</span>
+  <span class="segment" data-mode="dt">Только DT</span>
+  <span class="segment" data-mode="no-dt">Только без DT</span>
+</div>
+  <div id="recommendation-grid" style="display: none; grid-template-columns: 1fr 1fr; gap: 12px;"></div>
+  <button id="next-recommend" class="rules-btn" style="margin-top:15px; width:100%; padding:8px; font-size:14px;">🎯 Подобрать рекомендации</button>
 </div>
     <table>
       <thead>
@@ -504,25 +538,45 @@
       const participateBtn = document.getElementById("participate");
       if (!participateBtn) return;
     }
-let recommendationBlock = document.getElementById('recommendation-container');
-let recommendationContent = document.getElementById('recommendation-content');
+    let recommendationGrid = document.getElementById('recommendation-grid');
 let nextBtn = document.getElementById('next-recommend');
 let canRequestRecommendation = true;
+let isFirstLoad = true; // флаг первого открытия
+let recommendationBlock = document.getElementById('recommendation-container');
+let recommendationContent = document.getElementById('recommendation-content');
+nextBtn.addEventListener('click', fetchRecommendation);
 
 async function fetchRecommendation() {
   if (!canRequestRecommendation) return;
+
+  const activeSegment = document.querySelector('.segment.active');
+  const modsFilter = activeSegment ? activeSegment.dataset.mode : 'all';
+
+  if (!currentUser) {
+    alert('Необходимо авторизоваться');
+    window.location.href = '/auth/login';
+    return;
+  }
+
   canRequestRecommendation = false;
   nextBtn.disabled = true;
   nextBtn.textContent = '⏳ Подождите 5 сек...';
+
   try {
-    const res = await fetch('/api/recommend');
+    const res = await fetch(`/api/recommend?mode=${modsFilter}`);
     if (!res.ok) {
       const err = await res.json();
       alert(err.error || 'Ошибка получения рекомендаций');
       return;
     }
-    const data = await res.json(); // теперь это массив
+    const data = await res.json();
     displayRecommendations(data);
+
+    if (isFirstLoad) {
+      recommendationGrid.style.display = 'grid';
+      nextBtn.textContent = '➡️ Другие карты';
+      isFirstLoad = false;
+    }
   } catch (err) {
     console.error(err);
     alert('Ошибка сети');
@@ -530,11 +584,27 @@ async function fetchRecommendation() {
     setTimeout(() => {
       canRequestRecommendation = true;
       nextBtn.disabled = false;
-      nextBtn.textContent = '➡️ Другие карты';
+      // Восстанавливаем текст в зависимости от того, показана ли сетка
+      nextBtn.textContent = isFirstLoad ? '🎯 Подобрать рекомендации' : '➡️ Другие карты';
     }, 5000);
   }
 }
 
+function initModsToggle() {
+  const segments = document.querySelectorAll('.segment');
+  const savedMode = localStorage.getItem('preferredMode') || 'all';
+
+  segments.forEach(seg => {
+    const mode = seg.dataset.mode;
+    if (mode === savedMode) seg.classList.add('active');
+    seg.addEventListener('click', () => {
+      segments.forEach(s => s.classList.remove('active'));
+      seg.classList.add('active');
+      localStorage.setItem('preferredMode', mode);
+      // Никакого сброса сетки здесь не происходит!
+    });
+  });
+}
 function displayRecommendations(recommendations) {
   const grid = document.getElementById('recommendation-grid');
   grid.innerHTML = '';
@@ -566,7 +636,18 @@ function displayRecommendations(recommendations) {
     grid.appendChild(card);
   });
 }
-
+function extractArrayFromJson(json) {
+  if (Array.isArray(json)) return json;
+  if (!json || typeof json !== 'object') return [];
+  const keys = ['data', 'scores', 'items', 'rows'];
+  for (const k of keys) {
+    if (Array.isArray(json[k])) return json[k];
+  }
+  for (const val of Object.values(json)) {
+    if (Array.isArray(val)) return val;
+  }
+  return [];
+}
 // После авторизации показываем блок и загружаем первую рекомендацию
 async function afterLogin() {
   recommendationBlock.style.display = 'block';
@@ -592,32 +673,19 @@ async function afterLogin() {
       loginBtn.style.display = "none";
       logoutBtn.style.display = "inline-block";
       // Показываем блок рекомендаций
-      recommendationBlock.style.display = 'block';
-      fetchRecommendation();
+      
+      // Загружаем рекомендации без await (не блокируем)
+      
     } else {
       userBox.textContent = "";
       loginBtn.style.display = "inline-block";
       logoutBtn.style.display = "none";
-      recommendationBlock.style.display = 'none';
+      
     }
   } catch (err) {
     console.error("Ошибка /api/me:", err);
   }
 }
-nextBtn.addEventListener('click', fetchRecommendation);
-    function extractArrayFromJson(json) {
-      if (Array.isArray(json)) return json;
-      if (!json || typeof json !== 'object') return [];
-      const keys = ['data', 'scores', 'items', 'rows'];
-      for (const k of keys) {
-        if (Array.isArray(json[k])) return json[k];
-      }
-      for (const val of Object.values(json)) {
-        if (Array.isArray(val)) return val;
-      }
-      return [];
-    }
-
     async function loadData() {
       try {
         const res = await fetch('/api/data');
@@ -661,12 +729,13 @@ nextBtn.addEventListener('click', fetchRecommendation);
             <td colspan="8">
               <table class="inner-table">
                 <thead>
-                  <tr>
-                    <th class="bg-cell">Карта</th>
-                    <th class="map-title-cell"></th>
-                    <th class="pp-cell">PP за скор</th>
-                  </tr>
-                </thead>
+  <tr>
+    <th class="bg-cell">Карта</th>
+    <th class="map-title-cell">Название</th>
+    <th>Моды</th>                <!-- новая колонка -->
+    <th class="pp-cell">PP за скор</th>
+  </tr>
+</thead>
                 <tbody></tbody>
               </table>
             </td>
@@ -691,6 +760,7 @@ nextBtn.addEventListener('click', fetchRecommendation);
                     .slice()
                     .sort((a, b) => (b.score_pp ?? b.pp ?? 0) - (a.score_pp ?? a.pp ?? 0));
                   scoresTbody.innerHTML = sortedScores.map(s => {
+                    const mods = s.mods && s.mods.length ? s.mods.join('') : 'NM';
                     const map = s.pool_maps || s.beatmap || s.map || {};
                     const bg = map.background_url || s.beatmap_bg || '';
                     const scoreId = s.score_id || s.id || 0;
@@ -701,14 +771,15 @@ nextBtn.addEventListener('click', fetchRecommendation);
 
                     return `
                       <tr>
-                        <td class="bg-cell"><img src="${bg}" alt="cover"></td>
-                        <td class="map-title-cell">
-                          <a href="https://osu.ppy.sh/scores/osu/${scoreId}" target="_blank">${fullTitle}</a>
-                        </td>
-                        <td class="pp-cell">${isFinite(pp) ? pp.toFixed(2) : '0'} pp</td>
-                      </tr>
-                    `;
-                  }).join('');
+      <td class="bg-cell"><img src="${bg}" alt="cover"></td>
+      <td class="map-title-cell">
+        <a href="https://osu.ppy.sh/scores/osu/${scoreId}" target="_blank">${fullTitle}</a>
+      </td>
+      <td>${mods}</td>
+      <td class="pp-cell">${isFinite(pp) ? pp.toFixed(2) : '0'} pp</td>
+    </tr>
+  `;
+}).join('');
                 }
               } catch (err) {
                 console.error("Ошибка при fetch scores:", err);
@@ -757,44 +828,10 @@ nextBtn.addEventListener('click', fetchRecommendation);
       }
     };
 
-    const modal = document.getElementById("rulesModal");
-    const rulesBtn = document.getElementById("rulesBtn");
-    const closeBtn = document.getElementById("closeModal");
+    
 
     // Функция для управления активным состоянием
-    function setRulesActive(active) {
-      if (active) {
-        rulesBtn.classList.add("active");
-      } else {
-        rulesBtn.classList.remove("active");
-      }
-    }
-
-    rulesBtn.onclick = (e) => {
-      e.preventDefault(); // Предотвращаем изменение URL
-      modal.style.display = "block";
-      setRulesActive(true);
-    };
-
-    closeBtn.onclick = () => {
-      modal.style.display = "none";
-      setRulesActive(false);
-    };
-
-    window.onclick = (e) => {
-      if (e.target === modal) {
-        modal.style.display = "none";
-        setRulesActive(false);
-      }
-    };
-
-    // Закрытие модала по Escape
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && modal.style.display === 'block') {
-        modal.style.display = "none";
-        setRulesActive(false);
-      }
-    });
+    
 
     function getNextSundayMidnightMSK() {
       const nowUTC = Date.now() + new Date().getTimezoneOffset() * 60000;
@@ -870,11 +907,11 @@ nextBtn.addEventListener('click', fetchRecommendation);
       }, 1000);
     }
 
-    
     startCountdown();
     (async () => {
       await fetchUser();
       await loadData();
+      initModsToggle();
       toggleButtonsVisibility();
       setInterval(toggleButtonsVisibility, 60 * 1000);
     })();

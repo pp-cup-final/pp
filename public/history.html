@@ -256,14 +256,16 @@ h1 {
 }
 .modal-content {
   background-color: #fff;
-  margin: 8% auto;
-  padding: 20px 30px;
+  /*margin: 8% auto;*/
+  /*padding: 20px 30px;*/
   border: none;
   border-radius: 12px;
   width: 90%;
+  height: 80%;
   max-width: 600px;
   animation: slideDown 0.25s ease;
   color: #222;
+  overflow-y: auto;
 }
 .modal-content h2 {
   color: #111;
@@ -547,6 +549,14 @@ a:hover { text-decoration: underline; color: #80c0ff; }
   border-collapse: collapse;
   
 }
+.detail-table.pool-table th:nth-child(4),
+.detail-table.pool-table td:nth-child(4) { width: 80px; } /* PP */
+.detail-table.pool-table th:nth-child(5),
+.detail-table.pool-table td:nth-child(5) { width: 80px; } /* Комбо */
+.detail-table.pool-table th:nth-child(6),
+.detail-table.pool-table td:nth-child(6) { width: 90px; } /* Точность */
+.detail-table.pool-table th:nth-child(7),
+.detail-table.pool-table td:nth-child(7) { width: 100px; } /* Очки */
 </style>
 </head>
 <body>
@@ -557,7 +567,7 @@ a:hover { text-decoration: underline; color: #80c0ff; }
     <a href="/pool">Пул кап</a>
     <a href="/history" class="active">История</a>
     <a href="/players" class="players">Участники</a>
-    <button id="rulesBtn">Правила</button>
+    <a href="/rules">Правила</a>
     <a href="https://discord.com/invite/4M5jDGDX96" target="_blank">Discord</a>
   </div>
   <div class="nav-right">
@@ -596,6 +606,12 @@ a:hover { text-decoration: underline; color: #80c0ff; }
 <div id="pool-history" class="table-container"></div>
 <div id="pool-pagination" class="pagination"></div>
 <script>
+  const criteriaLabelMap = {
+  'pp': 'PP',
+  'combo': 'Комбо',
+  'accuracy': 'Точность',
+  'score': 'Очки'
+};
 let ppHistoryData = [];
 let poolHistoryData = [];
 let ppCurrentPage = 1;
@@ -857,23 +873,36 @@ function renderPoolHistoryPage(page) {
     container.innerHTML = '<div class="small-muted">Нет данных</div>';
   } else {
     const summary = buildSummaryTable(pageData, (week) => {
+      // критерий для этого турнира
+      const criteria = week.criteria || 'pp'; // fallback
+      const criteriaDiv = criteria ? `
+        <div style="background: #2a2a2a; padding: 6px 12px; margin-bottom: 10px; border-radius: 6px; font-weight: bold; color: #ffcc00;">
+          🎲 Критерий недели: ${criteriaLabelMap[criteria] || criteria}
+        </div>
+      ` : '';
+
       const players = Array.isArray(week.data) ? week.data.slice() : [];
       players.sort((a, b) => (a.position || 0) - (b.position || 0));
+
       const table = document.createElement('table');
-      table.className = 'detail-table';
+      table.className = 'detail-table pool-table';
       table.innerHTML = `
         <thead>
           <tr>
             <th>Позиция</th>
-            <th>Игрок</th>
             <th></th>
-            <th>Всего PP</th>
+            <th>Игрок</th>
+            <th>PP</th>
+            <th>Комбо</th>
+            <th>Точность</th>
+            <th>Очки</th>
           </tr>
         </thead>
       `;
       const tbody = document.createElement('tbody');
 
       players.forEach(player => {
+        // Сортируем скоры (карты) по убыванию критерия? Лучше сортировать по убыванию значения критерия, но для простоты оставим как есть
         if (Array.isArray(player.scores)) {
           player.scores.sort((a, b) => (Number(b.pp || 0) - Number(a.pp || 0)));
         }
@@ -881,6 +910,7 @@ function renderPoolHistoryPage(page) {
           const match = player.avatar_url.match(/\/(\d+)\?/);
           if (match) player.userid = match[1];
         }
+
         const tr = document.createElement('tr');
         const profileUrl = (player.userid || player.user_id) ? `https://osu.ppy.sh/users/${encodeURIComponent(player.userid || player.user_id)}` : '#';
         let rowClass = '';
@@ -888,20 +918,30 @@ function renderPoolHistoryPage(page) {
         else if (player.position === 2) rowClass = 'second';
         else if (player.position === 3) rowClass = 'third';
         tr.className = rowClass;
+
+        const pp = Math.round(player.total_pp || 0);
+        const combo = player.total_combo || 0;
+        const acc = ((player.avg_accuracy || 0) * 100).toFixed(2);
+        const score = (player.total_score || 0).toLocaleString();
+
         tr.innerHTML = `
           <td>${escapeHtml(String(player.position ?? ''))}</td>
           <td><img src="${escapeHtml(player.avatar_url || '')}" width="36" height="36" alt=""></td>
           <td style="text-align:left;"><a href="${profileUrl}" target="_blank" rel="noopener noreferrer">${escapeHtml(player.nickname || '')}</a></td>
-          <td>${escapeHtml(String(Math.round(Number(player.total_pp || 0))))}</td>
+          <td>${pp}</td>
+          <td>${combo}</td>
+          <td>${acc}%</td>
+          <td>${score}</td>
         `;
         tbody.appendChild(tr);
 
+        // Вложенные скоры (карты) – показываем значение по критерию
         if (Array.isArray(player.scores) && player.scores.length > 0) {
           const nestedTr = document.createElement('tr');
           nestedTr.className = 'nested-row';
           const td = document.createElement('td');
           td.className = 'nested-cell';
-          td.colSpan = 4;
+          td.colSpan = 7;
 
           const nestedTable = document.createElement('table');
           nestedTable.className = 'nested-table';
@@ -909,7 +949,7 @@ function renderPoolHistoryPage(page) {
             <thead>
               <tr>
                 <th>Карта</th>
-                <th style="width:110px;text-align:right; padding-right: 6px">PP</th>
+                <th style="width:110px;text-align:right; padding-right: 6px">${criteriaLabelMap[criteria] || criteria}</th>
               </tr>
             </thead>
           `;
@@ -919,11 +959,28 @@ function renderPoolHistoryPage(page) {
             const title = s.title || s.beatmap_title || (`Map ${s.beatmap_id || ''}`);
             const beatmapId = s.beatmap_id || s.beatmap?.id || '';
             const scoreLink = s.score_id ? `https://osu.ppy.sh/scores/osu/${encodeURIComponent(s.score_id)}` : (beatmapId ? `https://osu.ppy.sh/beatmapsets/${encodeURIComponent(beatmapId)}` : '#');
-            const ppVal = Math.round(Number(s.pp ?? s.score_pp ?? 0));
+
+            let metricValue, metricDisplay;
+            if (criteria === 'pp') {
+              metricValue = Number(s.pp) || 0;
+              metricDisplay = Math.round(metricValue) + ' pp';
+            } else if (criteria === 'combo') {
+              metricValue = Number(s.combo) || 0; // в данных это поле combo
+              metricDisplay = metricValue.toLocaleString() + ' x';
+            } else if (criteria === 'accuracy') {
+              metricValue = (Number(s.accuracy) || 0) * 100;
+              metricDisplay = metricValue.toFixed(2) + '%';
+            } else if (criteria === 'score') {
+              metricValue = Number(s.score) || 0;
+              metricDisplay = metricValue.toLocaleString();
+            } else {
+              metricDisplay = '0';
+            }
+
             const row = document.createElement('tr');
             row.innerHTML = `
               <td style="text-align:left;"><a href="${escapeHtml(scoreLink)}" target="_blank" rel="noopener noreferrer">${escapeHtml(title)}</a></td>
-              <td style="text-align:right; padding-right: 3px">${escapeHtml(String(ppVal))}</td>
+              <td style="text-align:right; padding-right: 3px">${metricDisplay}</td>
             `;
             nestedTbody.appendChild(row);
           });
@@ -941,38 +998,23 @@ function renderPoolHistoryPage(page) {
         }
       });
 
-      // Добиваем до ITEMS_PER_PAGE пустыми строками
+      // Пустые строки для сохранения высоты
       const emptyRowsNeeded = ITEMS_PER_PAGE - players.length;
       for (let i = 0; i < emptyRowsNeeded; i++) {
         const emptyTr = document.createElement('tr');
-        emptyTr.innerHTML = `
-          <td>&nbsp;</td>
-          <td>&nbsp;</td>
-          <td>&nbsp;</td>
-          <td>&nbsp;</td>
-        `;
+        emptyTr.innerHTML = `<td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>`;
         tbody.appendChild(emptyTr);
       }
 
       table.appendChild(tbody);
-      return table;
-    }, true);
+
+      const container = document.createElement('div');
+      if (criteriaDiv) container.innerHTML = criteriaDiv;
+      container.appendChild(table);
+      return container;
+    }, true); // isPool = true
+
     container.appendChild(summary);
-    const summaryTbody = summary.querySelector('tbody');
-const realCycles = summary.querySelectorAll('.summary-row').length;
-const emptyCycles = ITEMS_PER_PAGE - realCycles;
-for (let i = 0; i < emptyCycles; i++) {
-  const emptyMain = document.createElement('tr');
-  emptyMain.innerHTML = '<td>&nbsp;</td><td>&nbsp;</td>';
-  summaryTbody.appendChild(emptyMain);
-  const emptyDetail = document.createElement('tr');
-  emptyDetail.className = 'detail-row';
-  const emptyDetailTd = document.createElement('td');
-  emptyDetailTd.colSpan = 2;
-  emptyDetailTd.innerHTML = '&nbsp;';
-  emptyDetail.appendChild(emptyDetailTd);
-  summaryTbody.appendChild(emptyDetail);
-}
   }
 
   updatePagination('pool', totalPages);
@@ -998,42 +1040,7 @@ function updatePagination(type, totalPages) {
   });
 }
 
-const modal = document.getElementById("rulesModal");
-const rulesBtn = document.getElementById("rulesBtn");
-const closeBtn = document.getElementById("closeModal");
 
-function setRulesActive(active) {
-  if (active) {
-    rulesBtn.classList.add("active");
-  } else {
-    rulesBtn.classList.remove("active");
-  }
-}
-
-rulesBtn.onclick = (e) => {
-  e.preventDefault();
-  modal.style.display = "block";
-  setRulesActive(true);
-};
-
-closeBtn.onclick = () => {
-  modal.style.display = "none";
-  setRulesActive(false);
-};
-
-window.onclick = (e) => {
-  if (e.target === modal) {
-    modal.style.display = "none";
-    setRulesActive(false);
-  }
-};
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && modal.style.display === 'block') {
-    modal.style.display = "none";
-    setRulesActive(false);
-  }
-});
 
 document.getElementById('login').onclick = () => window.location.href = '/auth/login';
 document.getElementById('logout').onclick = () => window.location.href = '/auth/logout';

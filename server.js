@@ -68,6 +68,7 @@ async function getPlayerByRank(rank) {
 }
 
 app.get('/api/recommend', async (req, res) => {
+  const mode = req.query.mode || 'all'; // 'all', 'dt', 'no-dt'
   if (!req.session.user) {
     return res.status(401).json({ error: 'Необходимо авторизоваться' });
   }
@@ -153,9 +154,24 @@ app.get('/api/recommend', async (req, res) => {
         );
         const scores = scoresRes.data;
         if (scores && scores.length > 0) {
-          const maxScoreIndex = Math.min(25, scores.length) - 1;
-          const scoreIndex = Math.floor(Math.random() * (maxScoreIndex + 1));
-          score = scores[scoreIndex];
+          // Фильтруем по модам
+          let filteredScores = scores;
+          if (mode === 'dt') {
+            filteredScores = scores.filter(s => {
+              const mods = s.mods || [];
+              return mods.some(m => m === 'DT' || m === 'NC');
+            });
+          } else if (mode === 'no-dt') {
+            filteredScores = scores.filter(s => {
+              const mods = s.mods || [];
+              return !mods.some(m => m === 'DT' || m === 'NC');
+            });
+          }
+          if (filteredScores.length > 0) {
+            const maxScoreIndex = Math.min(25, filteredScores.length) - 1;
+            const scoreIndex = Math.floor(Math.random() * (maxScoreIndex + 1));
+            score = filteredScores[scoreIndex];
+          }
         }
         attempts++;
       }
@@ -179,9 +195,9 @@ app.get('/api/recommend', async (req, res) => {
       };
 
       await supabase.from('recommendations').insert([recommendation]);
-const scoreUrl = score.type == 'score_best_osu'
-  ? `https://osu.ppy.sh/scores/osu/${score.id}`
-  : `https://osu.ppy.sh/scores/${score.id}`;
+      const scoreUrl = score.type == 'score_best_osu'
+        ? `https://osu.ppy.sh/scores/osu/${score.id}`
+        : `https://osu.ppy.sh/scores/${score.id}`;
       recommendations.push({
         beatmap_id: beatmap.id,
         title: beatmapset.title,
@@ -378,7 +394,8 @@ async function updateParticipantsPP() {
           beatmap_id: score.beatmap.id,
           beatmap_title: `${score.beatmapset.title} [${score.beatmap.version}]`,
           beatmap_bg: score.beatmapset.covers["cover@2x"],
-          created_at: score.created_at
+          created_at: score.created_at,
+          mods: score.mods || []
         }));
 
         // 6️⃣ Удаляем старые записи игрока за последнюю неделю,
@@ -764,7 +781,9 @@ app.get('/api/history', async (req, res) => {
 app.get("/history", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "history.html"));
 });
-
+app.get("/rules", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "rules.html"));
+});
 app.post('/api/participate', async (req, res) => {
   // Проверка авторизации
   if (!req.session.user) {
@@ -864,7 +883,8 @@ app.get('/api/participant/:userid/scores', async (req, res) => {
         beatmap_id,
         beatmap_title,
         beatmap_version,
-        beatmap_bg
+        beatmap_bg,
+        mods
       `)
       .eq('userid', userid);
 
@@ -891,7 +911,7 @@ app.get('/api/participant/:userid/scores', async (req, res) => {
 // Участие в пуле карт
 app.get("/api/pool/history", async (req, res) => {
   try {
-    // Берём все записи из pool_history
+    // Берём все записи из pool_history, сортируем по дате (сначала новые) и по позиции
     const { data: rows, error } = await supabase
       .from("pool_history")
       .select("*")
@@ -900,17 +920,25 @@ app.get("/api/pool/history", async (req, res) => {
 
     if (error) throw error;
 
-    // Группируем по турнирам
+    // Группируем по турнирам, сохраняя критерий недели
     const historyMap = {};
     rows.forEach(row => {
-      if (!historyMap[row.tournament_date]) {
-        historyMap[row.tournament_date] = [];
+      const date = row.tournament_date;
+      if (!historyMap[date]) {
+        historyMap[date] = {
+          criteria: row.criteria, // сохраняем критерий для этого турнира
+          data: []
+        };
       }
-      historyMap[row.tournament_date].push({
+      historyMap[date].data.push({
         position: row.position,
         avatar_url: row.avatar_url,
         nickname: row.nickname,
         total_pp: row.total_pp,
+        total_combo: row.total_combo,       // новое поле
+        avg_accuracy: row.avg_accuracy,     // новое поле
+        total_score: row.total_score, 
+        total_miss: row.total_miss,        // новое поле
         scores: row.scores || []
       });
     });
@@ -918,7 +946,8 @@ app.get("/api/pool/history", async (req, res) => {
     // Формируем массив для фронта
     const history = Object.keys(historyMap).map(date => ({
       tournament_date: date,
-      data: historyMap[date]
+      criteria: historyMap[date].criteria,  // добавляем критерий
+      data: historyMap[date].data
     }));
 
     res.json(history);
@@ -934,16 +963,14 @@ app.get('/pool', (req, res) => {
 
 app.get('/api/pool/maps', async (req, res) => {
   try {
-    // Берем карты из пула
     const { data: maps, error: mapsError } = await supabase
       .from('pool_maps')
-      .select('id, beatmap_id, title, background_url, map_url, difficulty_id')
+      .select('id, beatmap_id, title, background_url, map_url, difficulty_id, ar')
       .order('id', { ascending: true });
 
     if (mapsError) return res.status(500).json({ error: mapsError.message });
     if (!maps || maps.length === 0) return res.json([]);
 
-    // Получаем все лучшие PP сразу одним запросом
     const { data: bestScores, error: scoresError } = await supabase
       .from('player_scores')
       .select('map_id, pp')
@@ -955,7 +982,6 @@ app.get('/api/pool/maps', async (req, res) => {
       return res.status(500).json({ error: scoresError.message });
     }
 
-    // Сопоставляем карты с их максимальным PP
     const bestPPMap = {};
     bestScores.forEach(s => {
       if (!bestPPMap[s.map_id] || s.pp > bestPPMap[s.map_id]) {
@@ -1006,72 +1032,97 @@ app.get('/api/scores/:id', async (req, res) => {
 async function updatePoolPP() {
   try {
     const token = await getOsuAccessToken();
+    if (!token) {
+      console.error('❌ Не удалось получить токен osu! API');
+      return;
+    }
 
-    // 1️⃣ Загружаем всех участников
+    // Получаем текущий критерий
+    let currentCriteria = 'pp';
+    const { data: criteriaData, error: criteriaErr } = await supabase
+      .from('pool_current')
+      .select('criteria')
+      .eq('id', 1)
+      .single();
+    if (!criteriaErr && criteriaData) currentCriteria = criteriaData.criteria;
+
+    // Загружаем участников
     const { data: participants, error: pErr } = await supabase
       .from("pool_participants")
       .select("id, userid, nickname, participation_date");
-
     if (pErr) throw pErr;
     if (!participants?.length) {
       console.log("Нет участников для обновления.");
       return;
     }
 
-    // 2️⃣ Загружаем карты пула
+    // Загружаем карты с их AR
     const { data: maps, error: mErr } = await supabase
       .from("pool_maps")
-      .select("id, difficulty_id, title");
+      .select("id, difficulty_id, title, ar");
     if (mErr) throw mErr;
     if (!maps?.length) {
       console.log("Нет карт в пуле.");
       return;
     }
 
-    console.log(`Обновление PP для ${participants.length} участников...`);
+    console.log(`Обновление данных для ${participants.length} участников... (критерий: ${currentCriteria})`);
 
-    // 3️⃣ Обрабатываем каждого участника
     for (const participant of participants) {
       const participationDate = new Date(participant.participation_date);
-      let totalPP = 0;
+      let totalPP = 0, totalCombo = 0, totalAccuracy = 0, totalScore = 0, totalMiss = 0, mapCount = 0;
 
       for (const map of maps) {
         const difficultyId = map.difficulty_id;
-        let bestPP = 0;
-        let bestScoreId = null;
+        let bestScore = null;
 
         try {
-          // Получаем ВСЕ скорЫ игрока по карте
           const scoreRes = await axios.get(
             `https://osu.ppy.sh/api/v2/beatmaps/${difficultyId}/scores/users/${participant.userid}/all`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
 
-          let candidates = Array.isArray(scoreRes.data)
-            ? scoreRes.data
-            : scoreRes.data?.scores || [];
+          let candidates = Array.isArray(scoreRes.data) ? scoreRes.data : scoreRes.data?.scores || [];
 
-          // Фильтруем только скоры после даты участия
-          candidates = candidates.filter((s) => {
-            if (!s?.created_at) return false;
-            return new Date(s.created_at) >= participationDate;
-          });
+          // Фильтр по дате участия
+          candidates = candidates.filter(s => s?.created_at && new Date(s.created_at) >= participationDate);
+
+          // Если AR <= 9, отбрасываем HR, DT, NC
+          if (map.ar <= 9) {
+            const forbiddenMods = ['HR', 'DT', 'NC'];
+            candidates = candidates.filter(score => {
+              const mods = score.mods || [];
+              return !mods.some(mod => forbiddenMods.includes(mod));
+            });
+          }
 
           if (candidates.length > 0) {
-            // Находим скор с максимальным PP
-            const bestScore = candidates.reduce((max, s) =>
-              (s.pp || 0) > (max.pp || 0) ? s : max
-            );
-
-            bestPP = Number(bestScore.pp || 0);
-            bestScoreId = bestScore.id || null;
+            // Выбираем лучший скор по текущему критерию
+            bestScore = candidates.reduce((best, current) => {
+              const getValue = (s) => {
+                switch (currentCriteria) {
+                  case 'pp': return s.pp || 0;
+                  case 'combo': return s.max_combo || 0;
+                  case 'accuracy': return s.accuracy || 0;
+                  case 'score': return s.score || 0;
+                  default: return s.pp || 0;
+                }
+              };
+              return getValue(current) > getValue(best) ? current : best;
+            }, candidates[0]);
           }
         } catch (e) {
-          console.warn(
-            `Ошибка запроса для карты ${map.id}, игрок ${participant.nickname}:`,
-            e.response?.data || e.message
-          );
+          console.warn(`Ошибка запроса для карты ${map.id}, игрок ${participant.nickname}:`, e.response?.data || e.message);
         }
+
+        // Извлекаем данные из bestScore (если он есть)
+        const bestPP = bestScore ? Number(bestScore.pp || 0) : 0;
+        const bestScoreId = bestScore ? bestScore.id || null : null;
+        const bestMaxCombo = bestScore ? bestScore.max_combo || 0 : 0;
+        const bestAccuracy = bestScore ? bestScore.accuracy || 0 : 0;
+        const bestScoreValue = bestScore ? bestScore.score || 0 : 0;
+        const bestMods = bestScore ? bestScore.mods || [] : [];
+        const bestMissCount = bestScore ? (bestScore.statistics?.count_miss || 0) : 0;
 
         // Обновляем или вставляем запись в player_scores
         const { data: existing, error: existingErr } = await supabase
@@ -1087,80 +1138,104 @@ async function updatePoolPP() {
         }
 
         if (existing) {
-          // обновляем
           await supabase
             .from("player_scores")
             .update({
               pp: bestPP,
               score_id: bestScoreId,
+              max_combo: bestMaxCombo,
+              accuracy: bestAccuracy,
+              score: bestScoreValue,
+              mods: bestMods,
+              miss_count: bestMissCount,
             })
             .eq("id", existing.id);
         } else {
-          // вставляем
           await supabase.from("player_scores").insert({
             participant_id: participant.id,
             map_id: map.id,
             pp: bestPP,
             score_id: bestScoreId,
+            max_combo: bestMaxCombo,
+            accuracy: bestAccuracy,
+            score: bestScoreValue,
+            mods: bestMods,
+            miss_count: bestMissCount,
           });
         }
 
+        // Накапливаем суммы
         totalPP += bestPP;
+        totalCombo += bestMaxCombo;
+        totalAccuracy += bestAccuracy;
+        totalScore += bestScoreValue;
+        totalMiss += bestMissCount;
+        mapCount++;
       }
 
-      // 4️⃣ Обновляем общий PP в таблице участников
+      const avgAccuracy = mapCount > 0 ? totalAccuracy / mapCount : 0;
+
       await supabase
         .from("pool_participants")
-        .update({ total_pp: totalPP })
+        .update({
+          total_pp: totalPP,
+          total_combo: totalCombo,
+          avg_accuracy: avgAccuracy,
+          total_score: totalScore,
+          total_miss: totalMiss,
+        })
         .eq("id", participant.id);
 
-      console.log(`✅ ${participant.nickname} обновлён (totalPP: ${totalPP.toFixed(2)})`);
+      console.log(`✅ ${participant.nickname} обновлён (PP: ${totalPP.toFixed(2)}, combo: ${totalCombo}, acc: ${(avgAccuracy*100).toFixed(2)}%, score: ${totalScore}, miss: ${totalMiss})`);
     }
 
-    console.log("Обновление PP завершено!");
+    console.log("✅ Обновление данных завершено!");
   } catch (err) {
-    console.error("Ошибка в updatePoolPP:", err);
+    console.error("❌ Ошибка в updatePoolPP:", err);
   }
 }
 
 
-
 // CRON: каждый день в 00:01 Moscow time, но выполняется только каждые 2 дня от 2025-10-20 (0,2,4...)
-cron.schedule("1 0 * * *", async () => {
-  const startDate = new Date("2025-10-20T00:00:00+03:00"); // стартовый день (включая)
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // только дата
+cron.schedule("1 0 * * 0", async () => {
+  console.log("🚀 CRON пул-капа запущен (еженедельное завершение)");
 
-  const diffDays = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
-
-  // Запускаем только по чётным дням (0,2,4...) и не раньше старта
-  if (diffDays < 0 || diffDays % 2 !== 0) {
-    console.log(`⏭️ CRON пропущен: ${today.toISOString().split('T')[0]} (diffDays=${diffDays})`);
-    return;
-  }
-
-  console.log(`🚀 CRON запущен: день ${diffDays} от 2025-10-20`);
-
-  // Объявляем переменную token один раз и используем везде
   let token = null;
 
   try {
     // =========================
-    // 1) Сохранение истории пула
+    // 1) Сохранение истории пула с учётом случайного критерия
     // =========================
     console.log("=== Сохранение истории пула ===");
 
+    // Выбираем случайный критерий для этой недели
+    const criteriaList = ['pp', 'combo', 'accuracy', 'score', 'miss'];
+    const selectedCriteria = criteriaList[Math.floor(Math.random() * criteriaList.length)];
+    console.log(`🎲 Критерий недели: ${selectedCriteria}`);
+    const nextStart = new Date(today);
+nextStart.setDate(today.getDate() + 1); // следующий день после завершения
+const nextEnd = new Date(nextStart);
+nextEnd.setDate(nextStart.getDate() + 7);
+
+await supabase
+  .from('pool_current_test')
+  .upsert({
+    id: 1,
+    criteria: selectedCriteria,
+    start_date: nextStart.toISOString(),
+    end_date: nextEnd.toISOString()
+  }, { onConflict: 'id' });
+
     const { data: participants, error: pErr } = await supabase
       .from("pool_participants")
-      .select("*")
-      .order("total_pp", { ascending: false });
+      .select("*");
 
     if (pErr) throw pErr;
 
     if (!participants || participants.length === 0) {
       console.log("Нет участников для сохранения истории.");
     } else {
-      // Получаем все строки player_scores с подключенным pool_maps (включаем score_id)
+      // Получаем все строки player_scores с подключенным pool_maps
       const { data: allMaps, error: mapsErr } = await supabase
         .from("player_scores")
         .select(`
@@ -1169,6 +1244,9 @@ cron.schedule("1 0 * * *", async () => {
           participant_id,
           map_id,
           pp,
+          max_combo,
+          accuracy,
+          score,
           pool_maps (
             difficulty_id,
             beatmap_id,
@@ -1180,12 +1258,15 @@ cron.schedule("1 0 * * *", async () => {
 
       if (mapsErr) throw mapsErr;
 
-      // Проходим по участникам и формируем запись истории
-      for (const [index, p] of participants.entries()) {
+      // Собираем данные по каждому участнику
+      const participantsData = participants.map(p => {
         const scores = (allMaps || []).filter(s => s.participant_id === p.id);
 
-        const formattedScores = (scores || []).map(s => ({
+        const formattedScores = scores.map(s => ({
           pp: Number(s.pp) || 0,
+          combo: s.max_combo || 0,
+          accuracy: s.accuracy || 0,
+          score: s.score || 0,
           map_id: s.map_id,
           score_id: s.score_id || null,
           difficulty_id: s.pool_maps?.difficulty_id || null,
@@ -1195,13 +1276,59 @@ cron.schedule("1 0 * * *", async () => {
           background_url: s.pool_maps?.background_url || null
         }));
 
+        // Общие метрики (берём из pool_participants, они уже обновлены)
+        return {
+          ...p,
+          scores: formattedScores,
+          // на всякий случай пересчитаем, но можно использовать готовые поля
+        };
+      });
+
+      // Сортируем участников по выбранному критерию
+      const sortedParticipants = [...participantsData].sort((a, b) => {
+        let valA, valB;
+        switch (selectedCriteria) {
+          case 'pp':
+            valA = a.total_pp || 0;
+            valB = b.total_pp || 0;
+            break;
+          case 'combo':
+            valA = a.total_combo || 0;
+            valB = b.total_combo || 0;
+            break;
+          case 'accuracy':
+            valA = a.avg_accuracy || 0;
+            valB = b.avg_accuracy || 0;
+            break;
+          case 'score':
+            valA = a.total_score || 0;
+            valB = b.total_score || 0;
+            break;
+          default:
+            valA = a.total_pp || 0;
+            valB = b.total_pp || 0;
+        }
+        // По убыванию (больше = лучше)
+        return valB - valA;
+      });
+
+      // Сохраняем историю с указанием критерия и позиций
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tournamentDate = today.toISOString().split("T")[0];
+
+      for (const [index, p] of sortedParticipants.entries()) {
         const { error: insertErr } = await supabase.from("pool_history").insert({
-          tournament_date: today.toISOString().split("T")[0],
+          tournament_date: tournamentDate,
+          criteria: selectedCriteria,
           position: index + 1,
           avatar_url: p.avatar || null,
           nickname: p.nickname || p.username || null,
           total_pp: p.total_pp || 0,
-          scores: formattedScores
+          total_combo: p.total_combo || 0,
+          avg_accuracy: p.avg_accuracy || 0,
+          total_score: p.total_score || 0,
+          scores: p.scores
         });
 
         if (insertErr) {
@@ -1216,17 +1343,10 @@ cron.schedule("1 0 * * *", async () => {
     // =========================
     // 2) Очистка таблиц пула и карт
     // =========================
-    // У тебя выбран вариант A — очищаем всегда
     console.log("=== Очистка pool_participants, player_scores, pool_maps ===");
-    const deletePoolParticipants = await supabase.from("pool_participants").delete().neq("id", 0);
-    if (deletePoolParticipants.error) console.error("Ошибка очистки pool_participants:", deletePoolParticipants.error);
-
-    const deletePlayerScores = await supabase.from("player_scores").delete().neq("id", 0);
-    if (deletePlayerScores.error) console.error("Ошибка очистки player_scores:", deletePlayerScores.error);
-
-    const deletePoolMaps = await supabase.from("pool_maps").delete().neq("id", 0);
-    if (deletePoolMaps.error) console.error("Ошибка очистки pool_maps:", deletePoolMaps.error);
-
+    await supabase.from("pool_participants").delete().neq("id", 0);
+    await supabase.from("player_scores").delete().neq("id", 0);
+    await supabase.from("pool_maps").delete().neq("id", 0);
     console.log("Пул и карты очищены.");
 
     // =========================
@@ -1247,7 +1367,6 @@ cron.schedule("1 0 * * *", async () => {
           .insert(rows);
 
         if (insertError) throw insertError;
-
         console.log(`✅ Перемещено ${rows.length} строк из test_pool_maps в pool_maps`);
       }
     } catch (err) {
@@ -1255,11 +1374,11 @@ cron.schedule("1 0 * * *", async () => {
     }
 
   } catch (err) {
-    console.error("Ошибка в CRON (сохранение истории/очистка/перенос):", err.response?.data || err.message || err);
+    console.error("❌ Ошибка в CRON (сохранение истории/очистка/перенос):", err.response?.data || err.message || err);
   }
 
   // =========================
-  // 4) Синхронизация и обновление рейтинга (вне основного блока, чтобы не прервать генерацию карт)
+  // 4) Синхронизация и обновление рейтинга (вне основного блока)
   // =========================
   try {
     console.log('Начато обновление статистики для игроков');
@@ -1270,39 +1389,26 @@ cron.schedule("1 0 * * *", async () => {
   }
 
   // =========================
-  // 5) Генерация нового пула карт (test_pool_maps)
+  // 5) Генерация нового пула карт (10 карт)
   // =========================
   try {
-    console.log("=== Генерация пула карт (test_pool_maps) ===");
+    console.log("=== Генерация пула карт (10 карт) ===");
 
-    // всегда получаем токен перед генерацией (один раз)
     token = await getOsuAccessToken();
     if (!token) {
       console.error('❌ Не удалось получить osu! токен, генерация пула остановлена');
       return;
     }
 
-    // Очистка test_pool_maps (вариант A — всегда)
-    try {
-      const { data: deletedData, error: deleteError } = await supabase
-        .from('test_pool_maps')
-        .delete()
-        .neq('id', 0);
-
-      if (deleteError) {
-        console.error('Ошибка очистки test_pool_maps перед генерацией:', deleteError);
-      } else {
-        console.log(`✅ Очищено ${Array.isArray(deletedData) ? deletedData.length : 0} записей в test_pool_maps`);
-      }
-    } catch (err) {
-      console.error('Ошибка при очистке test_pool_maps:', err.message || err);
-    }
+    // Очистка test_pool_maps
+    await supabase.from('test_pool_maps').delete().neq('id', 0);
+    console.log("✅ test_pool_maps очищена");
 
     let count = 0;
     let attempts = 0;
-    const maxAttempts = 10000;
+    const maxAttempts = 20000; // увеличено для 10 карт
 
-    while (count < 5 && attempts < maxAttempts) {
+    while (count < 10 && attempts < maxAttempts) {
       attempts++;
       const randomSetId = Math.floor(Math.random() * 2300000) + 1;
 
@@ -1314,12 +1420,10 @@ cron.schedule("1 0 * * *", async () => {
 
         const set = resApi.data;
         if (!set || !set.beatmaps || !Array.isArray(set.beatmaps)) {
-          console.warn(`⚠️ Сет ${randomSetId} не содержит валидных beatmaps, пропускаем`);
           continue;
         }
 
         if (set.status !== "ranked") {
-          // не ранкнутые — пропускаем
           continue;
         }
 
@@ -1332,159 +1436,93 @@ cron.schedule("1 0 * * *", async () => {
         if (validDiffs.length === 0) continue;
 
         const map = validDiffs[Math.floor(Math.random() * validDiffs.length)];
-
+        const ar = map.ar; // предположим, что в объекте beatmap есть поле ar
         const insertData = {
           beatmap_id: set.id || null,
           difficulty_id: map.id || null,
           title: `${set.title || "Unnamed"} [${map.version || "Unknown"}]`,
           background_url: set.covers?.cover || null,
-          map_url: `https://osu.ppy.sh/beatmaps/${map.id || 0}`
+          map_url: `https://osu.ppy.sh/beatmaps/${map.id || 0}`,
+           ar: ar 
         };
 
-        // Вставляем карту и сразу получаем данные вставки
-        const { error: insertError, data: insertedData } = await supabase
+        const { error: insertError } = await supabase
           .from("test_pool_maps")
-          .insert([insertData])
-          .select();
+          .insert([insertData]);
 
         if (insertError) {
           console.error(`❌ Ошибка вставки карты ${map.id}:`, insertError);
           continue;
         }
 
-        if (Array.isArray(insertedData) && insertedData.length > 0) {
-          console.log(`🎵 Успешно добавлена карта: ${insertedData[0].title} (id: ${insertedData[0].id})`);
-          count++;
-        } else {
-          console.warn(`⚠️ Вставка карты ${map.id} не вернула данные, но ошибки нет`);
-        }
+        console.log(`🎵 Успешно добавлена карта: ${insertData.title}`);
+        count++;
 
       } catch (err) {
-        // безопасный вывод ошибки
-        console.warn(`Пропущен сет ${randomSetId}:`, err.response?.status ? `${err.response.status} ${err.response.statusText}` : (err.message || err));
-        // если rate limit — ждем 5 сек
         if (err.response?.status === 429) {
-          console.log("⏳ Rate limit, пауза 5 сек...");
           await new Promise(resolve => setTimeout(resolve, 5000));
         }
-        continue;
       }
     }
 
-    // Проверим записи в базе после генерации
-    const { data: generatedMaps, error: fetchError } = await supabase
-      .from('test_pool_maps')
-      .select('*');
-
-    if (fetchError) {
-      console.error('Ошибка при получении данных из test_pool_maps:', fetchError);
-    } else {
-      console.log(`✅ Сгенерировано ${count}/5 карт, в базе: ${generatedMaps.length} записей`);
-    }
-
+    console.log(`✅ Сгенерировано ${count} карт в test_pool_maps`);
   } catch (err) {
     console.error('❌ Ошибка в процессе генерации пула карт:', err.message || err);
   }
 
 }, { timezone: "Europe/Moscow" });
+app.get("/run-cron-criteria", async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-app.get("/run-cron-manual", async (req, res) => {
-  console.log("🚀 Ручной запуск CRON...");
+    // Выбираем случайный критерий для следующей недели
+    const criteriaList = ['pp', 'combo', 'accuracy', 'score'];
+    const selectedCriteria = criteriaList[Math.floor(Math.random() * criteriaList.length)];
+    console.log(`🎲 Критерий недели: ${selectedCriteria}`);
 
-  const startDate = new Date("2025-10-20T00:00:00+03:00");
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+    // Вычисляем даты следующего турнира
+    const nextStart = new Date(today);
+    nextStart.setDate(today.getDate() + 1); // следующий день после завершения
+    const nextEnd = new Date(nextStart);
+    nextEnd.setDate(nextStart.getDate() + 7);
 
-  const diffDays = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+    // Сохраняем критерий в таблицу pool_current_test
+    const { error } = await supabase
+      .from('pool_current_test')
+      .upsert({
+        id: 1,
+        criteria: selectedCriteria,
+        start_date: nextStart.toISOString(),
+        end_date: nextEnd.toISOString()
+      }, { onConflict: 'id' });
 
-  console.log(`📅 diffDays=${diffDays}`);
+    if (error) throw error;
 
-  let token = null;
+    res.json({
+      success: true,
+      criteria: selectedCriteria,
+      start_date: nextStart,
+      end_date: nextEnd
+    });
+
+  } catch (err) {
+    console.error('Ошибка при генерации критерия:', err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+// Генерация новых карт в test_pool_maps
+app.get("/generate-new-maps", async (req, res) => {
+  // Проверка авторизации и что это именно LLIaBKa
+  if (!req.session.user || req.session.user.username !== 'LLIaBKa') {
+    return res.status(403).json({ error: 'Доступ запрещён' });
+  }
 
   try {
-    // =========================
-    // 1) Сохранение истории пула
-    // =========================
-    const { data: participants, error: pErr } = await supabase
-      .from("pool_participants")
-      .select("*")
-      .order("total_pp", { ascending: false });
-
-    if (pErr) throw pErr;
-
-    if (participants && participants.length > 0) {
-      const { data: allMaps, error: mapsErr } = await supabase
-        .from("player_scores")
-        .select(`
-          id,
-          score_id,
-          participant_id,
-          map_id,
-          pp,
-          pool_maps (
-            difficulty_id,
-            beatmap_id,
-            title,
-            map_url,
-            background_url
-          )
-        `);
-
-      if (mapsErr) throw mapsErr;
-
-      for (const [index, p] of participants.entries()) {
-        const scores = (allMaps || []).filter(s => s.participant_id === p.id);
-
-        const formattedScores = scores.map(s => ({
-          pp: Number(s.pp) || 0,
-          map_id: s.map_id,
-          score_id: s.score_id || null,
-          difficulty_id: s.pool_maps?.difficulty_id || null,
-          beatmap_id: s.pool_maps?.beatmap_id || null,
-          title: s.pool_maps?.title || null,
-          map_url: s.pool_maps?.map_url || null,
-          background_url: s.pool_maps?.background_url || null
-        }));
-
-        await supabase.from("pool_history").insert({
-          tournament_date: today.toISOString().split("T")[0],
-          position: index + 1,
-          avatar_url: p.avatar || null,
-          nickname: p.nickname || p.username || null,
-          total_pp: p.total_pp || 0,
-          scores: formattedScores
-        });
-      }
-    }
-
-    // =========================
-    // 2) Очистка таблиц
-    // =========================
-    await supabase.from("pool_participants").delete().neq("id", 0);
-    await supabase.from("player_scores").delete().neq("id", 0);
-    await supabase.from("pool_maps").delete().neq("id", 0);
-
-    // =========================
-    // 3) Перенос test_pool_maps -> pool_maps
-    // =========================
-    const { data: rows } = await supabase
-      .from("test_pool_maps")
-      .select("*");
-
-    if (rows && rows.length > 0) {
-      await supabase.from("pool_maps").insert(rows);
-    }
-
-    // =========================
-    // 4) Обновление статистики
-    // =========================
-    await syncPlayersFromHistories();
-    await updateEloFromHistory();
-
-    // =========================
-    // 5) Генерация нового пула
-    // =========================
-    token = await getOsuAccessToken();
+    const token = await getOsuAccessToken();
     if (!token) throw new Error("Не удалось получить osu токен");
 
     await supabase.from("test_pool_maps").delete().neq("id", 0);
@@ -1492,7 +1530,7 @@ app.get("/run-cron-manual", async (req, res) => {
     let count = 0;
     let attempts = 0;
 
-    while (count < 5 && attempts < 10000) {
+    while (count < 5 && attempts < 40000) {
       attempts++;
       const randomSetId = Math.floor(Math.random() * 2300000) + 1;
 
@@ -1514,17 +1552,17 @@ app.get("/run-cron-manual", async (req, res) => {
         if (!validDiffs.length) continue;
 
         const map = validDiffs[Math.floor(Math.random() * validDiffs.length)];
-
+        const ar = map.ar; 
         await supabase.from("test_pool_maps").insert({
           beatmap_id: set.id,
           difficulty_id: map.id,
           title: `${set.title} [${map.version}]`,
           background_url: set.covers?.cover || null,
-          map_url: `https://osu.ppy.sh/beatmaps/${map.id}`
+          map_url: `https://osu.ppy.sh/beatmaps/${map.id}`,
+          ar: ar
         });
 
         count++;
-
       } catch (err) {
         if (err.response?.status === 429) {
           await new Promise(r => setTimeout(r, 5000));
@@ -1532,10 +1570,258 @@ app.get("/run-cron-manual", async (req, res) => {
       }
     }
 
+    res.json({ success: true, generated: count, message: `Сгенерировано ${count} карт` });
+  } catch (err) {
+    console.error("Ошибка в /generate-new-maps:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Перенос карт из test_pool_maps в pool_maps
+app.get("/switch-maps", async (req, res) => {
+  // Проверка авторизации и что это именно LLIaBKa
+  if (!req.session.user || req.session.user.username !== 'LLIaBKa') {
+    return res.status(403).json({ error: 'Доступ запрещён' });
+  }
+
+  try {
+    await supabase.from("pool_maps").delete().neq("id", 0);
+
+    console.log("=== Перемещение test_pool_maps -> pool_maps ===");
+    const { data: rows, error: fetchError } = await supabase
+      .from('test_pool_maps')
+      .select('*');
+
+    if (fetchError) throw fetchError;
+
+    if (!rows || rows.length === 0) {
+      console.log('Нет строк в test_pool_maps для перемещения');
+      return res.json({ success: true, moved: 0, message: 'Нет карт для перемещения' });
+    }
+
+    const { error: insertError } = await supabase
+      .from('pool_maps')
+      .insert(rows);
+
+    if (insertError) throw insertError;
+
+    console.log(`✅ Перемещено ${rows.length} строк из test_pool_maps в pool_maps`);
+    res.json({ success: true, moved: rows.length, message: `Перемещено ${rows.length} карт` });
+  } catch (err) {
+    console.error('Ошибка в /switch-maps:', err.message || err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+app.get("/run-cron-manual", async (req, res) => {
+  console.log("🚀 Ручной запуск CRON...");
+
+  // Текущая дата (без времени) для сохранения истории
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Выбираем случайный критерий для следующей недели
+  const criteriaList = ['pp', 'combo', 'accuracy', 'score'];
+  const selectedCriteria = criteriaList[Math.floor(Math.random() * criteriaList.length)];
+  console.log(`🎲 Критерий недели: ${selectedCriteria}`);
+
+  // Сохраняем критерий в отдельную таблицу (для отображения на фронте)
+  const nextStart = new Date(today);
+  nextStart.setDate(today.getDate() + 1); // следующий день после завершения
+  const nextEnd = new Date(nextStart);
+  nextEnd.setDate(nextStart.getDate() + 7);
+
+  await supabase
+    .from('pool_current_test')
+    .upsert({
+      id: 1,
+      criteria: selectedCriteria,
+      start_date: nextStart.toISOString(),
+      end_date: nextEnd.toISOString()
+    }, { onConflict: 'id' });
+
+  let token = null;
+
+  try {
+    // =========================
+    // 1) Сохранение истории пула с учётом выбранного критерия
+    // =========================
+    const { data: participants, error: pErr } = await supabase
+      .from("pool_participants")
+      .select("*")
+      .order("total_pp", { ascending: false });
+
+    if (pErr) throw pErr;
+
+    if (participants && participants.length > 0) {
+      // Получаем все скоры игроков с привязкой к картам
+      const { data: allMaps, error: mapsErr } = await supabase
+        .from("player_scores")
+        .select(`
+          id,
+          score_id,
+          participant_id,
+          map_id,
+          pp,
+          max_combo,
+          accuracy,
+          score,
+          pool_maps (
+            difficulty_id,
+            beatmap_id,
+            title,
+            map_url,
+            background_url
+          )
+        `);
+
+      if (mapsErr) throw mapsErr;
+
+      // Собираем данные по участникам и их скорам
+      const participantsData = participants.map(p => {
+        const scores = (allMaps || []).filter(s => s.participant_id === p.id);
+        const formattedScores = scores.map(s => ({
+          pp: Number(s.pp) || 0,
+          combo: s.max_combo || 0,
+          accuracy: s.accuracy || 0,
+          score: s.score || 0,
+          map_id: s.map_id,
+          score_id: s.score_id || null,
+          difficulty_id: s.pool_maps?.difficulty_id || null,
+          beatmap_id: s.pool_maps?.beatmap_id || null,
+          title: s.pool_maps?.title || null,
+          map_url: s.pool_maps?.map_url || null,
+          background_url: s.pool_maps?.background_url || null
+        }));
+        return { ...p, scores: formattedScores };
+      });
+
+      // Сортируем участников по выбранному критерию
+      const sortedParticipants = [...participantsData].sort((a, b) => {
+        let valA, valB;
+        switch (selectedCriteria) {
+          case 'pp':
+            valA = a.total_pp || 0;
+            valB = b.total_pp || 0;
+            break;
+          case 'combo':
+            valA = a.total_combo || 0;
+            valB = b.total_combo || 0;
+            break;
+          case 'accuracy':
+            valA = a.avg_accuracy || 0;
+            valB = b.avg_accuracy || 0;
+            break;
+          case 'score':
+            valA = a.total_score || 0;
+            valB = b.total_score || 0;
+            break;
+          default:
+            valA = a.total_pp || 0;
+            valB = b.total_pp || 0;
+        }
+        return valB - valA; // по убыванию (больше = лучше)
+      });
+
+      // Вставляем записи в историю
+      for (const [index, p] of sortedParticipants.entries()) {
+        const { error: insertErr } = await supabase.from("pool_history").insert({
+          tournament_date: today.toISOString().split("T")[0],
+          criteria: selectedCriteria,
+          position: index + 1,
+          avatar_url: p.avatar || null,
+          nickname: p.nickname || p.username || null,
+          total_pp: p.total_pp || 0,
+          total_combo: p.total_combo || 0,
+          avg_accuracy: p.avg_accuracy || 0,
+          total_score: p.total_score || 0,
+          scores: p.scores
+        });
+
+        if (insertErr) {
+          console.error(`Ошибка вставки истории для ${p.nickname || p.username || ('id:'+p.id)}:`, insertErr);
+        } else {
+          console.log(`✔ История добавлена для ${p.nickname || p.username || ('id:'+p.id)} (pos ${index + 1})`);
+        }
+      }
+      console.log("✅ История пула успешно сохранена!");
+    }
+
+    // =========================
+    // 2) Очистка таблиц текущего пула
+    // =========================
+    await supabase.from("pool_participants").delete().neq("id", 0);
+    await supabase.from("player_scores").delete().neq("id", 0);
+    await supabase.from("pool_maps").delete().neq("id", 0);
+    console.log("Пул и карты очищены.");
+
+    // =========================
+    // 3) Генерация нового пула (10 карт)
+    // =========================
+    token = await getOsuAccessToken();
+    if (!token) throw new Error("Не удалось получить osu токен");
+
+    await supabase.from("test_pool_maps").delete().neq("id", 0);
+
+    let count = 0;
+    let attempts = 0;
+
+    while (count < 10 && attempts < 40000) {
+      attempts++;
+      const randomSetId = Math.floor(Math.random() * 2300000) + 1;
+
+      try {
+        const resApi = await axios.get(
+          `https://osu.ppy.sh/api/v2/beatmapsets/${randomSetId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const set = resApi.data;
+        if (!set?.beatmaps || set.status !== "ranked") continue;
+
+        const validDiffs = set.beatmaps.filter(
+          bm => bm.mode === "osu" &&
+                bm.difficulty_rating >= 6 &&
+                bm.difficulty_rating <= 8
+        );
+
+        if (!validDiffs.length) continue;
+
+        const map = validDiffs[Math.floor(Math.random() * validDiffs.length)];
+        const ar = map.ar; 
+        await supabase.from("test_pool_maps").insert({
+          beatmap_id: set.id,
+          difficulty_id: map.id,
+          title: `${set.title} [${map.version}]`,
+          background_url: set.covers?.cover || null,
+          map_url: `https://osu.ppy.sh/beatmaps/${map.id}`,
+          ar: ar
+        });
+
+        count++;
+      } catch (err) {
+        if (err.response?.status === 429) {
+          await new Promise(r => setTimeout(r, 5000));
+        }
+      }
+    }
+
+    // =========================
+    // 4) Перенос сгенерированных карт в pool_maps
+    // =========================
+    const { data: rows } = await supabase
+      .from("test_pool_maps")
+      .select("*");
+
+    if (rows && rows.length > 0) {
+      await supabase.from("pool_maps").insert(rows);
+      console.log(`✅ Перемещено ${rows.length} карт в pool_maps`);
+    }
+
     res.json({
       success: true,
       message: "CRON выполнен вручную",
-      generated_maps: count
+      generated_maps: count,
+      criteria: selectedCriteria
     });
 
   } catch (err) {
@@ -1547,7 +1833,10 @@ app.get("/run-cron-manual", async (req, res) => {
   }
 });
 // === ИСПРАВЛЕННЫЙ РОУТ ДЛЯ ПЕРЕСЧЕТА ПОБЕД ===
-
+app.get('/api/update-pool', async (req, res) => {
+  await updatePoolPP();
+  res.json({ message: 'Pool updated' });
+});
 
 // Получение таблицы участников пула
 app.get('/api/pool/participants', async (req, res) => {
@@ -1560,9 +1849,18 @@ app.get('/api/pool/participants', async (req, res) => {
         nickname,
         avatar,
         total_pp,
+        total_combo,
+        avg_accuracy,
+        total_score,
+        total_miss,
         player_scores (
           pp,
+          max_combo,
+          accuracy,
+          score,
           score_id,
+          mods,
+          miss_count,
           pool_maps (
             id,
             beatmap_id,
@@ -1572,30 +1870,46 @@ app.get('/api/pool/participants', async (req, res) => {
           )
         )
       `);
-
     if (error) throw error;
-        
-    res.json(data);
+
+    // Добавляем каждому участнику поле scores_count (количество сыгранных карт)
+    const enrichedData = data.map(p => ({
+      ...p,
+      scores_count: p.player_scores?.filter(ps => ps.score_id != null).length || 0
+    }));
+
+    res.json(enrichedData);
   } catch (err) {
     console.error("Ошибка при получении участников:", err);
     res.status(500).json({ error: "Ошибка при получении участников" });
+  }
+});
+app.get('/api/pool/current-criteria', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('pool_current_test')
+      .select('criteria, start_date, end_date')
+      .eq('id', 1)
+      .single();
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    console.error('Ошибка получения текущего критерия:', err);
+    res.status(500).json({ error: 'Не удалось получить критерий' });
   }
 });
 
 // Получение карт и результатов игрока (в пуле)
 app.get('/api/pool/player/:id', async (req, res) => {
   const { id } = req.params;
-
   const { data, error } = await supabase
-    .from("player_scores")
-    .select("id, score_id, pp, pool_maps(title, background_url, map_url)")
+    .from("player_scores")   // или player_scores, если не тестовые
+    .select("id, score_id, pp, max_combo, accuracy, mods, miss_count, score, pool_maps(title, background_url, map_url)")
     .eq("participant_id", id)
     .order('pp', { ascending: false });
-
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
-
 // === API основного турнира ===
 app.get('/api/data', async (req, res) => {
   try {
