@@ -15,6 +15,11 @@
     h1 { text-align: center; color: #fff; }
     #controls { text-align: center; margin-bottom: 2rem; }
 
+    .combo, .acc, .score, .miss {
+      width: 10%;
+      text-align: center;
+    }
+
     /* Стили для навигационной панели */
     nav {
       position: fixed;
@@ -31,6 +36,11 @@
       box-sizing: border-box;
       height: 7%;
     }
+
+    th.highlight, td.highlight {
+      background-color: rgba(255, 122, 0, 0.3) !important;
+    }
+
     .nav-left {
       font-weight: bold;
       font-size: 1.8rem;
@@ -41,6 +51,7 @@
       gap: 8px;
       margin-left: 3%;
     }
+
     .nav-center {
       position: absolute;
       left: 50%;
@@ -48,6 +59,7 @@
       display: flex;
       align-items: center;
     }
+
     .nav-center a, .nav-center button {
       color: #fff;
       text-decoration: none;
@@ -63,12 +75,15 @@
       font-size: inherit;
       line-height: inherit;
     }
+
     .nav-center a:hover, .nav-center button:hover {
       color: #ff7a00;
     }
+
     .nav-center a.active, .nav-center button.active {
       color: #ff7a00;
     }
+
     .nav-center a.active::after, .nav-center button.active::after {
       content: "";
       position: absolute;
@@ -78,10 +93,12 @@
       border-radius: 1px;
       animation: underline 0.3s ease;
     }
+
     @keyframes underline {
       from { width: 0; opacity: 0.5; }
       to { width: 100%; opacity: 1; }
     }
+
     .nav-right {
       display: flex;
       align-items: center;
@@ -92,6 +109,7 @@
       justify-content: center;
       gap: 8px;
     }
+
     .nav-right #user {
       color: #ccc;
       white-space: nowrap;
@@ -99,24 +117,27 @@
       align-items: center;
       text-decoration: none;
     }
+
     .nav-right #user a {
       color: #ccc;
       text-decoration: none;
       display: flex;
       align-items: center;
     }
+
     .nav-right #user :hover {
       color: #ff7a00;
     }
 
     /* === КОНТЕНТ === */
     main {
-      padding-top: 3%; /* Увеличено для отступа от навбара */
+      padding-top: 3%;
       max-width: 98%;
       margin: 0 auto;
       padding-left: 1rem;
       padding-right: 1rem;
     }
+
     #countdown-container {
       width: 100%;
       height: 42px;
@@ -127,12 +148,14 @@
       position: relative;
       box-shadow: 0 0 10px rgba(0,0,0,0.3);
     }
+
     #countdown-bar {
       width: 100%;
       height: 100%;
       background: green;
       transition: width 0.5s linear, background 0.5s linear;
     }
+
     #countdown-text {
       position: absolute;
       inset: 0;
@@ -156,53 +179,154 @@
       text-decoration: none;
       font-weight: 500;
     }
+
     #login:hover, #logout:hover, #participate:hover {
       background: #8e077a;
       color: white;
     }
+
     #participate {
       margin-left: 3%;
     }
+
     .button-link, .history {
       text-decoration: none;
     }
-    .nickname-cell a.nickname { color: #fff; font-weight: bold; text-decoration: none; }
-    .nickname-cell a.nickname:hover { text-decoration: underline; color: #ffb86b;overflow: visible; }
-    table { width: 100%; border-collapse: collapse; background-color: #1e1e1e; border-radius: 12px; overflow: hidden; box-shadow: 0 0 10px rgba(255,255,255,0.05); margin-bottom: 1rem; }
-    thead th { padding: 14px; text-align: center; border-bottom: 1px solid #333; background-color: #2a2a2a; color: #fff; font-weight: bold; }
-    tbody td { padding: 12px; text-align: center; border-bottom: 1px solid #333; vertical-align: middle; }
-    tr.main-row:hover { background-color: #2c2c2c; cursor: pointer; }
-    tr.maps-row { display: none; background-color: #181818; }
-    .maps-cell { padding: 12px 18px; }
-    .maps-list { display: flex; flex-direction: column; gap: 9px; margin: 6px 0; }
-    .map-entry { display: flex; align-items: center; gap: 12px; padding: 10px; background-color: #222; border-radius: 8px; cursor: pointer; }
+
+    .nickname-cell a.nickname {
+      color: #fff;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .nickname-cell a.nickname:hover {
+      text-decoration: underline;
+      color: #ffb86b;
+      overflow: visible;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #1e1e1e;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 10px rgba(255,255,255,0.05);
+      margin-bottom: 1rem;
+    }
+
+    thead th {
+      padding: 14px;
+      text-align: center;
+      border-bottom: 1px solid #333;
+      background-color: #2a2a2a;
+      color: #fff;
+      font-weight: bold;
+    }
+
+    tbody td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #333;
+      vertical-align: middle;
+    }
+
+    tr.main-row:hover {
+      background-color: #2c2c2c;
+      cursor: pointer;
+    }
+
+    tr.maps-row {
+      display: none;
+      background-color: #181818;
+    }
+
+    .maps-cell {
+      padding: 12px 18px;
+    }
+
+    .maps-list {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      margin: 6px 0;
+    }
+
+    .map-entry {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px;
+      background-color: #222;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
     .map-entry.disabled {
       cursor: default;
       opacity: 0.5;
       pointer-events: none;
     }
+
     .map-entry.active:hover .map-info span {
       color: #ffb86b;
       text-decoration: underline;
       transition: all 0.2s ease;
     }
-    .map-entry a { color: #fff; font-weight: bold; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; pointer-events: none; }
-    .map-cover { width: 90px; height: 55px; border-radius: 6px; background-size: cover; background-position: center; flex-shrink: 0; }
-    .map-info { display: flex; justify-content: space-between; flex: 1; color: #fff; font-weight: bold; }
-    .nickname-cell {
-  text-align: left;
-  vertical-align: middle;
-}
 
-.nickname-content {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-    .position { width: 80px; text-align: center; }
-    .pp { width: 10%; text-align: center; vertical-align: middle; }
-    .position-text { width: 80px; text-align: center; font-weight: bold; }
-    .nickname-cell img { width: 32px; height: 32px; vertical-align: middle; border-radius: 50%; box-shadow: 0 0 3px rgba(255,255,255,0.2); }
+    .map-cover {
+      width: 90px;
+      height: 55px;
+      border-radius: 6px;
+      background-size: cover;
+      background-position: center;
+      flex-shrink: 0;
+    }
+
+    .map-info {
+      display: flex;
+      justify-content: space-between;
+      flex: 1;
+      color: #fff;
+      font-weight: bold;
+    }
+
+    .nickname-cell {
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    .nickname-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .position {
+      width: 80px;
+      text-align: center;
+    }
+
+    .pp {
+      width: 10%;
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    .position-text {
+      width: 80px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .nickname-cell img {
+      width: 32px;
+      height: 32px;
+      vertical-align: middle;
+      border-radius: 50%;
+      box-shadow: 0 0 3px rgba(255,255,255,0.2);
+    }
+
     .pool-grid {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
@@ -211,6 +335,7 @@
       gap: 16px;
       margin-bottom: 2rem;
     }
+
     .pool-card {
       background-color: #1e1e1e;
       border-radius: 12px;
@@ -221,15 +346,18 @@
       transition: transform 0.2s ease, box-shadow 0.2s ease;
       cursor: pointer;
     }
+
     .pool-card:hover {
       transform: translateY(-4px);
       box-shadow: 0 4px 20px rgba(255,255,255,0.15);
     }
+
     .pool-card img {
       width: 100%;
       height: 140px;
       object-fit: cover;
     }
+
     .pool-card-content {
       padding: 10px 12px;
       display: flex;
@@ -238,6 +366,7 @@
       gap: 4px;
       flex: 1;
     }
+
     .pool-card-footer {
       display: flex;
       justify-content: space-between;
@@ -248,12 +377,14 @@
       box-sizing: border-box;
       gap: 8px;
     }
+
     .pool-card-footer .pp {
       padding-right: 5%;
       font-weight: 700;
       color: #ffcc00;
       white-space: nowrap;
     }
+
     .best-player {
       display: flex;
       align-items: center;
@@ -262,11 +393,14 @@
       min-width: 0;
       flex: 1 1 auto;
     }
+
     .best-player img {
-      width: 30px; height: 30px;
+      width: 30px;
+      height: 30px;
       border-radius: 50%;
       object-fit: cover;
     }
+
     .best-player .name {
       font-weight: 600;
       font-size: 13px;
@@ -275,6 +409,7 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+
     .pool-card-title {
       font-weight: 700;
       color: #fff;
@@ -285,10 +420,7 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .pool-card-diff { font-size: 13px; color: var(--muted); text-align: center; }
-    .pool-card-pp { font-weight: 700; color: #ffcc00; text-align: right; margin-top: 8px; }
 
-    /* Модальное окно */
     .modal {
       display: none;
       position: fixed;
@@ -301,6 +433,7 @@
       background-color: rgba(0, 0, 0, 0.6);
       animation: fadeIn 0.2s ease;
     }
+
     .modal-content {
       background-color: #fff;
       margin: 8% auto;
@@ -312,17 +445,20 @@
       animation: slideDown 0.25s ease;
       color: #222;
     }
+
     .modal-content h2 {
       color: #111;
       text-align: center;
       margin-bottom: 1rem;
     }
+
     .modal-content p {
       color: #333;
       line-height: 1.5;
       text-align: left;
       font-size: 1rem;
     }
+
     .close {
       color: #aaa;
       float: right;
@@ -330,15 +466,55 @@
       cursor: pointer;
       transition: color 0.2s;
     }
+
     .close:hover {
       color: #333;
     }
+
     @keyframes fadeIn {
       from { opacity: 0; } to { opacity: 1; }
     }
+
     @keyframes slideDown {
       from { transform: translateY(-15px); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
+    }
+
+    .pool-card,
+    .pool-card:visited,
+    .pool-card:hover,
+    .pool-card:active {
+      color: inherit !important;
+      text-decoration: none !important;
+    }
+
+    .map-entry,
+    .map-entry:visited,
+    .map-entry:hover,
+    .map-entry:active {
+      color: inherit !important;
+      text-decoration: none !important;
+    }
+
+    .map-entry.active:hover .map-info span {
+      color: #ffb86b !important;
+      text-decoration: underline !important;
+    }
+
+    .map-entry.disabled {
+      cursor: default;
+      opacity: 0.5;
+      pointer-events: none;
+      text-decoration: none !important;
+      color: inherit !important;
+    }
+
+    .banned-mods-indicator {
+      display: inline-block;
+      margin-left: 6px;
+      font-size: 14px;
+      cursor: help;
+      color: #ff6b6b;
     }
   </style>
 </head>
@@ -350,7 +526,7 @@
       <a href="/pool" class="active">Пул кап</a>
       <a href="/history" class="history">История</a>
       <a href="/players" class="players">Участники</a>
-      <button id="rulesBtn">Правила</button>
+      <a href="/rules">Правила</a>
       <a href="https://discord.com/invite/4M5jDGDX96" target="_blank">Discord</a>
     </div>
     <div class="nav-right">
@@ -375,11 +551,13 @@
       <p style="font-size: 0.9em; opacity: 0.8; text-align: center;">Обновление данных происходит автоматически один раз в 5 минут.</p>
     </div>
   </div>
+
   <main>
     <div id="countdown-container">
       <div id="countdown-bar"></div>
       <div id="countdown-text"></div>
     </div>
+    <div id="criteria-display" style="margin: 10px 0; text-align: center; font-size: 1.2rem; color: #ffcc00; background: #1e1e1e; padding: 8px; border-radius: 8px;"></div>
     <div id="pool-cards" class="pool-grid"></div>
 
     <table>
@@ -387,12 +565,17 @@
         <tr>
           <th class="position">Позиция</th>
           <th class="nickname-cell">Игрок</th>
-          <th class="pp">Сумма PP</th>
+          <th class="pp">PP</th>
+          <th class="combo">Комбо</th>
+          <th class="acc">Точность</th>
+          <th class="score">Очки</th>
+          <th class="miss">Миссы</th>
         </tr>
       </thead>
       <tbody id="participants-body"></tbody>
     </table>
   </main>
+
   <script>
     function escapeHtml(str) {
       if (str === null || str === undefined) return '';
@@ -400,6 +583,14 @@
     }
 
     let currentUser = null;
+    let currentCriteria = 'pp';
+    const criteriaLabelMap = {
+      'pp': 'PP',
+      'combo': 'Комбо',
+      'accuracy': 'Точность',
+      'score': 'Очки',
+      'miss': 'Миссы'
+    };
 
     async function fetchUser() {
       try {
@@ -434,27 +625,77 @@
       const res = await fetch('/api/pool/participants');
       if (!res.ok) return;
       let data = await res.json();
-      data.sort((a, b) => (b.total_pp ?? 0) - (a.total_pp ?? 0));
+      // Сортировка по PP (можно оставить, но для отображения позиции используем порядок в массиве)
+       data.sort((a, b) => {
+    // Сначала проверяем, есть ли скоры
+    const aHasScores = a.scores_count > 0;
+    const bHasScores = b.scores_count > 0;
+    if (aHasScores !== bHasScores) {
+      // Тот, у кого есть скоры, должен быть выше
+      return aHasScores ? -1 : 1;
+    }
+
+    // Если у обоих есть скоры или у обоих нет, сравниваем по критерию
+    let valA, valB;
+    if (currentCriteria === 'pp') {
+      valA = a.total_pp ?? 0;
+      valB = b.total_pp ?? 0;
+      return valB - valA; // по убыванию
+    } else if (currentCriteria === 'combo') {
+      valA = a.total_combo ?? 0;
+      valB = b.total_combo ?? 0;
+      return valB - valA;
+    } else if (currentCriteria === 'accuracy') {
+      valA = a.avg_accuracy ?? 0;
+      valB = b.avg_accuracy ?? 0;
+      return valB - valA;
+    } else if (currentCriteria === 'score') {
+      valA = a.total_score ?? 0;
+      valB = b.total_score ?? 0;
+      return valB - valA;
+    } else if (currentCriteria === 'miss') {
+      valA = a.total_miss ?? 0;
+      valB = b.total_miss ?? 0;
+      return valA - valB; // по возрастанию
+    }
+    return 0;
+  });
       const tbody = document.getElementById('participants-body');
       tbody.innerHTML = '';
+
       data.forEach((item, index) => {
         const tr = document.createElement('tr');
         tr.className = 'main-row';
         tr.dataset.playerId = item.id;
+
+        const acc = (item.avg_accuracy || 0) * 100;
+        const score = item.total_score || 0;
+
         tr.innerHTML = `
           <td class="position-text">${index + 1}</td>
-          <td class="nickname-cell"><img src="${item.avatar ? escapeHtml(item.avatar) : ''}" alt="avatar">
-          <a href="https://osu.ppy.sh/users/${item.userid}" target="_blank" rel="noopener noreferrer" class="nickname" onclick="event.stopPropagation()">${escapeHtml(item.nickname)}</a></td>
-          <td class="pp">${Math.floor(item.total_pp ?? 0)}</td>`;
+          <td class="nickname-cell">
+            <div class="nickname-content">
+              <img src="${item.avatar ? escapeHtml(item.avatar) : ''}" alt="avatar">
+              <a href="https://osu.ppy.sh/users/${item.userid}" target="_blank" rel="noopener noreferrer" class="nickname" onclick="event.stopPropagation()">${escapeHtml(item.nickname)}</a>
+            </div>
+          </td>
+          <td class="pp">${Math.floor(item.total_pp ?? 0)}</td>
+          <td class="combo">${Math.floor(item.total_combo ?? 0)}</td>
+          <td class="acc">${acc.toFixed(2)}%</td>
+          <td class="score">${score.toLocaleString()}</td>
+          <td class="miss">${item.total_miss ?? 0}</td>
+        `;
         tbody.appendChild(tr);
 
         const mapsTr = document.createElement('tr');
         mapsTr.className = 'maps-row';
         mapsTr.id = `maps-row-${item.id}`;
-        mapsTr.innerHTML = `<td class="maps-cell" colspan="3"><div id="maps-container-${item.id}" class="maps-list"></div></td>`;
+        mapsTr.innerHTML = `<td class="maps-cell" colspan="7"><div id="maps-container-${item.id}" class="maps-list"></div></td>`;
         tbody.appendChild(mapsTr);
+
         tr.addEventListener('click', () => toggleMaps(item.id));
       });
+      highlightCriteriaColumn();
     }
 
     async function toggleMaps(playerId) {
@@ -478,33 +719,69 @@
 
         const maps = await res.json();
         if (!Array.isArray(maps) || maps.length === 0) {
-          container.innerHTML = '<div style="color:#aaa">Карт пока нет или игрок ещё не имеет записей (будут 0 pp).</div>';
+          container.innerHTML = '<div style="color:#aaa">Карт пока нет или игрок ещё не имеет записей.</div>';
           mapsTr.style.display = 'table-row';
           return;
         }
 
         const html = maps.map(m => {
-          const map = m.pool_maps || {};
+          const map = m.pool_maps_test || {};
           const title = escapeHtml(map.title || 'Без названия');
-          const difficulty = escapeHtml(map.version || map.difficulty || '');
           const bg = escapeHtml(map.background_url || '');
-          const pp = Number(m.pp) || 0;
           const scoreId = m.score_id || null;
           const mapUrl = escapeHtml(map.map_url || (map.beatmap_id ? `https://osu.ppy.sh/beatmaps/${map.beatmap_id}` : '#'));
-          const targetUrl = `https://osu.ppy.sh/scores/osu/${encodeURIComponent(scoreId)}`;
-          const hasScore = pp > 0 || !!scoreId;
+          const targetUrl = scoreId ? `https://osu.ppy.sh/scores/osu/${encodeURIComponent(scoreId)}` : '#';
+
+          let metricValue, metricDisplay;
+          if (currentCriteria === 'pp') {
+            metricValue = Number(m.pp) || 0;
+            metricDisplay = Math.round(metricValue) + ' pp';
+          } else if (currentCriteria === 'combo') {
+            metricValue = Number(m.max_combo) || 0;
+            metricDisplay = metricValue.toLocaleString() + ' x';
+          } else if (currentCriteria === 'accuracy') {
+            metricValue = (Number(m.accuracy) || 0) * 100;
+            metricDisplay = metricValue.toFixed(2) + '%';
+          } else if (currentCriteria === 'score') {
+            metricValue = Number(m.score) || 0;
+            metricDisplay = metricValue.toLocaleString();
+          } else if (currentCriteria === 'miss') {
+            metricValue = Number(m.miss_count) || 0;
+            metricDisplay = metricValue.toString(); // просто число, без знака
+          }
+
+          const hasScore = metricValue > 0 || !!scoreId;
           const stateClass = hasScore ? ' active' : ' disabled';
 
+          let modsDisplay = '';
+          if (hasScore) {
+            const modsArray = m.mods && Array.isArray(m.mods) ? m.mods : [];
+            const modsString = modsArray.length ? modsArray.join('') : 'NM';
+            modsDisplay = `<span style="font-size:0.7rem; color:#aaa;">${modsString}</span>`;
+          } else {
+            modsDisplay = `<span style="font-size:0.7rem; color:#666;">Карта не сыграна</span>`;
+          }
+
+          // Дополнительно отображаем количество миссов, если есть скор (необязательно)
+          let missDisplay = '';
+          if (hasScore && m.miss_count !== undefined) {
+            missDisplay = `<span style="font-size:0.7rem; color:#ff6b6b; margin-left:4px;">💔 ${m.miss_count}</span>`;
+          }
+
           return `
-            <div class="map-entry${stateClass}" 
-                 ${hasScore ? `onclick="window.open('${targetUrl}','_blank')"` : ''} 
-                 role="${hasScore ? 'button' : 'presentation'}">
+            <a class="map-entry${stateClass}" 
+               href="${hasScore ? targetUrl : '#'}" 
+               ${hasScore ? 'target="_blank"' : ''}
+               ${hasScore ? '' : 'aria-disabled="true" tabindex="-1"'}
+               role="${hasScore ? 'link' : 'presentation'}">
               <div class="map-cover" style="background-image:url('${bg}')"></div>
               <div class="map-info" style="flex-direction:column; align-items:flex-start;">
                 <span>${title}</span>
+                ${modsDisplay}
+                ${missDisplay}
               </div>
-              <div class="map-pp" style="margin-left:auto; font-weight:600; color:#ffcc00;">${Math.round(pp)} pp</div>
-            </div>
+              <div class="map-pp" style="margin-left:auto; font-weight:600; color:#ffcc00;">${metricDisplay}</div>
+            </a>
           `;
         }).join('');
 
@@ -531,39 +808,99 @@
         const participantsCache = participantsRes.ok ? await participantsRes.json() : null;
         const container = document.getElementById('pool-cards');
         container.innerHTML = '';
+
         mapsCache.forEach(map => {
           const mapUrl = escapeHtml(map.map_url || (map.beatmap_id ? `https://osu.ppy.sh/beatmaps/${map.beatmap_id}` : '#'));
           const coverUrl = escapeHtml(map.background_url || '');
           const title = escapeHtml(map.title || `Map ${map.beatmap_id || map.id}`);
+          const ar = map.ar || 10;
+          const bannedModsIndicator = ar <= 9 ? `<span class="banned-mods-indicator" title="HR, DT, NC запрещены">⚠️</span>` : '';
+
+          // Определяем лучшего игрока на карте по текущему критерию
           let best = null;
           if (participantsCache && Array.isArray(participantsCache)) {
             for (const p of participantsCache) {
-              if (!p.player_scores) continue;
-              for (const ps of p.player_scores) {
-                const pm = ps.pool_maps || ps.pool_map || null;
+              if (!p.player_scores_test) continue;
+              for (const ps of p.player_scores_test) {
+                if (!ps.score_id) continue; // только реальные скоры
+                const pm = ps.pool_maps_test || null;
                 if (pm?.id === map.id) {
-                  const pp = Number(ps.pp) || 0;
-                  if (!best || pp > best.pp) best = { participantId: p.id, userid: p.userid, nickname: p.nickname, avatar: p.avatar, pp, scoreRowId: ps.id ?? null };
+                  let value;
+                  if (currentCriteria === 'pp') value = Number(ps.pp) || 0;
+                  else if (currentCriteria === 'combo') value = Number(ps.max_combo) || 0;
+                  else if (currentCriteria === 'accuracy') value = Number(ps.accuracy) || 0;
+                  else if (currentCriteria === 'score') value = Number(ps.score) || 0;
+                  else if (currentCriteria === 'miss') value = Number(ps.miss_count) || 0;
+
+                  const isBetter = !best || (
+                    currentCriteria === 'miss' ? value < best.value : value > best.value
+                  );
+
+                  if (isBetter) {
+                    best = {
+                      participantId: p.id,
+                      userid: p.userid,
+                      nickname: p.nickname,
+                      avatar: p.avatar,
+                      value: value,
+                      mods: ps.mods || [],
+                      scoreRowId: ps.id ?? null
+                    };
+                  }
                 }
               }
             }
           }
-          const card = document.createElement('div');
+
+          // Создаём карточку
+          const card = document.createElement('a');
           card.className = 'pool-card';
-          const difficulty = escapeHtml(map.version || map.difficulty || '');
-          card.addEventListener('click', () => { window.open(mapUrl, '_blank'); });
+          card.href = mapUrl;
+          card.target = '_blank';
+
           card.innerHTML = `
             <img class="cover" src="${coverUrl}" alt="">
             <div class="pool-card-content">
-              <div class="pool-card-title">${title}</div>
-            </div>`;
+              <div class="pool-card-title">
+                ${title}
+                ${bannedModsIndicator}
+              </div>
+            </div>
+          `;
+
           const footer = document.createElement('div');
           footer.className = 'pool-card-footer';
-          footer.innerHTML = `
-            <div class="best-player">
-              ${best ? `<img src="${escapeHtml(best.avatar || '')}" alt="avatar"><div class="name" title="${escapeHtml(best.nickname || '')}">${escapeHtml(best.nickname || '')}</div>` : '<div style="color:#bbb">Нет скоров</div>'}
-            </div>
-            <div class="pp">${best ? Math.round(best.pp) + ' pp' : '0 pp'}</div>`;
+
+          if (best) {
+            let displayValue;
+            if (currentCriteria === 'pp') displayValue = Math.round(best.value) + ' pp';
+            else if (currentCriteria === 'combo') displayValue = best.value.toLocaleString() + ' x';
+            else if (currentCriteria === 'accuracy') displayValue = (best.value * 100).toFixed(2) + '%';
+            else if (currentCriteria === 'score') displayValue = best.value.toLocaleString();
+            else if (currentCriteria === 'miss') displayValue = best.value.toString(); // просто число
+
+            const modsString = best.mods && best.mods.length ? best.mods.join('') : 'NM';
+
+            footer.innerHTML = `
+              <div style="display:flex; flex-direction:column; align-items:flex-start; width:100%;">
+                <div class="best-player" style="margin-bottom:2px;">
+                  <img src="${escapeHtml(best.avatar || '')}" alt="avatar">
+                  <div class="name" title="${escapeHtml(best.nickname || '')}">${escapeHtml(best.nickname || '')}</div>
+                </div>
+                <div style="font-size:0.7rem; color:#aaa; margin-left:38px;">${modsString}</div>
+              </div>
+              <div class="pp">${displayValue}</div>
+            `;
+          } else {
+            footer.innerHTML = `
+              <div style="display:flex; flex-direction:column; align-items:flex-start; width:100%;">
+                <div class="best-player" style="visibility:hidden; height:30px;"></div>
+                <div style="font-size:0.7rem; color:#666; margin-left:38px;">Карта не сыграна</div>
+              </div>
+              <div class="pp">0</div>
+            `;
+          }
+
           card.appendChild(footer);
           container.appendChild(card);
         });
@@ -573,145 +910,106 @@
       }
     }
 
-    const modal = document.getElementById("rulesModal");
-    const rulesBtn = document.getElementById("rulesBtn");
-    const closeBtn = document.getElementById("closeModal");
-
-    function setRulesActive(active) {
-      if (active) {
-        rulesBtn.classList.add("active");
-      } else {
-        rulesBtn.classList.remove("active");
+    async function loadCurrentCriteria() {
+      try {
+        const res = await fetch('/api/pool/current-criteria');
+        if (!res.ok) throw new Error('Ошибка загрузки критерия');
+        const data = await res.json();
+        currentCriteria = data.criteria;
+        document.getElementById('criteria-display').innerHTML = `🎲 Критерий этой недели: <strong>${criteriaLabelMap[currentCriteria] || currentCriteria}</strong>`;
+      } catch (err) {
+        console.error('Не удалось загрузить критерий:', err);
+        document.getElementById('criteria-display').innerHTML = '';
       }
     }
 
-    rulesBtn.onclick = (e) => {
-      e.preventDefault();
-      modal.style.display = "block";
-      setRulesActive(true);
-    };
+    function highlightCriteriaColumn() {
+      document.querySelectorAll('th.highlight, td.highlight').forEach(el => el.classList.remove('highlight'));
 
-    closeBtn.onclick = () => {
-      modal.style.display = "none";
-      setRulesActive(false);
-    };
-
-    window.onclick = (e) => {
-      if (e.target === modal) {
-        modal.style.display = "none";
-        setRulesActive(false);
+      let colClass = '';
+      switch (currentCriteria) {
+        case 'pp': colClass = 'pp'; break;
+        case 'combo': colClass = 'combo'; break;
+        case 'accuracy': colClass = 'acc'; break;
+        case 'score': colClass = 'score'; break;
+        case 'miss': colClass = 'miss'; break;
+        default: return;
       }
-    };
 
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && modal.style.display === 'block') {
-        modal.style.display = "none";
-        setRulesActive(false);
-      }
-    });
+      document.querySelector(`th.${colClass}`)?.classList.add('highlight');
+      document.querySelectorAll(`td.${colClass}`).forEach(td => td.classList.add('highlight'));
+    }
 
+    // === Таймер ===
     let countdownInterval = null;
 
-// === Следующий сброс: через 1 или 2 дня от текущей полуночи MSK ===
-function getNextResetMidnightMSK() {
-  // 1. Текущее время в UTC
-  const nowUTC = Date.now();
-
-  // 2. Текущее время в MSK
-  const nowMSK = nowUTC + 3 * 3600000;
-
-  // 3. Полуночь сегодня в MSK (в миллисекундах)
-  const todayMidnightMSK = nowMSK - (nowMSK % (24 * 3600000));
-
-  // 4. День с эпохи
-  const daysSinceEpoch = Math.floor(todayMidnightMSK / (24 * 3600000));
-  const cycleDay = daysSinceEpoch % 2; // 0 = первый день цикла, 1 = второй
-
-  // 5. Следующий сброс:
-  let daysToAdd;
-  if (cycleDay === 0) {
-    // Первый день цикла → сброс через 2 дня
-    daysToAdd = 2;
-  } else {
-    // Второй день цикла → сброс через 1 день
-    daysToAdd = 1;
-  }
-
-  const nextResetMSK = todayMidnightMSK + daysToAdd * 24 * 3600000;
-
-  // 6. Возвращаем как Date (в UTC)
-  return new Date(nextResetMSK - 3 * 3600000);
-}
-
-// === Начало текущего 2-дневного цикла (в UTC) ===
-function getCycleStartUTC() {
-  const nextResetUTC = getNextResetMidnightMSK();
-  const cycleStartMSK = nextResetUTC.getTime() - 48 * 3600000; // -48 часов
-  return new Date(cycleStartMSK - 3 * 3600000); // MSK → UTC
-}
-
-function startCountdown() {
-  clearInterval(countdownInterval);
-
-  countdownInterval = setInterval(async () => {
-    const targetUTC = getNextResetMidnightMSK();
-    const nowUTC = Date.now();
-    const diff = targetUTC.getTime() - nowUTC;
-    const totalTime = 48 * 3600000; // 48 часов
-
-    const bar = document.getElementById("countdown-bar");
-    const text = document.getElementById("countdown-text");
-
-    if (!bar || !text) return;
-
-    // === Таймер истёк ===
-    if (diff <= 0) {
-      clearInterval(countdownInterval);
-      bar.style.width = "0%";
-      bar.style.backgroundColor = "red";
-      text.textContent = "Обновление данных...";
-
-      try {
-        await loadData();
-        await loadPool();
-        text.textContent = "Данные обновлены!";
-        bar.style.backgroundColor = "limegreen";
-        bar.style.width = "100%";
-      } catch (err) {
-        text.textContent = "Ошибка обновления!";
-        console.error(err);
-      }
-
-      setTimeout(startCountdown, 10000);
-      return;
+    function getNextSundayMidnightMSK() {
+      const nowUTC = Date.now();
+      const mskOffset = 3 * 3600000;
+      const nowMSK = nowUTC + mskOffset;
+      const dayStartUTC = Math.floor(nowMSK / 86400000) * 86400000;
+      const startOfTodayMSK_UTC = dayStartUTC - mskOffset;
+      const dayOfWeek = new Date(nowMSK).getUTCDay();
+      const daysUntilSunday = dayOfWeek === 0 ? 7 : 7 - dayOfWeek;
+      const targetUTC = startOfTodayMSK_UTC + daysUntilSunday * 86400000;
+      return new Date(targetUTC);
     }
 
-    // === Прогресс ===
-    const percent = Math.max(0, Math.min(100, (diff / totalTime) * 100));
-    bar.style.width = `${percent}%`;
+    function startCountdown() {
+      clearInterval(countdownInterval);
+      countdownInterval = setInterval(async () => {
+        const targetUTC = getNextSundayMidnightMSK();
+        const nowUTC = Date.now();
+        const diff = targetUTC.getTime() - nowUTC;
+        const totalTime = 7 * 24 * 3600000;
 
-    const r = Math.floor(255 * (1 - percent / 100));
-    const g = Math.floor(255 * (percent / 100));
-    bar.style.backgroundColor = `rgb(${r}, ${g}, 0)`;
+        const bar = document.getElementById("countdown-bar");
+        const text = document.getElementById("countdown-text");
+        if (!bar || !text) return;
 
-    // === Форматирование времени ===
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-    const minutes = Math.floor((diff / (1000 * 60)) % 60);
-    const seconds = Math.floor((diff / 1000) % 60);
+        if (diff <= 0) {
+          clearInterval(countdownInterval);
+          bar.style.width = "0%";
+          bar.style.backgroundColor = "red";
+          text.textContent = "Обновление данных...";
+          try {
+            await loadData();
+            await loadPool();
+            text.textContent = "Данные обновлены!";
+            bar.style.backgroundColor = "limegreen";
+            bar.style.width = "100%";
+          } catch (err) {
+            text.textContent = "Ошибка обновления!";
+            console.error(err);
+          }
+          setTimeout(startCountdown, 10000);
+          return;
+        }
 
-    let timeString = "";
-    if (days > 0) timeString += `${days} д `;
-    if (hours > 0 || days > 0) timeString += `${hours} ч `;
-    if (minutes > 0 || hours > 0 || days > 0) timeString += `${minutes} мин `;
-    timeString += `${seconds} сек`;
+        const percent = Math.max(0, Math.min(100, (diff / totalTime) * 100));
+        bar.style.width = `${percent}%`;
 
-    text.textContent = `До обновления: ${timeString.trim()}`;
-  }, 1000);
-}
+        const r = Math.floor(255 * (1 - percent / 100));
+        const g = Math.floor(255 * (percent / 100));
+        bar.style.backgroundColor = `rgb(${r}, ${g}, 0)`;
 
-// Запуск
-document.addEventListener('DOMContentLoaded', startCountdown);
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((diff / (1000 * 60)) % 60);
+        const seconds = Math.floor((diff / 1000) % 60);
+
+        let timeString = "";
+        if (days > 0) timeString += `${days} д `;
+        if (hours > 0 || days > 0) timeString += `${hours} ч `;
+        if (minutes > 0 || hours > 0 || days > 0) timeString += `${minutes} мин `;
+        timeString += `${seconds} сек`;
+
+        text.textContent = `До обновления: ${timeString.trim()}`;
+      }, 1000);
+    }
+
+    // Инициализация
+    document.addEventListener('DOMContentLoaded', startCountdown);
 
     document.getElementById('login').onclick = () => window.location.href = '/auth/login';
     document.getElementById('logout').onclick = () => window.location.href = '/auth/logout';
@@ -729,6 +1027,7 @@ document.addEventListener('DOMContentLoaded', startCountdown);
 
     (async () => {
       await fetchUser();
+      await loadCurrentCriteria();
       await loadPool();
       await loadData();
       startCountdown();
