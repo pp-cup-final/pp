@@ -725,7 +725,7 @@
         }
 
         const html = maps.map(m => {
-          const map = m.pool_maps_test || {};
+          const map = m.pool_maps || {};
           const title = escapeHtml(map.title || 'Без названия');
           const bg = escapeHtml(map.background_url || '');
           const scoreId = m.score_id || null;
@@ -820,10 +820,10 @@
           let best = null;
           if (participantsCache && Array.isArray(participantsCache)) {
             for (const p of participantsCache) {
-              if (!p.player_scores_test) continue;
-              for (const ps of p.player_scores_test) {
+              if (!p.player_scores) continue;
+              for (const ps of p.player_scores) {
                 if (!ps.score_id) continue; // только реальные скоры
-                const pm = ps.pool_maps_test || null;
+                const pm = ps.pool_maps || null;
                 if (pm?.id === map.id) {
                   let value;
                   if (currentCriteria === 'pp') value = Number(ps.pp) || 0;
