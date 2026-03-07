@@ -1197,9 +1197,10 @@ async function updatePoolPP() {
 
 
 // CRON: каждый день в 00:01 Moscow time, но выполняется только каждые 2 дня от 2025-10-20 (0,2,4...)
-cron.schedule("1 0 * * 0", async () => {
+cron.schedule("30 0 * * 0", async () => {
   console.log("🚀 CRON пул-капа запущен (еженедельное завершение)");
-
+const today = new Date();
+today.setHours(0, 0, 0, 0);
   let token = null;
 
   try {
