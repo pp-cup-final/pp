@@ -882,15 +882,15 @@
             const modsString = best.mods && best.mods.length ? best.mods.join('') : 'NM';
 
             footer.innerHTML = `
-              <div style="display:flex; flex-direction:column; align-items:flex-start; width:100%;">
-                <div class="best-player" style="margin-bottom:2px;">
-                  <img src="${escapeHtml(best.avatar || '')}" alt="avatar">
-                  <div class="name" title="${escapeHtml(best.nickname || '')}">${escapeHtml(best.nickname || '')}</div>
-                </div>
-                <div style="font-size:0.7rem; color:#aaa; margin-left:38px;">${modsString}</div>
-              </div>
-              <div class="pp">${displayValue}</div>
-            `;
+  <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">
+    <img src="${escapeHtml(best.avatar || '')}" alt="avatar" style="width:30px; height:30px; border-radius:50%; object-fit:cover; flex-shrink:0;">
+    <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
+      <div class="name" title="${escapeHtml(best.nickname || '')}" style="font-weight:600; font-size:13px; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(best.nickname || '')}</div>
+      <div style="font-size:0.7rem; color:#aaa; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${modsString}</div>
+    </div>
+  </div>
+  <div class="pp">${displayValue}</div>
+`;
           } else {
             footer.innerHTML = `
               <div style="display:flex; flex-direction:column; align-items:flex-start; width:100%;">
