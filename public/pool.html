@@ -19,7 +19,12 @@
       width: 10%;
       text-align: center;
     }
-
+.pool-card-footer .pp {
+  padding-right: 5%;
+  font-weight: 700;
+  color: #ffcc00;
+  white-space: nowrap;
+}
     /* Стили для навигационной панели */
     nav {
       position: fixed;
@@ -40,12 +45,7 @@
     th.highlight, td.highlight {
       background-color: rgba(255, 122, 0, 0.3) !important;
     }
-.pool-card-footer .pp {
-  font-size: 0.8rem;
-  padding-right: 10%;
-  white-space: nowrap;
-  text-align: right;
-}
+
     .nav-left {
       font-weight: bold;
       font-size: 1.8rem;
@@ -877,26 +877,26 @@
           footer.className = 'pool-card-footer';
 
           if (best) {
-            let displayValue;
-            if (currentCriteria === 'pp') displayValue = Math.round(best.value) + ' pp';
-            else if (currentCriteria === 'combo') displayValue = best.value.toLocaleString() + ' x';
-            else if (currentCriteria === 'accuracy') displayValue = (best.value * 100).toFixed(2) + '%';
-            else if (currentCriteria === 'score') displayValue = best.value.toLocaleString();
-            else if (currentCriteria === 'miss') displayValue = best.value.toString(); // просто число
+  let displayValue;
+  if (currentCriteria === 'pp') displayValue = Math.round(best.value) + ' pp';
+  else if (currentCriteria === 'combo') displayValue = best.value.toLocaleString() + ' x';
+  else if (currentCriteria === 'accuracy') displayValue = (best.value * 100).toFixed(2) + '%';
+  else if (currentCriteria === 'score') displayValue = best.value.toLocaleString();
+  else if (currentCriteria === 'miss') displayValue = best.value.toString();
 
-            const modsString = best.mods && best.mods.length ? best.mods.join('') : 'NM';
+  const modsString = best.mods && best.mods.length ? best.mods.join('') : 'NM';
 
-            footer.innerHTML = `
-  <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">
-    <img src="${escapeHtml(best.avatar || '')}" alt="avatar" style="width:30px; height:30px; border-radius:50%; object-fit:cover; flex-shrink:0;">
-    <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
-      <div class="name" title="${escapeHtml(best.nickname || '')}" style="font-weight:600; font-size:13px; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(best.nickname || '')}</div>
-      <div style="font-size:0.7rem; color:#aaa; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${modsString}</div>
+  footer.innerHTML = `
+    <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">
+      <img src="${escapeHtml(best.avatar || '')}" alt="avatar" style="width:30px; height:30px; border-radius:50%; object-fit:cover; flex-shrink:0;">
+      <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
+        <div class="name" title="${escapeHtml(best.nickname || '')}" style="font-weight:600; font-size:13px; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(best.nickname || '')}</div>
+        <div style="font-size:0.7rem; color:#aaa; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${modsString}</div>
+      </div>
     </div>
-  </div>
-  <div class="pp">${displayValue}</div>
-`;
-          } else {
+    <div style="font-size:0.8rem; font-weight:700; color:#ffcc00; white-space:nowrap; flex-shrink:0; text-align:right;">${displayValue}</div>
+  `;
+} else {
             footer.innerHTML = `
               <div style="display:flex; flex-direction:column; align-items:flex-start; width:100%;">
                 <div class="best-player" style="visibility:hidden; height:30px;"></div>
