@@ -704,100 +704,133 @@
     }
 
     async function toggleMaps(playerId) {
-      const mapsTr = document.getElementById(`maps-row-${playerId}`);
-      if (!mapsTr) return;
-      if (mapsTr.style.display === 'table-row') {
-        mapsTr.style.display = 'none';
-        return;
-      }
+  const mapsTr = document.getElementById(`maps-row-${playerId}`);
+  if (!mapsTr) return;
+  if (mapsTr.style.display === 'table-row') {
+    mapsTr.style.display = 'none';
+    return;
+  }
 
-      const container = document.getElementById(`maps-container-${playerId}`);
-      container.innerHTML = '<div style="color:#aaa">Загрузка...</div>';
+  const container = document.getElementById(`maps-container-${playerId}`);
+  container.innerHTML = '<div style="color:#aaa">Загрузка...</div>';
 
-      try {
-        const res = await fetch(`/api/pool/player/${playerId}`);
-        if (!res.ok) {
-          container.innerHTML = '<div style="color:#f55">Ошибка загрузки карт</div>';
-          mapsTr.style.display = 'table-row';
-          return;
-        }
-
-        const maps = await res.json();
-        if (!Array.isArray(maps) || maps.length === 0) {
-          container.innerHTML = '<div style="color:#aaa">Карт пока нет или игрок ещё не имеет записей.</div>';
-          mapsTr.style.display = 'table-row';
-          return;
-        }
-
-        const html = maps.map(m => {
-          const map = m.pool_maps || {};
-          const title = escapeHtml(map.title || 'Без названия');
-          const bg = escapeHtml(map.background_url || '');
-          const scoreId = m.score_id || null;
-          const mapUrl = escapeHtml(map.map_url || (map.beatmap_id ? `https://osu.ppy.sh/beatmaps/${map.beatmap_id}` : '#'));
-          const targetUrl = scoreId ? `https://osu.ppy.sh/scores/osu/${encodeURIComponent(scoreId)}` : '#';
-
-          let metricValue, metricDisplay;
-          if (currentCriteria === 'pp') {
-            metricValue = Number(m.pp) || 0;
-            metricDisplay = Math.round(metricValue) + ' pp';
-          } else if (currentCriteria === 'combo') {
-            metricValue = Number(m.max_combo) || 0;
-            metricDisplay = metricValue.toLocaleString() + ' x';
-          } else if (currentCriteria === 'accuracy') {
-            metricValue = (Number(m.accuracy) || 0) * 100;
-            metricDisplay = metricValue.toFixed(2) + '%';
-          } else if (currentCriteria === 'score') {
-            metricValue = Number(m.score) || 0;
-            metricDisplay = metricValue.toLocaleString();
-          } else if (currentCriteria === 'miss') {
-            metricValue = Number(m.miss_count) || 0;
-            metricDisplay = metricValue.toString(); // просто число, без знака
-          }
-
-          const hasScore = metricValue > 0 || !!scoreId;
-          const stateClass = hasScore ? ' active' : ' disabled';
-
-          let modsDisplay = '';
-          if (hasScore) {
-            const modsArray = m.mods && Array.isArray(m.mods) ? m.mods : [];
-            const modsString = modsArray.length ? modsArray.join('') : 'NM';
-            modsDisplay = `<span style="font-size:0.7rem; color:#aaa;">${modsString}</span>`;
-          } else {
-            modsDisplay = `<span style="font-size:0.7rem; color:#666;">Карта не сыграна</span>`;
-          }
-
-          // Дополнительно отображаем количество миссов, если есть скор (необязательно)
-          let missDisplay = '';
-          if (hasScore && m.miss_count !== undefined) {
-            missDisplay = `<span style="font-size:0.7rem; color:#ff6b6b; margin-left:4px;">💔 ${m.miss_count}</span>`;
-          }
-
-          return `
-            <a class="map-entry${stateClass}" 
-               href="${hasScore ? targetUrl : '#'}" 
-               ${hasScore ? 'target="_blank"' : ''}
-               ${hasScore ? '' : 'aria-disabled="true" tabindex="-1"'}
-               role="${hasScore ? 'link' : 'presentation'}">
-              <div class="map-cover" style="background-image:url('${bg}')"></div>
-              <div class="map-info" style="flex-direction:column; align-items:flex-start;">
-                <span>${title}</span>
-                ${modsDisplay}
-                ${missDisplay}
-              </div>
-              <div class="map-pp" style="margin-left:auto; font-weight:600; color:#ffcc00;">${metricDisplay}</div>
-            </a>
-          `;
-        }).join('');
-
-        container.innerHTML = html;
-        mapsTr.style.display = 'table-row';
-      } catch (err) {
-        console.error('Ошибка получения карт игрока:', err);
-        container.innerHTML = '<div style="color:#f55">Ошибка при получении данных</div>';
-        mapsTr.style.display = 'table-row';
-      }
+  try {
+    const res = await fetch(`/api/pool/player/${playerId}`);
+    if (!res.ok) {
+      container.innerHTML = '<div style="color:#f55">Ошибка загрузки карт</div>';
+      mapsTr.style.display = 'table-row';
+      return;
     }
+
+    const maps = await res.json();
+    if (!Array.isArray(maps) || maps.length === 0) {
+      container.innerHTML = '<div style="color:#aaa">Карт пока нет или игрок ещё не имеет записей.</div>';
+      mapsTr.style.display = 'table-row';
+      return;
+    }
+
+    // Сортируем скоры по текущему критерию
+    const sortedMaps = [...maps].sort((a, b) => {
+      if (currentCriteria === 'miss') {
+        // Для миссов – по возрастанию (меньше лучше)
+        return (a.miss_count || 0) - (b.miss_count || 0);
+      } else {
+        let valA, valB;
+        switch (currentCriteria) {
+          case 'pp':
+            valA = a.pp || 0;
+            valB = b.pp || 0;
+            break;
+          case 'combo':
+            valA = a.max_combo || 0;
+            valB = b.max_combo || 0;
+            break;
+          case 'accuracy':
+            valA = a.accuracy || 0;
+            valB = b.accuracy || 0;
+            break;
+          case 'score':
+            valA = a.score || 0;
+            valB = b.score || 0;
+            break;
+          default:
+            valA = a.pp || 0;
+            valB = b.pp || 0;
+        }
+        // Для остальных – по убыванию (больше лучше)
+        return valB - valA;
+      }
+    });
+
+    const html = sortedMaps.map(m => {
+      const map = m.pool_maps || {};
+      const title = escapeHtml(map.title || 'Без названия');
+      const bg = escapeHtml(map.background_url || '');
+      const scoreId = m.score_id || null;
+      const mapUrl = escapeHtml(map.map_url || (map.beatmap_id ? `https://osu.ppy.sh/beatmaps/${map.beatmap_id}` : '#'));
+      const targetUrl = scoreId ? `https://osu.ppy.sh/scores/osu/${encodeURIComponent(scoreId)}` : '#';
+
+      let metricValue, metricDisplay;
+      if (currentCriteria === 'pp') {
+        metricValue = Number(m.pp) || 0;
+        metricDisplay = Math.round(metricValue) + ' pp';
+      } else if (currentCriteria === 'combo') {
+        metricValue = Number(m.max_combo) || 0;
+        metricDisplay = metricValue.toLocaleString() + ' x';
+      } else if (currentCriteria === 'accuracy') {
+        metricValue = (Number(m.accuracy) || 0) * 100;
+        metricDisplay = metricValue.toFixed(2) + '%';
+      } else if (currentCriteria === 'score') {
+        metricValue = Number(m.score) || 0;
+        metricDisplay = metricValue.toLocaleString();
+      } else if (currentCriteria === 'miss') {
+        metricValue = Number(m.miss_count) || 0;
+        metricDisplay = metricValue.toString(); // просто число, без знака
+      }
+
+      const hasScore = metricValue > 0 || !!scoreId;
+      const stateClass = hasScore ? ' active' : ' disabled';
+
+      let modsDisplay = '';
+      if (hasScore) {
+        const modsArray = m.mods && Array.isArray(m.mods) ? m.mods : [];
+        const modsString = modsArray.length ? modsArray.join('') : 'NM';
+        modsDisplay = `<span style="font-size:0.7rem; color:#aaa;">${modsString}</span>`;
+      } else {
+        modsDisplay = `<span style="font-size:0.7rem; color:#666;">Карта не сыграна</span>`;
+      }
+
+      // Дополнительно отображаем количество миссов, если есть скор (необязательно)
+      let missDisplay = '';
+      if (hasScore && m.miss_count !== undefined) {
+        missDisplay = `<span style="font-size:0.7rem; color:#ff6b6b; margin-left:4px;">💔 ${m.miss_count}</span>`;
+      }
+
+      return `
+        <a class="map-entry${stateClass}" 
+           href="${hasScore ? targetUrl : '#'}" 
+           ${hasScore ? 'target="_blank"' : ''}
+           ${hasScore ? '' : 'aria-disabled="true" tabindex="-1"'}
+           role="${hasScore ? 'link' : 'presentation'}">
+          <div class="map-cover" style="background-image:url('${bg}')"></div>
+          <div class="map-info" style="flex-direction:column; align-items:flex-start;">
+            <span>${title}</span>
+            ${modsDisplay}
+            ${missDisplay}
+          </div>
+          <div class="map-pp" style="margin-left:auto; font-weight:600; color:#ffcc00;">${metricDisplay}</div>
+        </a>
+      `;
+    }).join('');
+
+    container.innerHTML = html;
+    mapsTr.style.display = 'table-row';
+  } catch (err) {
+    console.error('Ошибка получения карт игрока:', err);
+    container.innerHTML = '<div style="color:#f55">Ошибка при получении данных</div>';
+    mapsTr.style.display = 'table-row';
+  }
+}
 
     async function loadPool() {
       try {
