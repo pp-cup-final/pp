@@ -1037,10 +1037,10 @@ async function updatePoolPP() {
       return;
     }
 
-    // Получаем текущий критерий
+    // Получаем текущий критерий из правильной таблицы
     let currentCriteria = 'pp';
     const { data: criteriaData, error: criteriaErr } = await supabase
-      .from('pool_current')
+      .from('pool_current_test') // ← исправлено
       .select('criteria')
       .eq('id', 1)
       .single();
@@ -1105,10 +1105,15 @@ async function updatePoolPP() {
                   case 'combo': return s.max_combo || 0;
                   case 'accuracy': return s.accuracy || 0;
                   case 'score': return s.score || 0;
+                  case 'miss': return s.statistics?.count_miss || 0; // ← добавлено
                   default: return s.pp || 0;
                 }
               };
-              return getValue(current) > getValue(best) ? current : best;
+              const bestVal = getValue(best);
+              const currVal = getValue(current);
+              // Для miss меньшее значение лучше
+              const isBetter = currentCriteria === 'miss' ? currVal < bestVal : currVal > bestVal;
+              return isBetter ? current : best;
             }, candidates[0]);
           }
         } catch (e) {
