@@ -107,15 +107,15 @@ app.get('/api/recommend', async (req, res) => {
     }
 
     const recommendations = [];
-    
-    // Рассчитываем диапазон поиска: 2-5% от ранга, но не меньше 50 и не больше 300
-    let deltaPercent = 0.03 + (Math.random() * 0.37); // случайно от 3% до 5%
+
+    // Рассчитываем диапазон поиска: 3-5% от ранга, но не меньше 50 и не больше 300
+    let deltaPercent = 0.03 + (Math.random() * 0.02); // от 3% до 5%
     let delta = Math.floor(rank * deltaPercent);
-    delta = Math.max(50, Math.min(delta, 300)); // ограничиваем абсолютное отклонение
+    delta = Math.max(50, Math.min(delta, 300));
 
     // Генерируем 4 рекомендации
     for (let i = 0; i < 4; i++) {
-      // Выбираем направление: с вероятностью 70% ищем игроков сильнее (ранг меньше), иначе слабее
+      // Выбираем направление: с вероятностью 50% ищем сильнее (ранг меньше), иначе слабее
       const direction = Math.random() < 0.5 ? -1 : 1;
       let targetRank = rank + direction * (Math.floor(Math.random() * delta) + 1);
       if (targetRank < 1) targetRank = 1;
@@ -129,12 +129,11 @@ app.get('/api/recommend', async (req, res) => {
       while (attempts < maxAttempts && !score) {
         // Сначала пытаемся получить игрока через Respektive API
         targetPlayer = await getPlayerByRank(targetRank);
-        
+
         // Если Respektive не сработал, используем старый метод через rankings API
         if (!targetPlayer) {
           const pageSize = 50;
           const page = Math.floor((targetRank - 1) / pageSize) + 1;
-          // Ограничим page, чтобы не выйти за пределы (если targetRank > 10000, page может быть большим, но rankings вернёт пустоту)
           const rankingsRes = await axios.get(`https://osu.ppy.sh/api/v2/rankings/osu/performance?page=${page}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
@@ -147,30 +146,34 @@ app.get('/api/recommend', async (req, res) => {
           targetPlayer = ranking[randomIndex].user;
         }
 
-        // Получаем скоры игрока
+        // Получаем скоры игрока (топ-100)
         const scoresRes = await axios.get(
           `https://osu.ppy.sh/api/v2/users/${targetPlayer.id}/scores/best?mode=osu&limit=100&offset=0`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        const scores = scoresRes.data;
-        if (scores && scores.length > 0) {
+        const allScores = scoresRes.data;
+        if (allScores && allScores.length > 0) {
+          // Берём только топ-25 по PP (первые 25, так как API возвращает по убыванию PP)
+          const top25Scores = allScores.slice(0, 25);
+
           // Фильтруем по модам
-          let filteredScores = scores;
+          let filteredScores = top25Scores;
           if (mode === 'dt') {
-            filteredScores = scores.filter(s => {
+            filteredScores = top25Scores.filter(s => {
               const mods = s.mods || [];
               return mods.some(m => m === 'DT' || m === 'NC');
             });
           } else if (mode === 'no-dt') {
-            filteredScores = scores.filter(s => {
+            filteredScores = top25Scores.filter(s => {
               const mods = s.mods || [];
               return !mods.some(m => m === 'DT' || m === 'NC');
             });
           }
+
+          // Если после фильтрации остались скоры, выбираем случайный
           if (filteredScores.length > 0) {
-            const maxScoreIndex = Math.min(25, filteredScores.length) - 1;
-            const scoreIndex = Math.floor(Math.random() * (maxScoreIndex + 1));
-            score = filteredScores[scoreIndex];
+            const randomIndex = Math.floor(Math.random() * filteredScores.length);
+            score = filteredScores[randomIndex];
           }
         }
         attempts++;
