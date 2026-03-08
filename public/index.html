@@ -567,47 +567,52 @@
     // Вместо этого обработчик будет назначен в initModsToggle
 
     async function fetchRecommendation() {
-      if (!canRequestRecommendation) return;
+  if (!canRequestRecommendation) return;
 
-      const activeSegment = document.querySelector('.segment[data-mode].active');
-      const modsFilter = activeSegment ? activeSegment.dataset.mode : 'all';
+  const activeSegment = document.querySelector('.segment[data-mode].active');
+  const modsFilter = activeSegment ? activeSegment.dataset.mode : 'all';
 
-      if (!currentUser) {
-        alert('Необходимо авторизоваться');
-        window.location.href = '/auth/login';
-        return;
-      }
+  if (!currentUser) {
+    alert('Необходимо авторизоваться');
+    window.location.href = '/auth/login';
+    return;
+  }
 
-      canRequestRecommendation = false;
-      const fetchBtn = document.getElementById('fetchRecommendationBtn');
-      fetchBtn.style.opacity = '0.5';
-      fetchBtn.style.pointerEvents = 'none';
+  canRequestRecommendation = false;
+  const fetchBtn = document.getElementById('fetchRecommendationBtn');
+  // Текст, который должен быть после завершения загрузки
+  let normalText = isFirstLoad ? '🔍 Подобрать' : '➡️ Другие';
+  fetchBtn.textContent = '⏳ Загрузка...';
+  fetchBtn.style.opacity = '0.5';
+  fetchBtn.style.pointerEvents = 'none';
 
-      try {
-        const res = await fetch(`/api/recommend?mode=${modsFilter}`);
-        if (!res.ok) {
-          const err = await res.json();
-          alert(err.error || 'Ошибка получения рекомендаций');
-          return;
-        }
-        const data = await res.json();
-        displayRecommendations(data);
-
-        if (isFirstLoad) {
-          recommendationGrid.style.display = 'grid';
-          isFirstLoad = false;
-        }
-      } catch (err) {
-        console.error(err);
-        alert('Ошибка сети');
-      } finally {
-        setTimeout(() => {
-          canRequestRecommendation = true;
-          fetchBtn.style.opacity = '1';
-          fetchBtn.style.pointerEvents = 'auto';
-        }, 5000);
-      }
+  try {
+    const res = await fetch(`/api/recommend?mode=${modsFilter}`);
+    if (!res.ok) {
+      const err = await res.json();
+      alert(err.error || 'Ошибка получения рекомендаций');
+      return;
     }
+    const data = await res.json();
+    displayRecommendations(data);
+
+    if (isFirstLoad) {
+      recommendationGrid.style.display = 'grid';
+      isFirstLoad = false;
+      normalText = '➡️ Другие'; // после первой загрузки меняем постоянный текст
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Ошибка сети');
+  } finally {
+    setTimeout(() => {
+      canRequestRecommendation = true;
+      fetchBtn.textContent = normalText; // возвращаем нужный текст
+      fetchBtn.style.opacity = '1';
+      fetchBtn.style.pointerEvents = 'auto';
+    }, 5000);
+  }
+}
 
     function initModsToggle() {
       const segments = document.querySelectorAll('.segment[data-mode]');
