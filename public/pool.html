@@ -342,19 +342,17 @@
     }
 
     .pool-card {
-      background-color: #1e1e1e;
-      border-radius: 12px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
       width: 100%;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      cursor: pointer;
+  height: auto;
+       position: relative;
+  transition: outline 0.2s ease;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
     }
 
     .pool-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 4px 20px rgba(255,255,255,0.15);
+      outline-color: #ff7a00;
+      transform: none;
     }
 
     .pool-card img {
@@ -372,6 +370,26 @@
       flex: 1;
     }
 
+.direct-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  color: #fff;
+  font-size: 18px;
+  text-decoration: none;
+  transition: outline 0.2s ease;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  z-index: 10;
+}
+.direct-icon:hover {
+  outline-color: #ff7a00;
+  background: rgba(0, 0, 0, 0.9);
+}
     .pool-card-footer {
       display: flex;
       justify-content: space-between;
@@ -505,7 +523,9 @@
       color: #ffb86b !important;
       text-decoration: underline !important;
     }
-
+.pool-card-title a:hover {
+  color: #ff7a00 !important;
+}
     .map-entry.disabled {
       cursor: default;
       opacity: 0.5;
@@ -521,6 +541,161 @@
       cursor: help;
       color: #ff6b6b;
     }
+    .pool-card-image-container {
+  position: relative;
+  width: 100%;
+  height: 140px;
+  overflow: hidden;
+}
+
+.pool-card-image-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Иконка osu! direct */
+.direct-icon {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 18px;
+  text-decoration: none;
+  transition: outline 0.2s ease;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  z-index: 10;
+  border: none;
+}
+
+.direct-icon:hover {
+  outline-color: #ff7a00;
+  background: rgba(0, 0, 0, 0.9);
+}
+
+/* Карточка пула */
+.pool-card {
+  width: 100%;
+  background-color: #1e1e1e;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: outline 0.2s ease;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  text-decoration: none;
+  color: inherit;
+}
+.pool-card-image-container {
+  position: relative;
+  width: 100%;
+  height: 140px;
+  overflow: hidden;
+}
+
+.direct-icon {
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 18px;
+  text-decoration: none;
+  transition: outline 0.2s ease;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.direct-icon:hover {
+  outline-color: #ff7a00;
+  background: rgba(0, 0, 0, 0.9);
+}
+.pool-card:hover {
+  outline-color: #ff7a00;
+  transform: none; /* отключаем сдвиг, если он был */
+}
+.icon-container {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  z-index: 10;
+}
+
+/* Стили для иконок */
+.direct-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  color: #fff;
+  font-size: 18px;
+  text-decoration: none;
+  transition: outline 0.2s ease;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.direct-icon:hover {
+  outline-color: #ff7a00;
+  background: rgba(0, 0, 0, 0.9);
+}
+
+/* Убедимся, что карточка не переопределяет позиционирование */
+.pool-card-image-container {
+  position: relative;
+}
+.icon-container {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  z-index: 10;
+  white-space: nowrap;
+}
+
+/* Единые стили для иконок */
+.direct-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 32px !important;
+  height: 32px !important;
+  background: rgba(0, 0, 0, 0.7) !important;
+  border-radius: 50% !important;
+  color: #fff !important;
+  font-size: 18px !important;
+  text-decoration: none !important;
+  transition: outline 0.2s ease !important;
+  outline: 2px solid transparent !important;
+  outline-offset: 2px !important;
+  flex-shrink: 0 !important;
+  position: static !important; /* убираем любое абсолютное позиционирование */
+  bottom: auto !important;
+  right: auto !important;
+}
+
+.direct-icon:hover {
+  outline-color: #ff7a00 !important;
+  background: rgba(0, 0, 0, 0.9) !important;
+}
   </style>
 </head>
 <body>
@@ -704,250 +879,225 @@
     }
 
     async function toggleMaps(playerId) {
-  const mapsTr = document.getElementById(`maps-row-${playerId}`);
-  if (!mapsTr) return;
-  if (mapsTr.style.display === 'table-row') {
-    mapsTr.style.display = 'none';
-    return;
-  }
-
-  const container = document.getElementById(`maps-container-${playerId}`);
-  container.innerHTML = '<div style="color:#aaa">Загрузка...</div>';
-
-  try {
-    const res = await fetch(`/api/pool/player/${playerId}`);
-    if (!res.ok) {
-      container.innerHTML = '<div style="color:#f55">Ошибка загрузки карт</div>';
-      mapsTr.style.display = 'table-row';
-      return;
-    }
-
-    const maps = await res.json();
-    if (!Array.isArray(maps) || maps.length === 0) {
-      container.innerHTML = '<div style="color:#aaa">Карт пока нет или игрок ещё не имеет записей.</div>';
-      mapsTr.style.display = 'table-row';
-      return;
-    }
-
-    // Сортируем скоры по текущему критерию
-    const sortedMaps = [...maps].sort((a, b) => {
-      if (currentCriteria === 'miss') {
-        // Для миссов – по возрастанию (меньше лучше)
-        return (a.miss_count || 0) - (b.miss_count || 0);
-      } else {
-        let valA, valB;
-        switch (currentCriteria) {
-          case 'pp':
-            valA = a.pp || 0;
-            valB = b.pp || 0;
-            break;
-          case 'combo':
-            valA = a.max_combo || 0;
-            valB = b.max_combo || 0;
-            break;
-          case 'accuracy':
-            valA = a.accuracy || 0;
-            valB = b.accuracy || 0;
-            break;
-          case 'score':
-            valA = a.score || 0;
-            valB = b.score || 0;
-            break;
-          default:
-            valA = a.pp || 0;
-            valB = b.pp || 0;
-        }
-        // Для остальных – по убыванию (больше лучше)
-        return valB - valA;
-      }
-    });
-
-    const html = sortedMaps.map(m => {
-      const map = m.pool_maps || {};
-      const title = escapeHtml(map.title || 'Без названия');
-      const bg = escapeHtml(map.background_url || '');
-      const scoreId = m.score_id || null;
-      const mapUrl = escapeHtml(map.map_url || (map.beatmap_id ? `https://osu.ppy.sh/beatmaps/${map.beatmap_id}` : '#'));
-      const targetUrl = scoreId ? `https://osu.ppy.sh/scores/osu/${encodeURIComponent(scoreId)}` : '#';
-
-      let metricValue, metricDisplay;
-      if (currentCriteria === 'pp') {
-        metricValue = Number(m.pp) || 0;
-        metricDisplay = Math.round(metricValue) + ' pp';
-      } else if (currentCriteria === 'combo') {
-        metricValue = Number(m.max_combo) || 0;
-        metricDisplay = metricValue.toLocaleString() + ' x';
-      } else if (currentCriteria === 'accuracy') {
-        metricValue = (Number(m.accuracy) || 0) * 100;
-        metricDisplay = metricValue.toFixed(2) + '%';
-      } else if (currentCriteria === 'score') {
-        metricValue = Number(m.score) || 0;
-        metricDisplay = metricValue.toLocaleString();
-      } else if (currentCriteria === 'miss') {
-        metricValue = Number(m.miss_count) || 0;
-        metricDisplay = metricValue.toString(); // просто число, без знака
+      const mapsTr = document.getElementById(`maps-row-${playerId}`);
+      if (!mapsTr) return;
+      if (mapsTr.style.display === 'table-row') {
+        mapsTr.style.display = 'none';
+        return;
       }
 
-      const hasScore = metricValue > 0 || !!scoreId;
-      const stateClass = hasScore ? ' active' : ' disabled';
+      const container = document.getElementById(`maps-container-${playerId}`);
+      container.innerHTML = '<div style="color:#aaa">Загрузка...</div>';
 
-      let modsDisplay = '';
-      if (hasScore) {
-        const modsArray = m.mods && Array.isArray(m.mods) ? m.mods : [];
-        const modsString = modsArray.length ? modsArray.join('') : 'NM';
-        modsDisplay = `<span style="font-size:0.7rem; color:#aaa;">${modsString}</span>`;
-      } else {
-        modsDisplay = `<span style="font-size:0.7rem; color:#666;">Карта не сыграна</span>`;
-      }
-
-      // Дополнительно отображаем количество миссов, если есть скор (необязательно)
-      let missDisplay = '';
-      if (hasScore && m.miss_count !== undefined) {
-        missDisplay = `<span style="font-size:0.7rem; color:#ff6b6b; margin-left:4px;">💔 ${m.miss_count}</span>`;
-      }
-
-      return `
-        <a class="map-entry${stateClass}" 
-           href="${hasScore ? targetUrl : '#'}" 
-           ${hasScore ? 'target="_blank"' : ''}
-           ${hasScore ? '' : 'aria-disabled="true" tabindex="-1"'}
-           role="${hasScore ? 'link' : 'presentation'}">
-          <div class="map-cover" style="background-image:url('${bg}')"></div>
-          <div class="map-info" style="flex-direction:column; align-items:flex-start;">
-            <span>${title}</span>
-            ${modsDisplay}
-            ${missDisplay}
-          </div>
-          <div class="map-pp" style="margin-left:auto; font-weight:600; color:#ffcc00;">${metricDisplay}</div>
-        </a>
-      `;
-    }).join('');
-
-    container.innerHTML = html;
-    mapsTr.style.display = 'table-row';
-  } catch (err) {
-    console.error('Ошибка получения карт игрока:', err);
-    container.innerHTML = '<div style="color:#f55">Ошибка при получении данных</div>';
-    mapsTr.style.display = 'table-row';
-  }
-}
-
-    async function loadPool() {
       try {
-        const [mapsRes, participantsRes] = await Promise.all([
-          fetch('/api/pool/maps'),
-          fetch('/api/pool/participants')
-        ]);
-        if (!mapsRes.ok) {
-          document.getElementById('pool-cards').innerHTML = '<div style="color:#f55">Ошибка загрузки пула карт</div>';
+        const res = await fetch(`/api/pool/player/${playerId}`);
+        if (!res.ok) {
+          container.innerHTML = '<div style="color:#f55">Ошибка загрузки карт</div>';
+          mapsTr.style.display = 'table-row';
           return;
         }
-        const mapsCache = await mapsRes.json();
-        const participantsCache = participantsRes.ok ? await participantsRes.json() : null;
-        const container = document.getElementById('pool-cards');
-        container.innerHTML = '';
 
-        mapsCache.forEach(map => {
+        const maps = await res.json();
+        if (!Array.isArray(maps) || maps.length === 0) {
+          container.innerHTML = '<div style="color:#aaa">Карт пока нет или игрок ещё не имеет записей.</div>';
+          mapsTr.style.display = 'table-row';
+          return;
+        }
+
+        const html = maps.map(m => {
+          const map = m.pool_maps || {};
+          const title = escapeHtml(map.title || 'Без названия');
+          const bg = escapeHtml(map.background_url || '');
+          const scoreId = m.score_id || null;
           const mapUrl = escapeHtml(map.map_url || (map.beatmap_id ? `https://osu.ppy.sh/beatmaps/${map.beatmap_id}` : '#'));
-          const coverUrl = escapeHtml(map.background_url || '');
-          const title = escapeHtml(map.title || `Map ${map.beatmap_id || map.id}`);
-          const ar = map.ar || 10;
-          const bannedModsIndicator = ar <= 9 ? `<span class="banned-mods-indicator" title="HR, DT, NC запрещены">⚠️</span>` : '';
+          const targetUrl = scoreId ? `https://osu.ppy.sh/scores/osu/${encodeURIComponent(scoreId)}` : '#';
 
-          // Определяем лучшего игрока на карте по текущему критерию
-          let best = null;
-          if (participantsCache && Array.isArray(participantsCache)) {
-            for (const p of participantsCache) {
-              if (!p.player_scores) continue;
-              for (const ps of p.player_scores) {
-                if (!ps.score_id) continue; // только реальные скоры
-                const pm = ps.pool_maps || null;
-                if (pm?.id === map.id) {
-                  let value;
-                  if (currentCriteria === 'pp') value = Number(ps.pp) || 0;
-                  else if (currentCriteria === 'combo') value = Number(ps.max_combo) || 0;
-                  else if (currentCriteria === 'accuracy') value = Number(ps.accuracy) || 0;
-                  else if (currentCriteria === 'score') value = Number(ps.score) || 0;
-                  else if (currentCriteria === 'miss') value = Number(ps.miss_count) || 0;
+          let metricValue, metricDisplay;
+          if (currentCriteria === 'pp') {
+            metricValue = Number(m.pp) || 0;
+            metricDisplay = Math.round(metricValue) + ' pp';
+          } else if (currentCriteria === 'combo') {
+            metricValue = Number(m.max_combo) || 0;
+            metricDisplay = metricValue.toLocaleString() + ' x';
+          } else if (currentCriteria === 'accuracy') {
+            metricValue = (Number(m.accuracy) || 0) * 100;
+            metricDisplay = metricValue.toFixed(2) + '%';
+          } else if (currentCriteria === 'score') {
+            metricValue = Number(m.score) || 0;
+            metricDisplay = metricValue.toLocaleString();
+          } else if (currentCriteria === 'miss') {
+            metricValue = Number(m.miss_count) || 0;
+            metricDisplay = metricValue.toString(); // просто число, без знака
+          }
 
-                  const isBetter = !best || (
-                    currentCriteria === 'miss' ? value < best.value : value > best.value
-                  );
+          const hasScore = metricValue > 0 || !!scoreId;
+          const stateClass = hasScore ? ' active' : ' disabled';
 
-                  if (isBetter) {
-                    best = {
-                      participantId: p.id,
-                      userid: p.userid,
-                      nickname: p.nickname,
-                      avatar: p.avatar,
-                      value: value,
-                      mods: ps.mods || [],
-                      scoreRowId: ps.id ?? null
-                    };
-                  }
-                }
+          let modsDisplay = '';
+          if (hasScore) {
+            const modsArray = m.mods && Array.isArray(m.mods) ? m.mods : [];
+            const modsString = modsArray.length ? modsArray.join('') : 'NM';
+            modsDisplay = `<span style="font-size:0.7rem; color:#aaa;">${modsString}</span>`;
+          } else {
+            modsDisplay = `<span style="font-size:0.7rem; color:#666;">Карта не сыграна</span>`;
+          }
+
+          // Дополнительно отображаем количество миссов, если есть скор (необязательно)
+          let missDisplay = '';
+          if (hasScore && m.miss_count !== undefined) {
+            missDisplay = `<span style="font-size:0.7rem; color:#ff6b6b; margin-left:4px;">💔 ${m.miss_count}</span>`;
+          }
+
+          return `
+            <a class="map-entry${stateClass}" 
+               href="${hasScore ? targetUrl : '#'}" 
+               ${hasScore ? 'target="_blank"' : ''}
+               ${hasScore ? '' : 'aria-disabled="true" tabindex="-1"'}
+               role="${hasScore ? 'link' : 'presentation'}">
+              <div class="map-cover" style="background-image:url('${bg}')"></div>
+              <div class="map-info" style="flex-direction:column; align-items:flex-start;">
+                <span>${title}</span>
+                ${modsDisplay}
+                ${missDisplay}
+              </div>
+              <div class="map-pp" style="margin-left:auto; font-weight:600; color:#ffcc00;">${metricDisplay}</div>
+            </a>
+          `;
+        }).join('');
+
+        container.innerHTML = html;
+        mapsTr.style.display = 'table-row';
+      } catch (err) {
+        console.error('Ошибка получения карт игрока:', err);
+        container.innerHTML = '<div style="color:#f55">Ошибка при получении данных</div>';
+        mapsTr.style.display = 'table-row';
+      }
+    }
+
+    async function loadPool() {
+  try {
+    const [mapsRes, participantsRes] = await Promise.all([
+      fetch('/api/pool/maps'),
+      fetch('/api/pool/participants')
+    ]);
+    if (!mapsRes.ok) {
+      document.getElementById('pool-cards').innerHTML = '<div style="color:#f55">Ошибка загрузки пула карт</div>';
+      return;
+    }
+    const mapsCache = await mapsRes.json();
+    const participantsCache = participantsRes.ok ? await participantsRes.json() : null;
+    const container = document.getElementById('pool-cards');
+    container.innerHTML = '';
+
+    mapsCache.forEach(map => {
+      const mapUrl = escapeHtml(map.map_url || (map.beatmap_id ? `https://osu.ppy.sh/beatmaps/${map.beatmap_id}` : '#'));
+      const coverUrl = escapeHtml(map.background_url || '');
+      const title = escapeHtml(map.title || `Map ${map.beatmap_id || map.id}`);
+      const ar = map.ar || 10;
+      const bannedModsIndicator = ar <= 9 ? `<span class="banned-mods-indicator" title="HR, DT, NC запрещены">⚠️</span>` : '';
+      const osuDirectUrl = `osu://b/${map.difficulty_id}`;
+      // Используем зеркало, которое сразу отдаёт файл .osz
+      const downloadUrl = `https://catboy.best/d/${map.beatmap_id}`; 
+
+      // Определяем лучшего игрока на карте
+      let best = null;
+      if (participantsCache && Array.isArray(participantsCache)) {
+        for (const p of participantsCache) {
+          if (!p.player_scores) continue;
+          for (const ps of p.player_scores) {
+            if (!ps.score_id) continue;
+            const pm = ps.pool_maps || null;
+            if (pm?.id === map.id) {
+              let value;
+              if (currentCriteria === 'pp') value = Number(ps.pp) || 0;
+              else if (currentCriteria === 'combo') value = Number(ps.max_combo) || 0;
+              else if (currentCriteria === 'accuracy') value = Number(ps.accuracy) || 0;
+              else if (currentCriteria === 'score') value = Number(ps.score) || 0;
+              else if (currentCriteria === 'miss') value = Number(ps.miss_count) || 0;
+
+              const isBetter = !best || (
+                currentCriteria === 'miss' ? value < best.value : value > best.value
+              );
+
+              if (isBetter) {
+                best = {
+                  participantId: p.id,
+                  userid: p.userid,
+                  nickname: p.nickname,
+                  avatar: p.avatar,
+                  value: value,
+                  mods: ps.mods || [],
+                  scoreRowId: ps.id ?? null
+                };
               }
             }
           }
-
-          // Создаём карточку
-          const card = document.createElement('a');
-          card.className = 'pool-card';
-          card.href = mapUrl;
-          card.target = '_blank';
-
-          card.innerHTML = `
-            <img class="cover" src="${coverUrl}" alt="">
-            <div class="pool-card-content">
-              <div class="pool-card-title">
-                ${title}
-                ${bannedModsIndicator}
-              </div>
-            </div>
-          `;
-
-          const footer = document.createElement('div');
-          footer.className = 'pool-card-footer';
-
-          if (best) {
-  let displayValue;
-  if (currentCriteria === 'pp') displayValue = Math.round(best.value) + ' pp';
-  else if (currentCriteria === 'combo') displayValue = best.value.toLocaleString() + ' x';
-  else if (currentCriteria === 'accuracy') displayValue = (best.value * 100).toFixed(2) + '%';
-  else if (currentCriteria === 'score') displayValue = best.value.toLocaleString();
-  else if (currentCriteria === 'miss') displayValue = best.value.toString();
-
-  const modsString = best.mods && best.mods.length ? best.mods.join('') : 'NM';
-
-  footer.innerHTML = `
-    <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">
-      <img src="${escapeHtml(best.avatar || '')}" alt="avatar" style="width:30px; height:30px; border-radius:50%; object-fit:cover; flex-shrink:0;">
-      <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
-        <div class="name" title="${escapeHtml(best.nickname || '')}" style="font-weight:600; font-size:13px; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(best.nickname || '')}</div>
-        <div style="font-size:0.7rem; color:#aaa; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${modsString}</div>
-      </div>
-    </div>
-    <div style="font-size:0.8rem; font-weight:700; color:#ffcc00; white-space:nowrap; flex-shrink:0; text-align:right;">${displayValue}</div>
-  `;
-} else {
-            footer.innerHTML = `
-              <div style="display:flex; flex-direction:column; align-items:flex-start; width:100%;">
-                <div class="best-player" style="visibility:hidden; height:30px;"></div>
-                <div style="font-size:0.7rem; color:#666; margin-left:38px;">Карта не сыграна</div>
-              </div>
-              <div class="pp">0</div>
-            `;
-          }
-
-          card.appendChild(footer);
-          container.appendChild(card);
-        });
-      } catch (err) {
-        console.error('loadPool error', err);
-        document.getElementById('pool-cards').innerHTML = '<div style="color:#f55">Ошибка при загрузке пула</div>';
+        }
       }
-    }
 
+      // Создаём карточку
+      const card = document.createElement('a');
+      card.className = 'pool-card';
+      card.href = mapUrl;
+      card.target = '_blank';
+
+      card.innerHTML = `
+  <div class="pool-card-image-container">
+    <img class="cover" src="${coverUrl}" alt="">
+    <div style="position: absolute; bottom: 8px; right: 8px; display: flex; gap: 4px; z-index: 10;">
+      <a href="${osuDirectUrl}" class="direct-icon" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: rgba(0,0,0,0.7); border-radius: 50%; color: #fff; font-size: 18px; text-decoration: none; transition: outline 0.2s ease; outline: 2px solid transparent; outline-offset: 2px;" onclick="event.stopPropagation();" title="Открыть в osu! direct">⚡</a>
+      <a href="${downloadUrl}" class="direct-icon" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: rgba(0,0,0,0.7); border-radius: 50%; color: #fff; font-size: 18px; text-decoration: none; transition: outline 0.2s ease; outline: 2px solid transparent; outline-offset: 2px;" onclick="event.stopPropagation();" target="_blank" rel="noopener noreferrer" title="Скачать карту">📥</a>
+    </div>
+  </div>
+  <div class="pool-card-content">
+    <div class="pool-card-title">
+      ${title}
+      ${bannedModsIndicator}
+    </div>
+  </div>
+`;
+
+      const footer = document.createElement('div');
+      footer.className = 'pool-card-footer';
+
+      if (best) {
+        let displayValue;
+        if (currentCriteria === 'pp') displayValue = Math.round(best.value) + ' pp';
+        else if (currentCriteria === 'combo') displayValue = best.value.toLocaleString() + ' x';
+        else if (currentCriteria === 'accuracy') displayValue = (best.value * 100).toFixed(2) + '%';
+        else if (currentCriteria === 'score') displayValue = best.value.toLocaleString();
+        else if (currentCriteria === 'miss') displayValue = best.value.toString();
+
+        const modsString = best.mods && best.mods.length ? best.mods.join('') : 'NM';
+
+        footer.innerHTML = `
+          <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">
+            <img src="${escapeHtml(best.avatar || '')}" alt="avatar" style="width:30px; height:30px; border-radius:50%; object-fit:cover; flex-shrink:0;">
+            <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
+              <div class="name" title="${escapeHtml(best.nickname || '')}" style="font-weight:600; font-size:13px; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(best.nickname || '')}</div>
+              <div style="font-size:0.7rem; color:#aaa; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${modsString}</div>
+            </div>
+          </div>
+          <div style="font-size:0.8rem; font-weight:700; color:#ffcc00; white-space:nowrap; flex-shrink:0; text-align:right;">${displayValue}</div>
+        `;
+      } else {
+        footer.innerHTML = `
+          <div style="display:flex; flex-direction:column; align-items:flex-start; width:100%;">
+            <div class="best-player" style="visibility:hidden; height:30px;"></div>
+            <div style="font-size:0.7rem; color:#666; margin-left:38px;">Карта не сыграна</div>
+          </div>
+          <div class="pp">0</div>
+        `;
+      }
+
+      card.appendChild(footer);
+      container.appendChild(card);
+    });
+  } catch (err) {
+    console.error('loadPool error', err);
+    document.getElementById('pool-cards').innerHTML = '<div style="color:#f55">Ошибка при загрузке пула</div>';
+  }
+}
     async function loadCurrentCriteria() {
       try {
         const res = await fetch('/api/pool/current-criteria');
